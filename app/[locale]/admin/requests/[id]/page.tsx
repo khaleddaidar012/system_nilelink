@@ -14,7 +14,6 @@ import { RequestQRCode } from "@/components/admin/requests/RequestQRCode"
 import { RequestInvoices } from "@/components/admin/shipments/RequestInvoices"
 import { RequestWorkflowSettings } from "@/components/admin/requests/RequestWorkflowSettings"
 import { StageManager } from "@/components/admin/requests/StageManager"
-import { ServiceProgressEditor } from "@/components/admin/requests/ServiceProgressEditor"
 
 export default function AdminRequestDetailPage() {
   const t = useTranslations()
@@ -24,7 +23,6 @@ export default function AdminRequestDetailPage() {
   const id = params.id as string
 
   const [request, setRequest] = useState<any>(null)
-  const [suggestedPrices, setSuggestedPrices] = useState<any[]>([])
   const [documents, setDocuments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [confirmingOrder, setConfirmingOrder] = useState(false)
@@ -113,14 +111,6 @@ export default function AdminRequestDetailPage() {
         setQuoteItems(data.quoteItems)
       } else {
         setQuoteItems([])
-      }
-
-      // 2. Fetch Suggested Prices from PricingEngine
-      const priceRes = data.request?.quoteRequired === false ? null : await fetch(`/api/admin/requests/${id}/price`)
-      const priceData = priceRes ? await priceRes.json() : { success: false }
-      if (!priceRes) setSuggestedPrices([])
-      if (priceData.success) {
-        setSuggestedPrices(priceData.data)
       }
 
       // 3. Fetch Documents
@@ -345,111 +335,8 @@ export default function AdminRequestDetailPage() {
               })()}
             </div>
 
-            {/* Nested Services and Pricing Engine */}
             <StageManager requestId={request._id} onUpdated={fetchRequestAndPrices} />
-            <ServiceProgressEditor requestId={request._id} updatedAt={request.updatedAt} onUpdated={fetchRequestAndPrices} />
-            <h3 className="text-lg font-bold text-secondary-900 dark:text-white mt-8 mb-4">
-              {t("admin.requests.detail.servicesTitle") || (isAr ? "الخدمات المطلوبة ومحرك التسعير" : "Requested Services & Pricing Engine")}
-            </h3>
-            
-            {request.services?.map((service: any) => {
-              const priceMatch = suggestedPrices.find((p) => p.serviceId === service._id)
 
-              return (
-                <div
-                  key={service._id}
-                  className="rounded-2xl border border-secondary-200 bg-white p-6 shadow-sm dark:border-secondary-800 dark:bg-secondary-900 mb-4"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <h4 className="font-bold capitalize text-lg text-primary-700 dark:text-primary-400">
-                      {service.serviceKey
-                        ? (t(`portal.requests.new.${service.serviceKey}`) !== `portal.requests.new.${service.serviceKey}`
-                            ? t(`portal.requests.new.${service.serviceKey}`)
-                            : service.serviceKey.replace(/_/g, " "))
-                        : t("admin.requests.detail.serviceLabel") || (isAr ? "الخدمة" : "Service")}
-                    </h4>
-                    <span className="text-xs font-semibold px-2 py-1 bg-secondary-100 dark:bg-secondary-800 dark:text-secondary-300 rounded-lg uppercase">
-                      {statusLabels[service.status]?.[isAr ? "ar" : "en"] || service.status || "—"}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 bg-secondary-50 p-4 rounded-xl dark:bg-secondary-800/50 mb-4">
-                    {service.details?.origin && (
-                      <div>
-                        <span className="block text-[10px] font-bold text-secondary-500 uppercase tracking-wider mb-1">
-                          {t("admin.requests.detail.origin") || (isAr ? "نقطة الانطلاق" : "Origin")}
-                        </span>
-                        <span className="font-semibold text-secondary-900 dark:text-white">
-                          {service.details.origin}
-                        </span>
-                      </div>
-                    )}
-                    {service.details?.destination && (
-                      <div>
-                        <span className="block text-[10px] font-bold text-secondary-500 uppercase tracking-wider mb-1">
-                          {t("admin.requests.detail.destination") || (isAr ? "وجهة الوصول" : "Destination")}
-                        </span>
-                        <span className="font-semibold text-secondary-900 dark:text-white">
-                          {service.details.destination}
-                        </span>
-                      </div>
-                    )}
-                    {service.details?.weight && (
-                      <div>
-                        <span className="block text-[10px] font-bold text-secondary-500 uppercase tracking-wider mb-1">
-                          {t("admin.requests.detail.weight") || (isAr ? "الوزن" : "Weight")}
-                        </span>
-                        <span className="font-semibold text-secondary-900 dark:text-white">
-                          {service.details.weight} kg
-                        </span>
-                      </div>
-                    )}
-                  {service.details?.containerType && <div><span className="font-semibold">{t("portal.requests.details.container_type")}:</span> {t.has(`portal.requests.details.container_types.${service.details.containerType}`) ? t(`portal.requests.details.container_types.${service.details.containerType}`) : service.details.containerType}</div>}
-                  {service.details?.containerSize && <div><span className="font-semibold">{t("portal.requests.details.container_size")}:</span> {t.has(`portal.requests.details.container_sizes.${service.details.containerSize}`) ? t(`portal.requests.details.container_sizes.${service.details.containerSize}`) : service.details.containerSize}</div>}
-                    {service.details?.volume && (
-                      <div>
-                        <span className="block text-[10px] font-bold text-secondary-500 uppercase tracking-wider mb-1">
-                          {t("admin.requests.detail.volume") || (isAr ? "الحجم" : "Volume")}
-                        </span>
-                        <span className="font-semibold text-secondary-900 dark:text-white">
-                          {service.details.volume} CBM
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Pricing Engine Suggestion */}
-                  {request.quoteRequired !== false && <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 p-4 rounded-xl flex items-center justify-between">
-                    <div>
-                      <h5 className="text-sm font-bold text-emerald-800 dark:text-emerald-400 flex items-center gap-1">
-                        <DollarSign size={16} /> {t("admin.requests.detail.suggestedPrice") || (isAr ? "السعر المقترح" : "Suggested Price")}
-                      </h5>
-                      <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-1 capitalize">
-                        {t("admin.requests.detail.matchedRule") || (isAr ? "قاعدة التسعير:" : "Pricing Rule:")}{" "}
-                        {priceMatch?.pricingType === "manual"
-                          ? (isAr ? "يدوي" : "Manual")
-                          : priceMatch?.pricingType === "automated"
-                          ? (isAr ? "تلقائي" : "Automated")
-                          : priceMatch?.pricingType?.replace(/_/g, " ")}
-                      </p>
-                    </div>
-                    <div className="text-end">
-                      {priceMatch && priceMatch.suggestedPrice !== null ? (
-                        <span className="text-xl font-bold text-emerald-700 dark:text-emerald-300">
-                          {priceMatch.suggestedPrice} {priceMatch.currency}
-                        </span>
-                      ) : (
-                        <span className="text-sm font-semibold text-amber-600">
-                          {t("admin.requests.detail.manualPricing") || (isAr ? "يتطلب تسعيراً يدوياً" : "Requires Manual Pricing")}
-                        </span>
-                      )}
-                    </div>
-                  </div>}
-                </div>
-              )
-            })}
-
-            {/* Issued Official Quotation Card */}
             {quote && (
               <div className="mt-8 rounded-2xl border-2 border-indigo-500/30 bg-gradient-to-br from-indigo-50/50 via-white to-white dark:from-indigo-950/20 dark:via-secondary-900 dark:to-secondary-900 p-6 shadow-sm overflow-hidden">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-secondary-200/80 dark:border-secondary-800 pb-4 mb-5">
@@ -566,10 +453,11 @@ export default function AdminRequestDetailPage() {
               </div>
             )}
 
-            {/* Attached Documents */}
+            {/* Customer shipment invoice */}
+            {documents.length > 0 && <>
             <h3 className="text-lg font-bold text-secondary-900 dark:text-white mt-8 mb-4 flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary-500" />
-              <span>{isAr ? "المستندات المرفقة" : "Attached Documents"}</span>
+              <span>{isAr ? "فاتورة العميل المرفقة" : "Customer shipment invoice"}</span>
             </h3>
             <div className="rounded-2xl border border-secondary-200 bg-white p-6 shadow-sm dark:border-secondary-800 dark:bg-secondary-900">
               {documents.length > 0 ? (
@@ -634,6 +522,7 @@ export default function AdminRequestDetailPage() {
                 </div>
               )}
             </div>
+            </>}
           </div>
 
           {/* Sidebar */}

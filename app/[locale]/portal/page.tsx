@@ -2,7 +2,6 @@ import { useTranslations } from "next-intl"
 import { PortalHeader } from "@/components/portal/PortalHeader"
 import { AccountHealthAlertBanner } from "@/components/portal/AccountHealthAlertBanner"
 import { DashboardMetricsCards } from "@/components/portal/DashboardMetricsCards"
-import { DashboardServiceCards } from "@/components/portal/DashboardServiceCards"
 import { QuickUploadWidget } from "@/components/portal/QuickUploadWidget"
 import { RecentActivityFeed } from "@/components/portal/RecentActivityFeed"
 
@@ -20,18 +19,14 @@ export default function PortalDashboardPage() {
         {/* Urgent Account Health Alert Banner */}
         <AccountHealthAlertBanner />
 
-        {/* Quick Action Service Cards */}
-        <DashboardServiceCards />
 
         {/* 4 KPI Metrics Cards */}
         <DashboardMetricsCards />
 
         {/* Main Grid: Quick Dropzone & Activity Timeline */}
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-1">
-            <QuickUploadWidget />
-          </div>
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6">
+          <QuickUploadWidget />
+          <div>
             <RecentActivityFeed />
           </div>
         </div>

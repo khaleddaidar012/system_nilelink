@@ -20,7 +20,7 @@ export function RequestWorkflowSettings({ request, onUpdated }: { request: { _id
       {required?label("بعرض سعر","Quotation required"):label("تنفيذ مباشر دون عرض سعر","Direct processing, no quotation")}
     </button>)}</div>
     {locked&&<p className="text-xs text-slate-500">{label("المسار محفوظ؛ لا يتغير بعد قبول العرض أو بدء التنفيذ.","The workflow is locked after quotation acceptance or processing starts.")}</p>}
-    {state?.canAssign&&<label className="block text-sm">{label("الموظف المسؤول عن التنفيذ","Employee responsible for processing")}<select className="mt-2 w-full rounded-xl border bg-white p-2 dark:bg-slate-900" value={request.assignedStaffId??""} disabled={busy} onChange={event=>void choose({assignedStaffId:event.target.value||null})}><option value="">{label("لم يتم التعيين","Unassigned")}</option>{state.staffOptions.map(user=><option key={user._id} value={user._id}>{user.name}</option>)}</select></label>}
+    {state?.canAssign&&<label className="block text-sm">{label("الموظف المسؤول عن التنفيذ (اختياري)","Employee responsible for processing (optional)")}<select className="mt-2 w-full rounded-xl border bg-white p-2 dark:bg-slate-900" value={request.assignedStaffId??""} disabled={busy} onChange={event=>void choose({assignedStaffId:event.target.value||null})}><option value="">{label("بدون تعيين — يمكن للفريق العمل مباشرة","Unassigned — team can work directly")}</option>{state.staffOptions.map(user=><option key={user._id} value={user._id}>{user.name}</option>)}</select></label>}
     {error&&<p role="alert" className="text-sm text-rose-600">{error}</p>}
   </section>
 }

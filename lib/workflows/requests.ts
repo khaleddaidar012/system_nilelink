@@ -305,24 +305,32 @@ export async function handleRequests(store: WorkflowStore, actor: Actor, args: W
     return response({success:true})
   }
   if(action==="admin-request-ucr"||action==="request-ucr"){
-    const services=await requestServices(store,parent),required=services.some(service=>service.data.serviceKey==="customs_clearance"&&service.data.status!=="cancelled")
-    const state={required,status:required?parent.data.ucrStatus||(parent.data.complianceNumber?"provided_by_admin":"pending"):"not_required",value:parent.data.ucrValue||parent.data.complianceNumber||"",source:parent.data.ucrSource||null,revision:parent.revision,canManage:staffAction&&canOperateRequest(actor,parent.data)}
+    const services=await requestServices(store,parent)
+    const acceptedQuote=parent.data.acceptedQuoteId?await store.read("quotes",parent.data.acceptedQuoteId):await latestQuote(store,parent.id)
+    const eligible=!!acceptedQuote&&acceptedQuote.data.requestId===parent.id&&["accepted","partially_accepted"].includes(acceptedQuote.data.status)
+    const customs=services.some(service=>service.data.serviceKey==="customs_clearance"&&service.data.status!=="cancelled"&&(!Array.isArray(parent.data.acceptedServiceIds)||parent.data.acceptedServiceIds.includes(service.id)))
+    const status=parent.data.ucrStatus&&parent.data.ucrStatus!=="not_required"?parent.data.ucrStatus:"pending"
+    const required=eligible&&(staffAction||customs||["requested_from_customer","submitted_by_customer"].includes(status))
+    const state={required,status:required?status:"not_required",value:eligible?(parent.data.ucrValue||parent.data.complianceNumber||""):"",source:parent.data.ucrSource||null,revision:parent.revision,canManage:staffAction&&eligible&&canOperateRequest(actor,parent.data),canProvide:eligible&&customs,canRequest:eligible&&!customs}
     if(http.method==="GET")return response(state)
     if(http.headers.get("origin")!==url.origin)reject(403,"Invalid origin")
-    if(!required)reject(409,"Customs clearance is not part of this request")
+    if(!eligible)reject(409,"Accept the quotation before managing UCR")
     if(["completed","cancelled"].includes(parent.data.status))reject(409,"Request is closed")
     if(staffAction&&!canOperateRequest(actor,parent.data))reject(403,"Only the responsible employee may manage UCR")
     const parsed=z.object({revision:z.number().int().nonnegative(),mode:z.enum(["provide","request"]).optional(),value:z.string().trim().min(1).max(100).regex(/^[\p{L}\p{N} /_.-]+$/u).optional()}).strict().safeParse(await body(args))
     if(!parsed.success)reject(400,"Invalid customs reference")
     if(parsed.data.revision!==parent.revision)reject(409,"Request changed. Reload first")
     const requesting=staffAction&&parsed.data.mode==="request"
+    if(staffAction&&requesting&&customs)reject(409,"The team must provide UCR for accepted customs clearance")
+    if(staffAction&&!requesting&&!customs)reject(409,"Request UCR from the customer when customs clearance is not included")
+    if(!staffAction&&customs)reject(409,"The team provides UCR for accepted customs clearance")
     if(!staffAction&&state.status!=="requested_from_customer")reject(409,"The team has not requested a customer UCR")
     if(!requesting&&!parsed.data.value)reject(400,"Enter the UCR number")
     const patch=requesting?{ucrStatus:"requested_from_customer",ucrValue:null,ucrSource:null,ucrSubmittedAt:null,complianceNumber:"",complianceType:"UCR"}
       :{ucrStatus:staffAction?"provided_by_admin":"submitted_by_customer",ucrValue:parsed.data.value,ucrSource:staffAction?"admin":"customer",ucrSubmittedAt:now(),complianceType:"UCR",complianceNumber:parsed.data.value}
     const title=requesting?"مطلوب رقم UCR / UCR requested":staffAction?"تم تعيين UCR / UCR provided":"تم استلام UCR من العميل / Customer UCR received"
     const message=requesting?`يرجى تقديم رقم UCR للطلب ${parent.data.trackingNumber}.`:`${parent.data.trackingNumber} — UCR: ${parsed.data.value}`
-    const quote=await latestQuote(store,parent.id)
+    const quote=acceptedQuote
     const quoteUpdate=quote&&["sent","accepted","partially_accepted"].includes(quote.data.status)?[{before:quote,patch:{complianceReference:requesting?null:{type:"UCR",number:parsed.data.value},complianceUpdatedAt:now()}}]:[]
     await store.commit({checks:[actor.snapshot,...services],updates:[{before:parent,patch:{...patch,timeline:[...(parent.data.timeline||[]),timeline(actor,parent.data.status,title,message)]}},...quoteUpdate],inserts:[{table:"notifications",data:notifyRequest(parent,title,message,{targetAudience:staffAction?"customer":"all_staff",actionUrl:`/${staffAction?"portal":"admin"}/requests/${parent.id}`})}]})
     return response({success:true})

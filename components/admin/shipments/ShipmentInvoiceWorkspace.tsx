@@ -1,4 +1,5 @@
 "use client"
+import {MoneyInput} from "./MoneyInput"
 
 import { useEffect, useState } from "react"
 import { useLocale } from "next-intl"
@@ -327,11 +328,11 @@ export function ShipmentInvoiceEditor({ id }: { id: string }) {
           <fieldset disabled={!editing || busy} className="space-y-4 disabled:opacity-70">
             {draft.stages[stage].costs.map((cost, index) => <div key={cost.id} className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <label className="text-xs sm:col-span-2">{label("وصف البند", "Description")}<input maxLength={500} className={inputClass} value={cost.description} onChange={event => changeCost(index, { description: event.target.value })} /></label>
-              <label className="text-xs">{label("تكلفة البند · داخلية", "Item cost · internal")}<input inputMode="decimal" className={inputClass} value={cost.amount} onChange={event => changeCost(index, { amount: event.target.value })} /></label>
+              <label className="text-xs">{label("تكلفة البند · داخلية", "Item cost · internal")}<MoneyInput className={inputClass} value={cost.amount} onValueChange={value => changeCost(index, { amount: value })} /></label>
               {editing || invoice.draft.pricingMode === "per-item-v1" ? <LineSalePrice cost={cost} ar={ar} disabled={!editing || busy} onChange={patch => changeCost(index, patch)} /> : <p className="text-xs text-slate-500 sm:col-span-2">{label("سعر البيع في النسخة القديمة مسجل كإجمالي، وليس موزعًا على البنود.", "The legacy selling price is recorded as a total, without individual line prices.")}</p>}
               <TieredPricingEditor cost={cost} stage={stage} ar={ar} disabled={!editing||busy} allowed={permissions?.canUseTieredPricing===true} onChange={patch=>changeCost(index,patch)} />
               <label className="text-xs">{label("العملة", "Currency")}<select className={inputClass} value={cost.currency} onChange={event => changeCost(index, { currency: event.target.value as CostInput["currency"], exchangeRate: event.target.value === invoice.currency ? "1" : "" })}>{currencies.map(currency => <option key={currency}>{currency}</option>)}</select></label>
-              <label className="text-xs">{label("سعر التحويل", "Exchange rate")}<input disabled={cost.currency === invoice.currency} inputMode="decimal" className={inputClass} value={cost.exchangeRate} onChange={event => changeCost(index, { exchangeRate: event.target.value })} /></label>
+              <label className="text-xs">{label("سعر التحويل", "Exchange rate")}<MoneyInput disabled={cost.currency === invoice.currency} className={inputClass} value={cost.exchangeRate} onValueChange={value => changeCost(index, { exchangeRate: value })} /></label>
               <label className="text-xs sm:col-span-2">{label("ملاحظات داخلية", "Internal notes")}<input maxLength={2000} className={inputClass} value={cost.notes} onChange={event => changeCost(index, { notes: event.target.value })} /></label>
               <button className={buttonClass + " self-end text-rose-700"} onClick={() => { const next = structuredClone(draft); next.stages[stage].costs.splice(index, 1); change(next) }}>{label("حذف البند", "Remove item")}</button>
             </div><p className="mt-3 text-xs text-slate-500">{label("أضيف بواسطة", "Added by")} <bdi>{cost.createdBy}</bdi> · {cost.createdAt ? new Date(cost.createdAt).toLocaleString(ar ? "ar-EG" : "en-GB", { hour12: true }) : label("لم يُحفظ بعد", "Not saved yet")}</p></div>)}

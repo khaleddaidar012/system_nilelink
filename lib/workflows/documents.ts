@@ -113,10 +113,7 @@ export async function handleDocuments(store: WorkflowStore, actor: Actor, args: 
       const parent = id ? await store.read("customer_requests", id) : null
       if (!parent) reject(404, "Request not found")
       rows = await store.list("documents", "customerId = ? AND json_extract(data, '$.entityId') = ? AND json_extract(data, '$.entityType') = 'CustomerRequest' AND isArchived = 0", [parent!.data.customerId, parent!.id], "createdAt DESC")
-      for (const documentId of parent!.data.details?.accountDocumentIds || []) {
-        const document = await store.read("documents", documentId)
-        if (document && document.data.customerId === parent!.data.customerId && !document.data.isArchived && !rows.some(row => row.id === document.id)) rows.push(document)
-      }
+      rows = rows.filter(row => /invoice|فاتور[ةه]|rechnung|facture|fattura|фактур|发票/i.test(row.data.title || ""))
     } else rows = await store.list("documents", action === "admin-documents-review" ? "status = 'pending_review' AND isArchived = 0" : "expiryDate IS NOT NULL AND expiryDate <= ? AND isArchived = 0", action === "admin-documents-review" ? [] : [new Date(Date.now() + 30 * 86400000).toISOString()], action === "admin-documents-review" ? "createdAt ASC" : "expiryDate ASC")
     if (action === "documents-list" && url.searchParams.get("accountOnly") === "true") rows = rows.filter(row => row.data.entityType !== "CustomerRequest")
     const category = url.searchParams.get("category"), status = url.searchParams.get("status"), search = url.searchParams.get("search")

@@ -14,7 +14,7 @@ interface QuoteDetailsModalProps {
   isOpen: boolean
   onClose: () => void
   quote: any
-  onQuoteUpdated: () => void
+  onQuoteUpdated: (updatedQuote?: any) => void
 }
 
 export function QuoteDetailsModal({ isOpen, onClose, quote, onQuoteUpdated }: QuoteDetailsModalProps) {
@@ -45,7 +45,7 @@ export function QuoteDetailsModal({ isOpen, onClose, quote, onQuoteUpdated }: Qu
         setActionError(data.error || (isAr ? "فشل قبول عرض السعر" : "Failed to accept quote"))
         return
       }
-      onQuoteUpdated()
+      onQuoteUpdated(data.quote)
       onClose()
     } catch {
       setActionError(isAr ? "حدث خطأ في الاتصال بالخادم" : "Network error occurred")
@@ -66,7 +66,7 @@ export function QuoteDetailsModal({ isOpen, onClose, quote, onQuoteUpdated }: Qu
         setActionError(data.error || (isAr ? "فشل رفض عرض السعر" : "Failed to reject quote"))
         return
       }
-      onQuoteUpdated()
+      onQuoteUpdated(data.quote)
       onClose()
     } catch {
       setActionError(isAr ? "حدث خطأ في الاتصال بالخادم" : "Network error occurred")

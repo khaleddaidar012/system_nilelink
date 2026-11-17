@@ -246,25 +246,24 @@ test('partial acceptance validates selections and activates only the selected pr
  assert.equal((await dispatch({action:'service-status',request:update,id:declined.id})).status,409)
 })
 
-test('UCR is scoped to customs requests and can be requested from and submitted by the owning customer',async()=>{
- const freight=await createRequest(),customs=await createRequest(requestInput({services:[{serviceKey:'customs_clearance'}]}))
+test('UCR follows accepted customs scope and customer requests are optional after acceptance',async()=>{
  const get=async(parent,actor=a,admin=false)=>{const r=await run(admin?'admin-request-ucr':'request-ucr',actor,undefined,parent._id);assert.equal(r.status,200);return r.json()}
- assert.equal((await get(freight)).required,false)
- assert.equal((await get(customs)).status,'pending')
- assert.equal((await run('request-ucr',b,undefined,customs._id)).status,404)
  const post=async(action,actor,parent,input)=>{const req=request('/api/requests/'+parent._id+'/ucr',actor.cookie,input);req.headers.set('origin','http://localhost');return dispatch({action,request:req,id:parent._id})}
- let state=await get(customs)
- assert.equal((await post('request-ucr',a,customs,{revision:state.revision,value:'UCR-TOO-EARLY'})).status,409)
- assert.equal((await post('admin-request-ucr',manager,customs,{revision:state.revision,mode:'request'})).status,200)
- state=await get(customs);assert.equal(state.status,'requested_from_customer')
- const quote=(await valueQuoteForCustoms())
- async function valueQuoteForCustoms(){const result=await run('admin-quote-save',manager,{requestId:customs._id,customerId:customs.customerId,items:[{requestServiceId:customs.services[0],serviceKey:'customs_clearance',finalPrice:100}]});assert.equal(result.status,201);return(await result.json()).quote}
- state=await get(customs)
- assert.equal((await post('request-ucr',a,customs,{revision:state.revision,value:'UCR-CUSTOMER-CURRENT'})).status,200)
- const saved=await get(customs);assert.equal(saved.source,'customer');assert.equal(saved.status,'submitted_by_customer')
- assert.equal((await data('quotes',quote._id)).complianceReference.number,'UCR-CUSTOMER-CURRENT')
- assert.equal((await post('request-ucr',a,customs,{revision:state.revision,value:'UCR-REPLAY'})).status,409)
- assert.equal((await post('admin-request-ucr',manager,freight,{revision:(await get(freight)).revision,mode:'request'})).status,409)
+ const customs=await createRequest(requestInput({services:[{serviceKey:'customs_clearance'}]}));
+ let state=await get(customs,manager,true);assert.equal(state.required,false);
+ assert.equal((await post('admin-request-ucr',manager,customs,{revision:state.revision,mode:'provide',value:'EARLY'})).status,409);
+ const quote=await createQuote(customs,{items:[{requestServiceId:customs.services[0],serviceKey:'customs_clearance',finalPrice:100}]});await run('quote-accept',a,undefined,quote._id);
+ state=await get(customs,manager,true);assert.equal(state.canProvide,true);assert.equal(state.canRequest,false);
+ assert.equal((await post('admin-request-ucr',manager,customs,{revision:state.revision,mode:'request'})).status,409);
+ assert.equal((await post('admin-request-ucr',manager,customs,{revision:state.revision,mode:'provide',value:'UCR-TEAM'})).status,200);
+ assert.equal((await get(customs)).value,'UCR-TEAM');assert.equal((await run('request-ucr',b,undefined,customs._id)).status,404);
+ const freight=await createRequest();const fq=await createQuote(freight);await run('quote-accept',a,undefined,fq._id);
+ assert.equal((await get(freight)).required,false);state=await get(freight,manager,true);assert.equal(state.canRequest,true);
+ assert.equal((await post('admin-request-ucr',manager,freight,{revision:state.revision,mode:'provide',value:'NOT-ALLOWED'})).status,409);
+ assert.equal((await post('admin-request-ucr',manager,freight,{revision:state.revision,mode:'request'})).status,200);state=await get(freight);
+ assert.equal((await post('request-ucr',a,freight,{revision:state.revision,value:'UCR-CUSTOMER'})).status,200);
+ assert.equal((await data('quotes',fq._id)).complianceReference.number,'UCR-CUSTOMER');
+ assert.equal((await post('request-ucr',a,freight,{revision:state.revision,value:'REPLAY'})).status,409);
 })
 
 test('execution stages enforce ordering, ownership, optimistic revisions and customer-visible notes',async()=>{
@@ -561,4 +560,34 @@ test('legacy stored filename downloads retain the exact source document and reje
   const calls = getCount
   assert.equal((await run('document-download', a, undefined, unsafe._id)).status, 409)
   assert.equal(getCount, calls)
+})
+
+test('request attachments include only shipment invoices and exclude linked account documents', async()=>{
+ const parent=await createRequest();
+ const invoice=timestamped({customerId:a.data.customerId,entityId:parent._id,entityType:'CustomerRequest',title:'Shipment invoice',category:'other',fileName:'invoice.pdf',fileUrl:'https://example.test/invoice.pdf',status:'approved',isArchived:false});
+ const account=timestamped({...invoice,_id:identifier(99981),entityId:null,entityType:'Customer',title:'Tax card',category:'tax_card'});
+ const other=timestamped({...invoice,_id:identifier(99982),title:'Packing list'});
+ for(const row of [invoice,account,other])await insert('documents',row);
+ await store.commit({updates:[{before:await store.read('customer_requests',parent._id),patch:{details:{accountDocumentIds:[account._id]}}}]});
+ const response=await run('admin-request-documents',manager,undefined,parent._id);assert.equal(response.status,200);
+ assert.deepEqual((await response.json()).documents.map(d=>d.id),[invoice._id]);
+})
+
+test('unassigned staff can operate unassigned requests while other employee assignments stay protected',async()=>{
+ const parent=await createRequest();
+ const state=await run('admin-request-workflow',restricted,undefined,parent._id);assert.equal(state.status,200);const settings=await state.json();assert.equal(settings.canManage,true);assert.equal(settings.canAssign,false);
+ const req=request('/api/admin/requests/'+parent._id+'/workflow',restricted.cookie,{revision:settings.revision,quoteRequired:false});req.headers.set('origin','http://localhost');assert.equal((await dispatch({action:'admin-request-workflow',request:req,id:parent._id})).status,200);
+ assert.equal((await run('admin-request-confirm',restricted,undefined,parent._id)).status,200);
+ assert.equal((await run('admin-request-workflow',a,undefined,parent._id)).status,403);
+ await store.commit({updates:[{before:await store.read('customer_requests',parent._id),patch:{assignedStaffId:manager.data._id}}]});
+ assert.equal((await (await run('admin-request-workflow',restricted,undefined,parent._id)).json()).canManage,false);
+})
+
+test('customer quotation list immediately reflects full and partial acceptance',async()=>{
+ for(const partial of [false,true]){
+  const parent=await createRequest(requestInput({services:[{serviceKey:'sea_freight'},{serviceKey:'air_freight'}]}));
+  const quote=await createQuote(parent,{items:[{requestServiceId:parent.services[0],serviceKey:'sea_freight',finalPrice:100},{requestServiceId:parent.services[1],serviceKey:'air_freight',finalPrice:200}]});
+  assert.equal((await run('quote-action',a,{action:'accept',acceptedServices:partial?['sea_freight']:['sea_freight','air_freight']},quote._id)).status,200);
+  const list=await run('quotes-list',a);assert.equal(list.status,200);assert.equal((await list.json()).quotes.find(q=>q._id===quote._id).status,partial?'partially_accepted':'accepted');
+ }
 })

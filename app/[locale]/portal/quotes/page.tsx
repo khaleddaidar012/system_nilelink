@@ -27,7 +27,7 @@ export default function PortalQuotesPage() {
   const fetchQuotes = async (background = false) => {
     if (!background) setLoading(true)
     try {
-      const res = await fetch("/api/portal/quotes")
+      const res = await fetch("/api/portal/quotes", {cache:"no-store"})
       const data = await res.json()
       if (data.quotes) {
         setQuotes(data.quotes)
@@ -95,7 +95,7 @@ export default function PortalQuotesPage() {
           />
           
           <QuotesTable 
-            quotes={filteredQuotes.filter(quote=>!["accepted","partially_accepted"].includes(quote.status))} 
+            quotes={filteredQuotes} 
             loading={loading} 
             onViewDetails={handleViewQuote} 
           />
@@ -106,7 +106,7 @@ export default function PortalQuotesPage() {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         quote={selectedQuote} 
-        onQuoteUpdated={() => { void fetchQuotes() }}
+        onQuoteUpdated={(updatedQuote:any) => { if(updatedQuote){setQuotes(current=>current.map(row=>row._id===updatedQuote._id?{...row,...updatedQuote}:row));setSelectedQuote((current:any)=>current?{...current,...updatedQuote}:null)} void fetchQuotes(true) }}
       />
     </div>
   )

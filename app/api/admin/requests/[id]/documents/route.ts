@@ -30,7 +30,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!parent) return NextResponse.json({ error: "Request not found" }, { status: 404 })
     const documents = await DocumentModel.find({
       customerId: parent.customerId,
-      $or: [{ entityId: id, entityType: "CustomerRequest" }, { _id: { $in: parent.details?.accountDocumentIds || [] } }],
+      entityId: id,
+      entityType: "CustomerRequest",
+      title: /invoice|فاتور[ةه]|rechnung|facture|fattura|фактур|发票/i,
       isArchived: false,
     }).sort({ createdAt: -1 }).lean()
 

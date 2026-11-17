@@ -8,13 +8,15 @@ import { usePortal } from "./PortalContext"
 
 export function QuickUploadWidget() {
   const t = useTranslations()
-  const { loading } = usePortal()
+  const { loading, customer } = usePortal()
 
   if (loading) {
     return (
       <div className="h-64 w-full animate-pulse rounded-2xl bg-slate-200/60 dark:bg-slate-800/60"></div>
     )
   }
+
+  if (customer?.accountStatus === "active") return null
 
   return (
     <div className="rounded-2xl border border-secondary-200/80 bg-gradient-to-br from-primary-900/90 to-secondary-900 p-6 text-white shadow-premium-md dark:border-secondary-800">

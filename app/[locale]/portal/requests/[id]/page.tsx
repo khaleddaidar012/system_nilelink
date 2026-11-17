@@ -124,7 +124,7 @@ export default function RequestDetailsAndDocumentsPage() {
     return <div className="p-8 text-center text-red-500">{t("portal.requests.details.not_found") || "Request not found."}</div>
   }
 
-  const visibleServices = visibleRequestServices(request.services || [], request.acceptedServiceIds)
+  const visibleServices = visibleRequestServices<any>(request.services || [], request.acceptedServiceIds)
 
   return (
     <div className="flex flex-col pb-20">

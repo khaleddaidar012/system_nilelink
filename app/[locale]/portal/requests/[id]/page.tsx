@@ -1,5 +1,7 @@
 "use client"
 
+import { serviceStatusLabels } from "@/lib/requests/progress"
+import { visibleRequestServices } from "@/lib/requests/visible-services"
 import { usePortalLiveRefresh } from "@/hooks/useLiveUpdates"
 import React, { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
@@ -122,6 +124,8 @@ export default function RequestDetailsAndDocumentsPage() {
     return <div className="p-8 text-center text-red-500">{t("portal.requests.details.not_found") || "Request not found."}</div>
   }
 
+  const visibleServices = visibleRequestServices(request.services || [], request.acceptedServiceIds)
+
   return (
     <div className="flex flex-col pb-20">
       <PortalHeader
@@ -134,7 +138,7 @@ export default function RequestDetailsAndDocumentsPage() {
 
 
         <UCRSection requestId={String(params.id)} />
-        <ServiceProgress services={request.services||[]} />
+        <ServiceProgress services={visibleServices} />
         <PublishedInvoiceLink invoice={request.publishedInvoice} />
         {/* Quotation & Offer */}
         {quote && !["accepted","partially_accepted"].includes(quote.status) && (
@@ -177,13 +181,13 @@ export default function RequestDetailsAndDocumentsPage() {
         <div className="bg-white dark:bg-secondary-900 rounded-xl border border-gray-200 dark:border-secondary-800 p-6 shadow-sm">
           <h2 className="text-xl font-bold mb-4">{t("portal.requests.details.requested_services") || "Requested Services"}</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {request.services?.map((service: any) => (
+            {visibleServices.map((service: any) => (
               <div key={service._id} className="p-4 rounded-lg border border-primary-100 bg-primary-50/50 dark:border-secondary-700 dark:bg-secondary-800/50">
                 <h3 className="font-bold text-lg capitalize mb-2">
                   {t(`portal.requests.new.${service.serviceKey}`) === `portal.requests.new.${service.serviceKey}` ? service.serviceKey.replace(/_/g, " ") : t(`portal.requests.new.${service.serviceKey}`)}
                 </h3>
                 <div className="text-sm text-secondary-600 dark:text-secondary-400 space-y-1">
-                  <p><span className="font-semibold">{t("portal.requests.details.status")}</span> {t(`portal.requests.status_${service.status}`) || service.status}</p>
+                  <p><span className="font-semibold">{t("portal.requests.details.status")}</span> {serviceStatusLabels[service.status]?.[isAr ? 0 : 1] ?? (t.has(`portal.requests.status_${service.status}`) ? t(`portal.requests.status_${service.status}`) : (isAr ? "قيد المراجعة" : "Under review"))}</p>
                   {service.details?.containerType && <div><span className="font-semibold">{t("portal.requests.details.container_type")}:</span> {t.has(`portal.requests.details.container_types.${service.details.containerType}`) ? t(`portal.requests.details.container_types.${service.details.containerType}`) : service.details.containerType}</div>}
                   {service.details?.containerSize && <div><span className="font-semibold">{t("portal.requests.details.container_size")}:</span> {t.has(`portal.requests.details.container_sizes.${service.details.containerSize}`) ? t(`portal.requests.details.container_sizes.${service.details.containerSize}`) : service.details.containerSize}</div>}
                   {service.details?.origin && <p><span className="font-semibold">{t("portal.requests.details.origin")}:</span> {service.details.origin}</p>}

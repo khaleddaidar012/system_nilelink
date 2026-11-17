@@ -1,16 +1,18 @@
 "use client"
 
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 
 export function InvoiceStatusBadge({ status }: { status: string }) {
   const t = useTranslations()
+  const ar=useLocale()==="ar"
+  const labels:Record<string,[string,string]>={draft:["مسودة","Draft"],confirmed:["منشورة","Published"],sent:["مرسلة","Sent"],partially_paid:["مسددة جزئيًا","Partially paid"],paid:["مسددة","Paid"],overdue:["متأخرة","Overdue"],cancelled:["ملغاة","Cancelled"]}
   
   let styles = "bg-secondary-100 text-secondary-700 dark:bg-secondary-800 dark:text-secondary-300"
   
   if (status === "draft") {
     styles = "bg-secondary-100 text-secondary-700 border-secondary-200 dark:bg-secondary-800 dark:text-secondary-400"
-  } else if (status === "sent") {
+  } else if (status === "sent" || status === "confirmed") {
     styles = "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/50"
   } else if (status === "partially_paid") {
     styles = "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800/50"
@@ -24,7 +26,7 @@ export function InvoiceStatusBadge({ status }: { status: string }) {
 
   return (
     <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide", styles)}>
-      {t(`portal.financials.status.${status}`) || status}
+      {t.has(`portal.financials.status.${status}`)?t(`portal.financials.status.${status}`):labels[status]?.[ar?0:1]??(ar?"حالة غير معروفة":"Unknown status")}
     </span>
   )
 }

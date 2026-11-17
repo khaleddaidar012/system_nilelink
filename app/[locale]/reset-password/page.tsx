@@ -17,7 +17,7 @@ export default async function ResetPasswordPage({ searchParams }: Props) {
       {/* Background Image */}
       <div className="absolute inset-0 -z-20">
         <Image
-          src="/images/hero-bg.jpg"
+          src="/images/hero-bg.webp"
           alt="NileLink Freight & Logistics"
           fill
           sizes="100vw"
@@ -26,14 +26,14 @@ export default async function ResetPasswordPage({ searchParams }: Props) {
         />
       </div>
       {/* Dark Overlays */}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-r from-secondary-900/90 via-secondary-900/75 to-secondary-900/50" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-r from-site-dark/90 via-site-dark/75 to-site-dark/50" />
       <div className="absolute inset-0 -z-10 bg-gradient-to-t from-secondary-950/60 via-transparent to-secondary-950/40" />
 
       <Container className="relative z-10 flex w-full items-center justify-center">
         {token ? (
           <ResetPasswordForm token={token} />
         ) : (
-          <div className="w-full max-w-md rounded-2xl border border-secondary-200 bg-white p-8 text-center shadow-premium-xl dark:border-secondary-800 dark:bg-secondary-900">
+          <div className="w-full max-w-md rounded-2xl border border-secondary-200 bg-white p-8 text-center shadow-premium-xl dark:border-secondary-800 dark:bg-secondary-800">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">
               <AlertCircle className="h-7 w-7" />
             </div>

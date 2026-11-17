@@ -1,7 +1,8 @@
 "use client"
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react"
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react"
 import { useRouter } from "@/navigation"
+import { useLiveUpdates, type LiveStatus } from "@/hooks/useLiveUpdates"
 
 export interface PortalUser {
   id: string
@@ -12,16 +13,18 @@ export interface PortalUser {
   lastName: string
   phone?: string
   avatarUrl?: string
+  hasCompletedOnboarding?: boolean
   emailVerified: boolean
   whatsappVerified?: boolean
 }
 
 export interface PortalCustomer {
   id: string
+  customerCode?: string
   companyName: string
   commercialRegisterNumber: string
   taxCardNumber: string
-  accountStatus: "active" | "warning" | "inactive"
+  accountStatus: "active" | "warning" | "inactive" | "under_review" | "unverified"
   statusReason?: string
   contactPhone: string
   contactEmail: string
@@ -45,8 +48,10 @@ interface PortalContextValue {
   customer: PortalCustomer | null
   documentStats: DocumentStats | null
   unreadCount: number
+  liveStatus: LiveStatus
   setUnreadCount: (count: number) => void
   loading: boolean
+  isLoggingOut: boolean
   refreshData: () => Promise<void>
   logout: () => Promise<void>
 }
@@ -86,10 +91,14 @@ export function PortalProvider({
   const [documentStats, setDocumentStats] = useState<DocumentStats | null>(null)
   const [unreadCount, setUnreadCount] = useState<number>(0)
   const [loading, setLoading] = useState(true)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const refreshSequence = useRef(0)
 
   const refreshData = useCallback(async () => {
+    const sequence = ++refreshSequence.current
     try {
-      const res = await fetch("/api/auth/me")
+      const res = await fetch("/api/auth/me", { cache: "no-store" })
+      if (sequence !== refreshSequence.current) return
       if (!res.ok) {
         if (res.status === 401) {
           router.push("/login")
@@ -98,6 +107,7 @@ export function PortalProvider({
       }
 
       const data = await res.json()
+      if (sequence !== refreshSequence.current) return
       if (data.authenticated) {
         setUser(data.user)
         setCustomer(data.customer)
@@ -116,20 +126,26 @@ export function PortalProvider({
     } catch {
       // Offline / error
     } finally {
-      setLoading(false)
+      if (sequence === refreshSequence.current) setLoading(false)
     }
   }, [router])
 
   const logout = async () => {
+    setIsLoggingOut(true)
     try {
       await fetch("/api/auth/logout", { method: "POST" })
+    } catch {
+      // ignore
     } finally {
-      setUser(null)
-      setCustomer(null)
-      router.push("/login")
-      router.refresh()
+      if (typeof window !== "undefined") {
+        window.location.href = "/login"
+      } else {
+        router.push("/login")
+      }
     }
   }
+
+  const liveStatus = useLiveUpdates(!!customer && !isLoggingOut, () => { void refreshData() })
 
   useEffect(() => {
     refreshData()
@@ -160,8 +176,10 @@ export function PortalProvider({
         customer,
         documentStats,
         unreadCount,
+        liveStatus,
         setUnreadCount,
         loading,
+        isLoggingOut,
         refreshData,
         logout,
       }}

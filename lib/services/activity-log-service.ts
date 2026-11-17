@@ -1,5 +1,6 @@
 import mongoose from "mongoose"
-import { DocumentActivityLog, ActivityAction } from "@/lib/models/DocumentActivityLog"
+import { DocumentActivityLog } from "@/lib/models/DocumentActivityLog"
+import type { ActivityAction } from "@/lib/models/DocumentActivityLog"
 
 interface LogActivityParams {
   documentId: string | mongoose.Types.ObjectId

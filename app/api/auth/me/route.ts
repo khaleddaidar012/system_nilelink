@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { User, Customer, Document as DocumentModel, Notification } from "@/lib/models"
@@ -8,6 +10,10 @@ export async function GET(req: NextRequest) {
     const session = await getSessionFromRequest(req)
     if (!session) {
       return NextResponse.json({ authenticated: false }, { status: 401 })
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "me", request: req })
     }
 
     await connectDB()
@@ -102,13 +108,20 @@ export async function GET(req: NextRequest) {
 
     const unreadNotificationsCount = await Notification.countDocuments({
       $or: [
+        // Direct user notification
         { recipientUserId: user._id, isRead: false },
-        { recipientCustomerId: customerId, isRead: false },
-        { 
-          targetAudience: user.role === "staff" || user.role === "super_admin" ? "staff" : "customer", 
-          recipientUserId: null, 
-          recipientCustomerId: null, 
-          readBy: { $ne: user._id } 
+        // Customer-company notification — must be customer-targeted (NOT staff)
+        {
+          recipientCustomerId: customerId,
+          targetAudience: "customer",
+          isRead: false,
+        },
+        // Broadcast to all customers — only if this user hasn't read it yet
+        {
+          targetAudience: user.role === "staff" || user.role === "super_admin" ? "staff" : "customer",
+          recipientUserId: null,
+          recipientCustomerId: null,
+          readBy: { $ne: user._id },
         },
       ],
     })
@@ -124,6 +137,7 @@ export async function GET(req: NextRequest) {
         lastName: user.lastName,
         phone: user.phone,
         avatarUrl: user.avatarUrl,
+        hasCompletedOnboarding: user.hasCompletedOnboarding,
         status: user.status,
         staffPermissions: user.staffPermissions,
         emailVerified: !!user.emailVerified,

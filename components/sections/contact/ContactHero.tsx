@@ -8,7 +8,7 @@ export function ContactHero() {
   const t = useTranslations("contact.hero")
 
   return (
-    <section className="relative overflow-hidden bg-secondary-900 pb-16 pt-32 sm:pb-20 sm:pt-36">
+    <section className="relative overflow-hidden bg-site-dark pb-16 pt-32 sm:pb-20 sm:pt-36">
       <div className="pointer-events-none absolute -top-32 right-1/4 h-64 w-64 rounded-full bg-primary-500/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 left-1/4 h-64 w-64 rounded-full bg-primary-500/10 blur-3xl" />
       <Container className="relative z-10">

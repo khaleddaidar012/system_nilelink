@@ -1,10 +1,11 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import crypto from "crypto"
 import { connectDB } from "@/lib/mongodb"
 import { User, Customer } from "@/lib/models"
 import { getSessionFromRequest, createAccessToken, createRefreshToken, setAuthCookies } from "@/lib/auth/token-service"
-import { isBusinessEmail } from "@/lib/auth/password"
 
 const updateContactSchema = z.object({
   channel: z.enum(["email", "whatsapp"]),
@@ -29,6 +30,10 @@ export async function POST(req: NextRequest) {
     }
 
     const { channel, newValue } = parsed.data
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "update-contact", request: req, input: parsed.data })
+    }
 
     await connectDB()
     const user = await User.findById(session.userId)

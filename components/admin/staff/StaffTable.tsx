@@ -54,6 +54,7 @@ export function StaffTable() {
       s.firstName.toLowerCase().includes(q) ||
       s.lastName.toLowerCase().includes(q) ||
       s.email.toLowerCase().includes(q) ||
+      (s.username || "").toLowerCase().includes(q) ||
       s.phone.includes(q)
     )
   })
@@ -154,7 +155,7 @@ export function StaffTable() {
                           <div className="mt-1 flex items-center gap-2 text-[11px] text-secondary-500">
                             <span className="flex items-center gap-1">
                               <Mail className="h-3 w-3" />
-                              {staff.email}
+                              {staff.username || staff.email}
                             </span>
                             {staff.phone && (
                               <span className="flex items-center gap-1">
@@ -220,9 +221,22 @@ export function StaffTable() {
                                 <span>{t("admin.staff.permCustomersShort") || "Customer Mgmt"}</span>
                               </span>
                             )}
+                            {staff.staffPermissions?.issueTaxInvoice && (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/50">
+                                <Shield className="h-2.5 w-2.5 text-emerald-600" />
+                                <span>فاتورة ضريبية</span>
+                              </span>
+                            )}
+                            {staff.staffPermissions?.viewCustomerStatements && (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-700 dark:bg-purple-950/50 dark:text-purple-300">
+                                <span>كشوف حسابات</span>
+                              </span>
+                            )}
                             {!staff.staffPermissions?.canSendAlerts &&
                               !staff.staffPermissions?.canReviewDocuments &&
-                              !staff.staffPermissions?.canManageCustomers && (
+                              !staff.staffPermissions?.canManageCustomers &&
+                              !staff.staffPermissions?.issueTaxInvoice &&
+                              !staff.staffPermissions?.viewCustomerStatements && (
                                 <span className="text-[11px] text-secondary-400">
                                   {t("admin.staff.noPermissions") || "No permissions assigned"}
                                 </span>
@@ -262,6 +276,7 @@ export function StaffTable() {
       />
 
       <EditPermissionsModal
+        key={selectedStaff?.id ?? "none"}
         staff={selectedStaff}
         isOpen={isEditOpen}
         onClose={() => {

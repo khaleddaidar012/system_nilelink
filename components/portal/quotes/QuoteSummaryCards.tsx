@@ -1,7 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import { FileText, Send, CheckCircle2, XCircle, Clock, DollarSign } from "lucide-react"
+import { FileText, Send, CheckCircle2, XCircle, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface QuoteSummaryCardsProps {
@@ -11,7 +11,6 @@ interface QuoteSummaryCardsProps {
     accepted: number
     rejected: number
     pending: number
-    totalValue: number
   }
   loading: boolean
 }
@@ -41,17 +40,11 @@ export function QuoteSummaryCards({ data, loading }: QuoteSummaryCardsProps) {
       color: "text-emerald-600 dark:text-emerald-400",
       bg: "bg-emerald-100 dark:bg-emerald-900/40",
     },
-    {
-      title: t("portal.quotes.metrics.totalValue") || "Total Value",
-      value: `$${data.totalValue.toLocaleString()}`,
-      icon: DollarSign,
-      color: "text-blue-600 dark:text-blue-400",
-      bg: "bg-blue-100 dark:bg-blue-900/40",
-    },
+
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
       {cards.map((card, i) => (
         <div 
           key={i} 

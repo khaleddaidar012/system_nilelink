@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { Customer, Document as DocumentModel, User, Invoice } from "@/lib/models"
@@ -15,6 +17,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     }
 
     const { id } = await params
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "customer-get", request: req, id: id })
+    }
+
     await connectDB()
 
     const customer = await Customer.findById(id).lean()
@@ -130,6 +136,10 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     }
 
     const { id } = await params
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "customer-delete", request: req, id: id })
+    }
+
     await connectDB()
 
     const customer = await Customer.findById(id)

@@ -46,7 +46,6 @@ export function QuotesTable({ quotes, loading, onViewDetails }: QuotesTableProps
           <tr>
             <th className="px-5 py-4">{t("portal.quotes.table.quoteNumber") || "Quote #"}</th>
             <th className="px-4 py-4">{t("portal.quotes.table.requestNumber") || "Request #"}</th>
-            <th className="px-4 py-4">{t("portal.quotes.table.totalAmount") || "Amount"}</th>
             <th className="px-4 py-4">{t("portal.quotes.table.date") || "Created Date"}</th>
             <th className="px-4 py-4">{t("portal.quotes.table.validUntil") || "Valid Until"}</th>
             <th className="px-4 py-4">{t("portal.quotes.table.status") || "Status"}</th>
@@ -69,14 +68,9 @@ export function QuotesTable({ quotes, loading, onViewDetails }: QuotesTableProps
                 </div>
               </td>
               <td className="px-4 py-4 font-mono text-xs text-secondary-500">
-                {quote.requestNumber || "-"}
+                {quote.requestNumber || quote.requestId?.trackingNumber || "-"}
               </td>
-              <td className="px-4 py-4">
-                <span className="font-bold text-secondary-900 dark:text-white">
-                  ${(quote.totalAmount || 0).toLocaleString()}
-                </span>
-                <span className="ml-1 text-xs text-secondary-500">{quote.currency || "USD"}</span>
-              </td>
+
               <td className="px-4 py-4 text-secondary-600 dark:text-secondary-400">
                 <div className="flex items-center gap-1.5 text-xs">
                   <Calendar className="h-3.5 w-3.5" />

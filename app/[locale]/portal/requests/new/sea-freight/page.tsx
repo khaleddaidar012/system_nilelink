@@ -27,7 +27,7 @@ export default function SeaFreightPage() {
   const [commodity, setCommodity] = useState("")
   const [weight, setWeight] = useState("")
   const [expectedDate, setExpectedDate] = useState("")
-  const [priority, setPriority] = useState("medium")
+  const [priority] = useState("medium")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,6 +45,21 @@ export default function SeaFreightPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           serviceType: "sea_freight",
+          services: [
+            {
+              serviceKey: "sea_freight",
+              details: {
+                containerType,
+                containerCount,
+                containerSize,
+                pol,
+                pod,
+                commodity,
+                weight,
+                expectedDate,
+              },
+            },
+          ],
           operationType,
           subject: `${containerCount}x${containerSize} ${containerType} from ${pol} to ${pod}`,
           description: `Commodity: ${commodity}, Gross Weight: ${weight}kg`,
@@ -57,7 +72,7 @@ export default function SeaFreightPage() {
             pod,
             commodity,
             weight,
-            expectedDate
+            expectedDate,
           },
         }),
       })
@@ -66,7 +81,13 @@ export default function SeaFreightPage() {
         router.push("/portal/requests")
       } else {
         const data = await res.json()
-        setError(data.details || data.error || "Failed to submit request")
+        const errMessage =
+          typeof data.error === "string"
+            ? data.error
+            : typeof data.details === "string"
+            ? data.details
+            : "Failed to submit request"
+        setError(errMessage)
         setIsSubmitting(false)
       }
     } catch (err) {
@@ -231,16 +252,6 @@ export default function SeaFreightPage() {
                     <div className="text-secondary-500">{t("portal.requests.new.sea_freight_form.commodity") || "Commodity"}</div>
                     <div className="font-bold text-secondary-900 dark:text-white">{commodity} ({weight} kg)</div>
                   </div>
-                </div>
-                
-                <div>
-                  <label className="mb-1 block text-xs font-bold text-secondary-700 dark:text-secondary-300 uppercase tracking-wider">{t("portal.requests.new.sea_freight_form.priority") || "Priority"}</label>
-                  <select value={priority} onChange={(e) => setPriority(e.target.value)} className="w-full rounded-xl border border-secondary-200 bg-secondary-50/50 p-3 text-sm font-medium dark:border-secondary-700 dark:bg-secondary-800 dark:text-white focus:border-primary-500 focus:outline-none">
-                    <option value="low">{t("portal.requests.priority_low") || "Low"}</option>
-                    <option value="medium">{t("portal.requests.priority_medium") || "Medium"}</option>
-                    <option value="high">{t("portal.requests.priority_high") || "High"}</option>
-                    <option value="urgent">{t("portal.requests.priority_urgent") || "Urgent"}</option>
-                  </select>
                 </div>
               </div>
             )}

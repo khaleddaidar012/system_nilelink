@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
-import { getSessionFromRequest, AuthSessionPayload } from "@/lib/auth/token-service"
-import { IStaffPermissions } from "@/lib/models/User"
+import { getSessionFromRequest } from "@/lib/auth/token-service"
+import type { AuthSessionPayload } from "@/lib/auth/token-service"
+import type { IStaffPermissions } from "@/lib/models/User"
 
 export type StaffPermissionKey = keyof IStaffPermissions
 

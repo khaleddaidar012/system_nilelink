@@ -1,0 +1,8 @@
+const path = require('node:path')
+const { Service } = require('node-windows')
+const service = new Service({ name: 'NileLink Mail Agent', description: 'Authenticated per-employee IMAP/SMTP connector for NileLink', script: path.join(__dirname, 'server.mjs'), workingDirectory: __dirname, env: [{ name: 'MAIL_AGENT_CONFIG', value: path.join(__dirname, 'agent.config.json') }, { name: 'NODE_OPTIONS', value: '--use-system-ca' }], wait: 2, grow: 0.5, maxRetries: 5 })
+service.on('install', () => service.start())
+service.on('alreadyinstalled', () => service.start())
+service.on('start', () => console.log('NileLink Mail Agent service started.'))
+service.on('error', () => { console.error('Service installation failed. Check Windows service permissions.'); process.exitCode = 1 })
+service.install()

@@ -50,8 +50,12 @@ export function ContactInfo() {
             </div>
             <div>
               <h3 className="font-bold text-secondary-900 dark:text-white">{t("phone")}</h3>
-              <a href="tel:+20100018549" className="mt-1 block text-sm text-secondary-600 transition-colors hover:text-primary-500 dark:text-secondary-400">
-                <span dir="ltr">+20 10 00018549</span>
+              <a
+                href="tel:+20100018549"
+                className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-primary-600 transition-colors hover:text-primary-700 dark:text-primary-400"
+                aria-label={t("callUs") || "Call Us"}
+              >
+                <span>{t("callUs") || "Call Us"}</span>
               </a>
             </div>
           </div>

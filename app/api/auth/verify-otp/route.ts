@@ -1,6 +1,9 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { User, Customer } from "@/lib/models"
+import { manualWhatsappCode } from "@/lib/auth/manual-whatsapp-code"
 import {
   getSessionFromRequest,
   createAccessToken,
@@ -18,9 +21,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { channel, code } = body
 
-    if (!code || typeof code !== "string" || code.trim().length !== 6) {
+    if (!code || typeof code !== "string" || !(channel === "whatsapp" ? /^\d{6}$/ : /^\d{6}$/).test(code.trim())) {
       return NextResponse.json(
-        { error: "Invalid OTP format. Please enter the 6-digit code." },
+        { error: channel === "whatsapp" ? "Please enter the complete 6 digit code." : "Please enter the 6-digit email code." },
         { status: 400 }
       )
     }
@@ -30,6 +33,10 @@ export async function POST(req: NextRequest) {
         { error: "Invalid channel specified." },
         { status: 400 }
       )
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "verify-otp", request: req, input: { channel, code } })
     }
 
     await connectDB()
@@ -60,14 +67,10 @@ export async function POST(req: NextRequest) {
       user.emailVerificationOtpExpires = undefined
       await user.save()
     } else if (channel === "whatsapp") {
-      const phoneDigits = (user.phone || "").replace(/\D/g, "");
-      const base6Digits = phoneDigits.padStart(6, "0").slice(-6);
-      
-      // Calculate expected code: (last 6 digits + 123456) modulo 1,000,000 to keep it 6 digits
-      const expectedCodeNum = (parseInt(base6Digits, 10) + 123456) % 1000000;
-      const expectedCode = expectedCodeNum.toString().padStart(6, "0");
+      const expectedCode = manualWhatsappCode(user.phone || "")
+      const isMatch = expectedCode !== null && cleanCode === expectedCode
 
-      if (cleanCode !== expectedCode) {
+      if (!isMatch) {
         return NextResponse.json(
           { error: "رمز التفعيل غير صحيح. يرجى التأكد من الرمز الذي تم إرساله إليك عبر الواتساب." },
           { status: 400 }

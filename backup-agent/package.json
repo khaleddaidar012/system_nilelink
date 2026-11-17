@@ -1,0 +1,29 @@
+{
+  "name": "nilelink-backup-agent",
+  "version": "0.2.2",
+  "private": true,
+  "description": "Nile Link Windows Backup Agent (mongodump/mongorestore orchestrator)",
+  "main": "dist/src/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/index.js",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "service:install": "node dist/scripts/install-service.js",
+    "service:uninstall": "node dist/scripts/uninstall-service.js"
+  },
+  "dependencies": {
+    "node-windows": "^1.0.0-beta.8",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.19.0",
+    "typescript": "^5",
+    "vitest": "^3.0.0"
+  }
+}

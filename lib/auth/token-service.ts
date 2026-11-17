@@ -1,8 +1,9 @@
-import { SignJWT, jwtVerify, JWTPayload } from "jose"
+import { SignJWT, jwtVerify } from "jose"
+import type { JWTPayload } from "jose"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
-import { UserRole, IStaffPermissions } from "@/lib/models/User"
-import { AccountStatus } from "@/lib/models/Customer"
+import type { UserRole, IStaffPermissions } from "@/lib/models/User"
+import type { AccountStatus } from "@/lib/models/Customer"
 
 export const ACCESS_COOKIE_NAME = "nilelink_access_token"
 export const REFRESH_COOKIE_NAME = "nilelink_refresh_token"
@@ -30,8 +31,8 @@ function getJwtSecret(): Uint8Array {
   const secret =
     process.env.JWT_SECRET ||
     process.env.AUTH_SECRET ||
-    process.env.ANALYTICS_SECRET ||
-    "nilelink_production_secure_jwt_secret_key_2026_enterprise"
+    process.env.ANALYTICS_SECRET
+  if (!secret) throw new Error("JWT_SECRET or AUTH_SECRET must be configured")
   return new TextEncoder().encode(secret)
 }
 

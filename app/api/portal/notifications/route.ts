@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { Notification } from "@/lib/models"
@@ -14,13 +16,27 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "20", 10)
     const page = parseInt(searchParams.get("page") || "1", 10)
 
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "notifications-list", request: req })
+    }
+
     await connectDB()
 
     const query: Record<string, unknown> = {
       $or: [
+        // Notifications addressed directly to this specific user
         { recipientUserId: session.userId },
-        { recipientCustomerId: session.customerId },
-        { targetAudience: "customer", recipientUserId: null, recipientCustomerId: null },
+        // Notifications addressed to the customer company (must be customer-targeted, NOT staff)
+        {
+          recipientCustomerId: session.customerId,
+          targetAudience: "customer",
+        },
+        // Broadcast notifications to all customers (no specific recipient)
+        {
+          targetAudience: "customer",
+          recipientUserId: null,
+          recipientCustomerId: null,
+        },
       ],
     }
 

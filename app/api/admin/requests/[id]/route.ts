@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { CustomerRequest } from "@/lib/models"
 import { connectDB } from "@/lib/mongodb"
@@ -6,7 +8,7 @@ import mongoose from "mongoose"
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSessionFromRequest(req)
@@ -21,9 +23,12 @@ export async function GET(
       return NextResponse.json({ error: "Invalid Request ID" }, { status: 400 })
     }
 
-    // Import RequestService to ensure it's registered with Mongoose
-    const { RequestService } = await import("@/lib/models")
+    const { RequestService, Quote, QuoteItem } = await import("@/lib/models")
     void RequestService // ensure model is registered
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "admin-request-get", request: req, id: id })
+    }
 
     await connectDB()
 
@@ -36,7 +41,13 @@ export async function GET(
       return NextResponse.json({ error: "Request not found" }, { status: 404 })
     }
 
-    return NextResponse.json({ request })
+    const quote = await Quote.findOne({ requestId: id }).sort({ createdAt: -1 })
+    let quoteItems: any[] = []
+    if (quote) {
+      quoteItems = await QuoteItem.find({ quoteId: quote._id }).lean()
+    }
+
+    return NextResponse.json({ request, quote, quoteItems })
   } catch (error: any) {
     console.error("Fetch Request Error:", error)
     return NextResponse.json(

@@ -1,5 +1,5 @@
 import { PricingRule } from "../models/PricingRule"
-import { IRequestService } from "../models/RequestService"
+import type { IRequestService } from "../models/RequestService"
 
 export interface SuggestedPrice {
   serviceId: string

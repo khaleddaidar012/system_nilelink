@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useTranslations } from "next-intl"
 import { motion, AnimatePresence } from "framer-motion"
 import { Bell, Check, Clock, AlertTriangle, AlertCircle, Info } from "lucide-react"
 import { Link } from "@/navigation"
 import { usePortal } from "./PortalContext"
 import { cn } from "@/lib/utils"
+import { markPortalNotificationsRead } from "@/lib/notifications/mark-read"
+import { usePortalLiveRefresh } from "@/hooks/useLiveUpdates"
 
 interface NotificationItem {
   _id: string
@@ -25,6 +27,12 @@ export function NotificationBellPopover() {
   const [isOpen, setIsOpen] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [readError, setReadError] = useState(false)
+  const [liveRevision, setLiveRevision] = useState(0)
+  usePortalLiveRefresh(() => { if (isOpen) setLiveRevision(value => value + 1) }, ["notification"])
+  const unreadCountRef = useRef(unreadCount)
+  useEffect(() => { unreadCountRef.current = unreadCount }, [unreadCount])
+  const markingRead = useRef(false)
   const popoverRef = useRef<HTMLDivElement>(null)
 
   // Handle click outside to close
@@ -43,28 +51,40 @@ export function NotificationBellPopover() {
     }
   }, [isOpen])
 
+  const markAllRead = useCallback(async () => {
+    if (markingRead.current) return
+    markingRead.current = true
+    const previousCount = unreadCountRef.current
+    setUnreadCount(0)
+    setReadError(false)
+    try {
+      await markPortalNotificationsRead()
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
+    } catch {
+      setUnreadCount(previousCount)
+      setReadError(true)
+    } finally {
+      markingRead.current = false
+      await refreshData()
+    }
+  }, [setUnreadCount, refreshData])
+
   useEffect(() => {
     if (isOpen) {
       setLoading(true)
-      fetch("/api/portal/notifications?limit=5")
-        .then((res) => res.json())
-        .then((data) => {
+      setReadError(false)
+      fetch("/api/portal/notifications?limit=5", { cache: "no-store" })
+        .then((res) => { if (!res.ok) throw new Error("Unavailable"); return res.json() })
+        .then(async (data) => {
           if (data.notifications) {
             setNotifications(data.notifications)
           }
         })
+        .catch(() => setReadError(true))
         .finally(() => setLoading(false))
     }
-  }, [isOpen])
+  }, [isOpen, liveRevision])
 
-  const markAllRead = async () => {
-    // Optimistic UI update for instant feedback
-    setUnreadCount(0)
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
-    
-    await fetch("/api/portal/notifications/mark-read", { method: "POST" })
-    refreshData()
-  }
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -85,6 +105,7 @@ export function NotificationBellPopover() {
         onClick={() => setIsOpen(!isOpen)}
         className="relative rounded-xl border border-secondary-200/80 bg-white p-2.5 text-secondary-600 transition-colors hover:bg-secondary-50 hover:text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-300 dark:hover:bg-secondary-700 dark:hover:text-white"
         aria-label="Notifications"
+        data-tour="notifications"
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
@@ -125,6 +146,7 @@ export function NotificationBellPopover() {
               )}
             </div>
 
+            {readError && <p role="alert" className="mt-2 text-xs text-amber-700">{t("portal.header.notifications")} — تعذر تحديث حالة القراءة، حاول مرة أخرى.</p>}
             <div className="my-2 max-h-72 space-y-2 overflow-y-auto">
               {loading ? (
                 <div className="py-6 text-center text-xs text-secondary-400">
@@ -139,7 +161,10 @@ export function NotificationBellPopover() {
                   <Link
                     key={item._id}
                     href={item.actionUrl || "/portal/notifications"}
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => {
+                      setIsOpen(false)
+                      if (!item.isRead) void fetch("/api/portal/notifications/mark-read", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ notificationId: item._id }) }).then(response => { if (!response.ok) throw new Error("Read failed"); return refreshData() }).catch(() => setReadError(true))
+                    }}
                     className={cn(
                       "flex gap-3 rounded-xl p-2.5 text-xs transition-colors hover:bg-secondary-50 dark:hover:bg-secondary-800",
                       !item.isRead ? "bg-primary-50/60 dark:bg-primary-950/20" : ""
@@ -148,10 +173,10 @@ export function NotificationBellPopover() {
                     <div className="mt-0.5 shrink-0">{getSeverityIcon(item.severity)}</div>
                     <div className="flex-1">
                       <p className="font-semibold text-secondary-900 dark:text-white">
-                        {item.type ? t(`portal.notifications.${item.type}.title`) || item.title : item.title}
+                        {item.type&&!item.type.startsWith("invoice_")&&item.type!=="request_update"&&t.has(`portal.notifications.${item.type}.title`) ? t(`portal.notifications.${item.type}.title`) : item.title}
                       </p>
                       <p className="mt-0.5 text-secondary-600 line-clamp-2 dark:text-secondary-400">
-                        {item.type ? t(`portal.notifications.${item.type}.message`) || item.message : item.message}
+                        {item.type&&!item.type.startsWith("invoice_")&&item.type!=="request_update"&&t.has(`portal.notifications.${item.type}.message`) ? t(`portal.notifications.${item.type}.message`) : item.message}
                       </p>
                     </div>
                   </Link>

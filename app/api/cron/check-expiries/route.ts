@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { runExpiryEvaluation } from "@/lib/cron/expiry-tracker"
 import { getSessionFromRequest } from "@/lib/auth/token-service"
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 
 export async function POST(req: NextRequest) {
   try {
+    if (getDatabaseProvider() === "d1") return handleD1Workflow({ action: "expiry-evaluate", request: req })
     const authHeader = req.headers.get("authorization")
     const cronSecret = process.env.CRON_SECRET || "nilelink_cron_secret_2026_automated_radar"
 

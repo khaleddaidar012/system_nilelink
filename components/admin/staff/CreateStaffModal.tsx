@@ -32,6 +32,12 @@ interface RoleConfig {
     canSendAlerts: boolean
     canReviewDocuments: boolean
     canManageCustomers: boolean
+    issueTaxInvoice?: boolean
+    createInvoice?: boolean
+    editInvoice?: boolean
+    viewCustomerStatements?: boolean
+    exportCustomerStatements?: boolean
+    sendFinancialDocuments?: boolean
   }
 }
 
@@ -40,12 +46,14 @@ export function CreateStaffModal({ isOpen, onClose, onSuccess }: CreateStaffModa
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
+  const [username, setUsername] = useState("")
   const [phone, setPhone] = useState("+20")
   const [password, setPassword] = useState("")
+  const [canAccessAccounts, setCanAccessAccounts] = useState(false)
   
   // Roles State
   const [roles, setRoles] = useState<RoleConfig[]>([])
-  const [selectedRoleId, setSelectedRoleId] = useState<string>("super_admin")
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("staff")
   const [loadingRoles, setLoadingRoles] = useState(false)
   
   // New Role Form State
@@ -125,18 +133,37 @@ export function CreateStaffModal({ isOpen, onClose, onSuccess }: CreateStaffModa
       let staffPermissions = {
         canSendAlerts: false,
         canReviewDocuments: false,
-        canManageCustomers: false
+        canManageCustomers: false,
+        issueTaxInvoice: false,
+        createInvoice: true,
+        editInvoice: true,
+        viewCustomerStatements: true,
+        exportCustomerStatements: true,
+        sendFinancialDocuments: false,
       }
-      let jobTitleStr = ""
+      let jobTitleStr = selectedRoleId === "staff" ? t("admin.staff.staff") : ""
 
       if (selectedRoleId === "super_admin") {
         roleType = "super_admin"
-        staffPermissions = { canSendAlerts: true, canReviewDocuments: true, canManageCustomers: true }
+        staffPermissions = {
+          canSendAlerts: true,
+          canReviewDocuments: true,
+          canManageCustomers: true,
+          issueTaxInvoice: true,
+          createInvoice: true,
+          editInvoice: true,
+          viewCustomerStatements: true,
+          exportCustomerStatements: true,
+          sendFinancialDocuments: true,
+        }
       } else {
         const selectedRoleObj = roles.find(r => r.id === selectedRoleId)
         if (selectedRoleObj) {
           jobTitleStr = selectedRoleObj.title
-          staffPermissions = selectedRoleObj.permissions
+          staffPermissions = {
+            ...staffPermissions,
+            ...(selectedRoleObj.permissions || {}),
+          }
         }
       }
 
@@ -148,17 +175,21 @@ export function CreateStaffModal({ isOpen, onClose, onSuccess }: CreateStaffModa
           lastName,
           jobTitle: jobTitleStr,
           email,
+          username,
           phone,
           password,
           role: roleType,
-          staffPermissions,
+          staffPermissions: { ...staffPermissions, canAccessAccounts: roleType === "super_admin" || canAccessAccounts },
         }),
       })
 
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || "Failed to create staff account")
+        const detail = data.details ? Object.values(data.details).flatMap(value =>
+          value && typeof value === "object" && "_errors" in value ? (value as { _errors: string[] })._errors : []
+        ).join(". ") : ""
+        setError(detail || data.error || "Failed to create staff account")
         return
       }
 
@@ -174,7 +205,11 @@ export function CreateStaffModal({ isOpen, onClose, onSuccess }: CreateStaffModa
   if (!isOpen) return null
 
   // Get current permissions based on selection
-  let currentPermissions = { canSendAlerts: true, canReviewDocuments: true, canManageCustomers: true }
+  let currentPermissions = {
+    canSendAlerts: selectedRoleId === "super_admin",
+    canReviewDocuments: selectedRoleId === "super_admin",
+    canManageCustomers: selectedRoleId === "super_admin",
+  }
   if (selectedRoleId !== "super_admin") {
     const r = roles.find(x => x.id === selectedRoleId)
     if (r) currentPermissions = r.permissions
@@ -256,13 +291,12 @@ export function CreateStaffModal({ isOpen, onClose, onSuccess }: CreateStaffModa
 
             <div>
               <label className="text-xs font-bold text-secondary-700 dark:text-secondary-300">
-                {t("admin.staff.email") || "Corporate Email"}
+                {t("admin.staff.emailOptional")}
               </label>
               <div className="relative mt-1">
                 <Mail className="absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400 rtl:right-3 rtl:left-auto" />
                 <input
                   type="email"
-                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="karim@nilelink.com"
@@ -306,6 +340,26 @@ export function CreateStaffModal({ isOpen, onClose, onSuccess }: CreateStaffModa
               </div>
             </div>
 
+            <div>
+              <label htmlFor="staff-username" className="text-xs font-bold text-secondary-700 dark:text-secondary-300">
+                {t("admin.staff.username")}
+              </label>
+              <input
+                id="staff-username"
+                type="text"
+                autoComplete="off"
+                required={!email.trim()}
+                minLength={3}
+                maxLength={50}
+                pattern={"[a-zA-Z0-9_][a-zA-Z0-9_.\\-]{2,49}"}
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                placeholder="mohamedzanaty"
+                dir="ltr"
+                className="mt-1 w-full rounded-xl border border-secondary-200 bg-white p-2.5 text-xs text-secondary-900 focus:border-primary-500 focus:outline-none dark:border-secondary-700 dark:bg-secondary-800 dark:text-white"
+              />
+            </div>
+
             {/* ROLES SELECTOR */}
             <div>
               <label className="mb-1 flex items-center justify-between text-xs font-semibold text-secondary-700 dark:text-secondary-300">
@@ -318,6 +372,11 @@ export function CreateStaffModal({ isOpen, onClose, onSuccess }: CreateStaffModa
                   <Plus className="h-3 w-3" />
                   {t("common.add") || "Add New Role"}
                 </button>
+              </label>
+
+              <label className="my-3 flex items-center gap-2 text-xs font-bold">
+                <input type="checkbox" checked={selectedRoleId === "super_admin" || canAccessAccounts} disabled={selectedRoleId === "super_admin"} onChange={event => setCanAccessAccounts(event.target.checked)} />
+                عرض كارت الحسابات والوصول إليه (Accounts access)
               </label>
 
               {isCreatingRole && (
@@ -357,6 +416,7 @@ export function CreateStaffModal({ isOpen, onClose, onSuccess }: CreateStaffModa
                   disabled={loadingRoles}
                   className="w-full rounded-xl border border-secondary-200 bg-white p-2.5 pl-9 text-xs text-secondary-900 focus:border-primary-500 focus:outline-none dark:border-secondary-700 dark:bg-secondary-800 dark:text-white rtl:pl-2.5 rtl:pr-9"
                 >
+                  <option value="staff">{t("admin.staff.staff")}</option>
                   <option value="super_admin">{t("admin.staff.roleAdmin") || "Administrator (Full Access)"}</option>
                   {roles.map(r => (
                     <option key={r.id} value={r.id}>{r.title}</option>

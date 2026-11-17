@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
@@ -5,15 +7,16 @@ import { User, Customer, Document as DocumentModel, CustomerRequest } from "@/li
 import { getSessionFromRequest } from "@/lib/auth/token-service"
 
 const updateProfileSchema = z.object({
+  hasCompletedOnboarding: z.literal(true).optional(),
   username: z
     .string()
     .min(3)
     .max(30)
     .regex(/^[a-zA-Z0-9_.-]+$/, "Username can only contain letters, numbers, underscores, and dots")
     .optional(),
-  firstName: z.string().min(2).optional(),
-  lastName: z.string().min(2).optional(),
-  phone: z.string().min(8).optional(),
+  firstName: z.string().trim().min(2).max(80).optional(),
+  lastName: z.string().trim().min(2).max(80).optional(),
+  phone: z.string().trim().min(8).max(20).optional(),
   companyName: z.string().min(2).optional(),
   address: z.string().optional(),
   city: z.string().optional(),
@@ -26,6 +29,10 @@ export async function GET(req: NextRequest) {
     const session = await getSessionFromRequest(req)
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "profile-get", request: req })
     }
 
     await connectDB()
@@ -161,6 +168,10 @@ export async function PUT(req: NextRequest) {
       )
     }
 
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "profile-put", request: req, input: parsed.data })
+    }
+
     await connectDB()
 
     // 1. If updating username, ensure unique across all users
@@ -179,10 +190,15 @@ export async function PUT(req: NextRequest) {
 
     // 2. Update User Record
     const userUpdateFields: Record<string, any> = {}
+    if (parsed.data.hasCompletedOnboarding === true) userUpdateFields.hasCompletedOnboarding = true
     if (parsed.data.username) userUpdateFields.username = parsed.data.username.toLowerCase().trim()
     if (parsed.data.firstName) userUpdateFields.firstName = parsed.data.firstName
     if (parsed.data.lastName) userUpdateFields.lastName = parsed.data.lastName
     if (parsed.data.phone !== undefined) userUpdateFields.phone = parsed.data.phone
+    if (parsed.data.phone !== undefined) {
+      const current = await User.findById(session.userId).select("phone")
+      if (current?.phone !== parsed.data.phone) Object.assign(userUpdateFields, { whatsappVerified: false, whatsappVerificationCode: null, whatsappVerificationExpires: null })
+    }
 
     if (Object.keys(userUpdateFields).length > 0) {
       await User.findByIdAndUpdate(session.userId, userUpdateFields)

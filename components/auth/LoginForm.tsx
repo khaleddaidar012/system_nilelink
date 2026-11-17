@@ -46,6 +46,15 @@ const registerSchema = z
   .object({
     firstName: z.string().min(2, "First name is required"),
     lastName: z.string().min(2, "Last name is required"),
+    username: z
+      .string()
+      .max(30, "Username must be 30 characters or less")
+      .refine(
+        (val) => !val || (val.length >= 3 && /^[a-zA-Z0-9_]+$/.test(val)),
+        { message: "Username must be 3-30 characters (letters, numbers, and underscores only)" }
+      )
+      .optional()
+      .or(z.literal("")),
     email: z
       .string()
       .min(1, "Email is required")
@@ -116,16 +125,17 @@ export function LoginForm({ callbackUrl, initialMode = "login" }: LoginFormProps
     defaultValues: {
       firstName: "",
       lastName: "",
+      username: "",
       email: "",
       phone: "",
       password: "",
+      confirmPassword: "",
       companyName: "",
       commercialRegisterNumber: "",
       taxCardNumber: "",
       industry: "Logistics & Trade",
       city: "Cairo",
       terms: true,
-      confirmPassword: "",
     },
   })
 
@@ -231,23 +241,23 @@ export function LoginForm({ callbackUrl, initialMode = "login" }: LoginFormProps
     >
       {/* Brand Header */}
       <div className="mb-6 text-center">
-        <div className="mb-3 inline-flex items-center gap-3" dir="ltr">
-          <div className="relative h-[58px] w-[58px] shrink-0">
+        <div className="mb-3 inline-flex items-center gap-2.5 dark:rounded-2xl dark:bg-white dark:px-4 dark:py-2 dark:border dark:border-slate-100 dark:shadow-md" dir="ltr">
+          <div className="relative h-[48px] w-[48px] shrink-0">
             <Image
               src={logoImg}
               alt="NileLink Logistics"
               fill
-              sizes="60px"
+              sizes="50px"
               priority
               className="object-contain"
             />
           </div>
-          <span className="flex flex-col text-left leading-none">
-            <span className="text-xl font-bold tracking-wide text-secondary-900 dark:text-white">
+          <span className="flex flex-col text-left leading-none pr-1 rtl:pl-1 rtl:pr-0">
+            <span className="text-xl font-bold tracking-wide text-secondary-900">
               Nile Link
             </span>
             <span className="my-0.5 border-t border-primary-500" />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.38em] text-secondary-500 dark:text-secondary-400">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.38em] text-secondary-600">
               Logistics
             </span>
           </span>
@@ -542,7 +552,7 @@ export function LoginForm({ callbackUrl, initialMode = "login" }: LoginFormProps
                         placeholder="Ahmed"
                         {...registerRegister("firstName")}
                         className={cn(
-                          "w-full rounded-xl border bg-secondary-50/80 dark:bg-slate-800/90 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20",
+                          "w-full rounded-xl border bg-secondary-50/80 dark:bg-slate-800/90 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 px-3.5 py-2.5 text-xs font-medium transition-all",
                           regErrors.firstName
                             ? "border-red-500 focus:border-red-500 dark:border-red-500"
                             : "border-secondary-200 focus:border-primary-500 dark:border-secondary-700 dark:focus:border-primary-400"
@@ -560,7 +570,7 @@ export function LoginForm({ callbackUrl, initialMode = "login" }: LoginFormProps
                         placeholder="Hassan"
                         {...registerRegister("lastName")}
                         className={cn(
-                          "w-full rounded-xl border bg-secondary-50/80 dark:bg-slate-800/90 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20",
+                          "w-full rounded-xl border bg-secondary-50/80 dark:bg-slate-800/90 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 px-3.5 py-2.5 text-xs font-medium transition-all",
                           regErrors.lastName
                             ? "border-red-500 focus:border-red-500 dark:border-red-500"
                             : "border-secondary-200 focus:border-primary-500 dark:border-secondary-700 dark:focus:border-primary-400"
@@ -609,6 +619,33 @@ export function LoginForm({ callbackUrl, initialMode = "login" }: LoginFormProps
                         />
                       </div>
                       {regErrors.phone && <p className="mt-1 text-xs text-red-500">{regErrors.phone.message}</p>}
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="mb-1 block text-xs font-semibold text-secondary-700 dark:text-secondary-300">
+                        {t("auth.register.username") || "Username (Optional)"}
+                      </label>
+                      <div className="relative">
+                        <User className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-secondary-400 rtl:right-3 rtl:left-auto" />
+                        <input
+                          type="text"
+                          placeholder={t("auth.register.usernamePlaceholder") || "e.g. ahmed_cairo"}
+                          {...registerRegister("username")}
+                          className={cn(
+                            "w-full rounded-xl border bg-secondary-50/80 dark:bg-slate-800/90 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 pr-3.5 pl-9 py-2.5 text-xs font-medium transition-all rtl:pr-9 rtl:pl-3.5",
+                            regErrors.username
+                              ? "border-red-500 focus:border-red-500 dark:border-red-500"
+                              : "border-secondary-200 focus:border-primary-500 dark:border-secondary-700 dark:focus:border-primary-400"
+                          )}
+                        />
+                      </div>
+                      {regErrors.username ? (
+                        <p className="mt-1 text-xs text-red-500">{regErrors.username.message}</p>
+                      ) : (
+                        <p className="mt-1 text-[10px] text-secondary-400">
+                          {t("auth.register.usernameDesc") || "Letters, numbers, and underscores only"}
+                        </p>
+                      )}
                     </div>
 
                     <div>

@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
@@ -29,6 +31,10 @@ export async function POST(req: NextRequest) {
     const passwordCheck = validatePasswordComplexity(newPassword)
     if (!passwordCheck.valid) {
       return NextResponse.json({ error: passwordCheck.error }, { status: 400 })
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "password-reset-confirm", request: req, input: parsed.data })
     }
 
     await connectDB()

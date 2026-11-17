@@ -32,6 +32,8 @@ import {
   Eye,
   Info,
 } from "lucide-react"
+import { ProgressivePriceEditor } from "@/components/admin/requests/ProgressivePriceEditor"
+import { progressivePricingSchema,priceQuoteRows,type ProgressivePricing } from "@/lib/finance/progressive-pricing"
 import { Button } from "@/components/ui/Button"
 import { toast } from "sonner"
 import { Link } from "@/navigation"
@@ -87,6 +89,7 @@ function getServiceLabel(key: string, isAr: boolean) {
 
 /* ─── types ─── */
 interface QuoteLineItemBreakdown {
+  progressivePricing?:ProgressivePricing
   id: string
   description: string
   basePrice: number | string
@@ -119,10 +122,11 @@ export default function AdminGenerateQuotePage() {
   const [step, setStep] = useState<1 | 2 | 3>(1)
 
   /* form state */
-  const [currency, setCurrency] = useState("USD")
+  const [currency, setCurrency] = useState("EGP")
   const [validUntil, setValidUntil] = useState("")
   const [notes, setNotes] = useState("")
   const [quoteItems, setQuoteItems] = useState<Record<string, QuoteLineItem>>({})
+  const [existingQuote, setExistingQuote] = useState<any>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [generatedQuoteNumber, setGeneratedQuoteNumber] = useState("")
 
@@ -150,21 +154,61 @@ export default function AdminGenerateQuotePage() {
 
       if (reqData.request) {
         setRequest(reqData.request)
+
+        if (reqData.quote) {
+          setExistingQuote(reqData.quote)
+          if (reqData.quote.currency) setCurrency(reqData.quote.currency)
+          if (reqData.quote.notes !== undefined) setNotes(reqData.quote.notes)
+          if (reqData.quote.validUntil) {
+            setValidUntil(new Date(reqData.quote.validUntil).toISOString().split("T")[0])
+          }
+        }
+
         const init: Record<string, QuoteLineItem> = {}
         reqData.request.services?.forEach((s: any) => {
           const match = priceData.data?.find((p: any) => p.serviceId === s._id)
           const base = match?.suggestedPrice ?? 0
           const label = (s.serviceKey || s.serviceType || "service")
-          init[s._id] = {
-            requestServiceId: s._id,
-            serviceKey: label,
-            serviceLabelAr: getServiceLabel(label, true),
-            serviceLabelEn: getServiceLabel(label, false),
-            breakdown: [{ id: Math.random().toString(36).substr(2, 9), description: isAr ? "المرحلة الأولى" : "Leg 1", basePrice: base || "", additionalCharges: "" }],
-            basePrice: base || 0,
-            additionalCharges: 0,
-            finalPrice: base || 0,
-            note: "",
+
+          // Check if there is an existing quote item for this service
+          const existingItem = reqData.quoteItems?.find((qi: any) =>
+            String(qi.requestServiceId) === String(s._id) || qi.serviceKey === (s.serviceKey || s.serviceType)
+          )
+
+          if (existingItem) {
+            const breakdown = (existingItem.breakdown && existingItem.breakdown.length > 0)
+              ? existingItem.breakdown.map((b: any) => ({
+                  id: b.id || Math.random().toString(36).substr(2, 9),
+                  description: b.description || "",
+                  progressivePricing:b.progressivePricing,
+                  basePrice: b.basePrice ?? "",
+                  additionalCharges: b.additionalCharges ?? "",
+                }))
+              : [{ id: Math.random().toString(36).substr(2, 9), description: isAr ? "المرحلة الأولى" : "Leg 1", basePrice: existingItem.basePrice || "", additionalCharges: existingItem.additionalCharges || "" }]
+
+            init[s._id] = {
+              requestServiceId: s._id,
+              serviceKey: label,
+              serviceLabelAr: getServiceLabel(label, true),
+              serviceLabelEn: getServiceLabel(label, false),
+              breakdown,
+              basePrice: existingItem.basePrice || 0,
+              additionalCharges: existingItem.additionalCharges || 0,
+              finalPrice: existingItem.finalPrice || 0,
+              note: existingItem.note || "",
+            }
+          } else {
+            init[s._id] = {
+              requestServiceId: s._id,
+              serviceKey: label,
+              serviceLabelAr: getServiceLabel(label, true),
+              serviceLabelEn: getServiceLabel(label, false),
+              breakdown: [{ id: Math.random().toString(36).substr(2, 9), description: isAr ? "المرحلة الأولى" : "Leg 1", basePrice: base || "", additionalCharges: "" }],
+              basePrice: base || 0,
+              additionalCharges: 0,
+              finalPrice: base || 0,
+              note: "",
+            }
           }
         })
         setQuoteItems(init)
@@ -197,6 +241,14 @@ export default function AdminGenerateQuotePage() {
       item.finalPrice = newBase + newExtra
       
       return { ...prev, [sid]: item }
+    })
+  }
+
+  const changeProgressive=(sid:string,bid:string,progressivePricing:ProgressivePricing|undefined)=>{
+    setQuoteItems(previous=>{
+      const item={...previous[sid]};let rows=item.breakdown.map(row=>row.id===bid?{...row,progressivePricing}:row)
+      try{const priced=priceQuoteRows(rows.map(row=>({...row,basePrice:Number(row.basePrice)||0,additionalCharges:Number(row.additionalCharges)||0})));rows=rows.map((row,index)=>({...row,basePrice:priced.breakdown[index].basePrice}));return {...previous,[sid]:{...item,breakdown:rows,basePrice:priced.basePrice,additionalCharges:priced.additionalCharges,finalPrice:priced.finalPrice}}}
+      catch{return {...previous,[sid]:{...item,breakdown:rows,finalPrice:0}}}
     })
   }
 
@@ -233,6 +285,7 @@ export default function AdminGenerateQuotePage() {
       toast.error(isAr ? "حدد تاريخ صلاحية العرض" : "Please set a valid-until date")
       return
     }
+    if(Object.values(quoteItems).some(item=>item.breakdown.some(row=>row.progressivePricing&&!progressivePricingSchema.safeParse(row.progressivePricing).success))){toast.error(isAr?"راجع شرائح التسعير أولًا":"Check pricing tiers first");return}
     setIsSubmitting(true)
     try {
       const res = await fetch("/api/admin/quotes", {
@@ -244,12 +297,13 @@ export default function AdminGenerateQuotePage() {
           currency,
           validUntil,
           notes,
-          items: Object.values(quoteItems),
+          items: Object.values(quoteItems).map(item=>({...item,finalPrice:Number(item.finalPrice.toFixed(2))})),
+          quoteId: existingQuote?._id,
         }),
       })
       const data = await res.json()
       if (data.success) {
-        setGeneratedQuoteNumber(data.quote?.quoteNumber || "NL-QT-****")
+        setGeneratedQuoteNumber(data.quote?.quoteNumber || existingQuote?.quoteNumber || "NL-QT-****")
         setSubmitSuccess(true)
         setStep(3)
       } else {
@@ -288,29 +342,6 @@ export default function AdminGenerateQuotePage() {
         <Link href="/admin/requests">
           <Button variant="outline" className="rounded-xl">
             {isAr ? "العودة إلى القائمة" : "Back to list"}
-          </Button>
-        </Link>
-      </div>
-    )
-  }
-
-  /* ─── BLOCK IF COMPLIANCE MISSING ─── */
-  if (["import", "export", "transit"].includes(request.operationType) && !request.complianceNumber) {
-    const type = request.operationType === "export" ? "UCR" : "ACID"
-    return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-8">
-        <AlertCircle className="h-16 w-16 text-amber-500" />
-        <h2 className="text-2xl font-bold text-secondary-900 dark:text-white">
-          {isAr ? "إنشاء العرض معلق" : "Quote Generation Blocked"}
-        </h2>
-        <p className="max-w-md text-center text-secondary-600 dark:text-secondary-400">
-          {isAr 
-            ? `يجب إدخال رقم الـ ${type} الخاص بالطلب قبل أن تتمكن من إصدار عرض السعر للعميل.` 
-            : `You must issue and provide the ${type} number for this request before you can generate a quote.`}
-        </p>
-        <Link href={`/admin/requests/${id}`}>
-          <Button className="mt-4 rounded-xl px-8">
-            {isAr ? "العودة لتفاصيل الطلب لإدخال الرقم" : `Go back to provide ${type}`}
           </Button>
         </Link>
       </div>
@@ -390,9 +421,9 @@ export default function AdminGenerateQuotePage() {
     <div className="flex flex-col pb-16">
       <AdminHeader
         title={
-          isAr
-            ? `إنشاء عرض سعر — ${request.trackingNumber}`
-            : `Generate Quote — ${request.trackingNumber}`
+          existingQuote
+            ? (isAr ? `تحديث عرض السعر — ${request.trackingNumber}` : `Update Quote — ${request.trackingNumber}`)
+            : (isAr ? `إنشاء عرض سعر — ${request.trackingNumber}` : `Generate Quote — ${request.trackingNumber}`)
         }
         subtitle={
           isAr
@@ -444,6 +475,37 @@ export default function AdminGenerateQuotePage() {
               </div>
             ))}
           </div>
+
+          {/* Existing Quote Banner */}
+          {existingQuote && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border-2 border-indigo-200/80 bg-indigo-50/70 p-4 dark:border-indigo-800/80 dark:bg-indigo-950/40">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-500/20">
+                  <Receipt className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-bold text-indigo-950 dark:text-indigo-200">
+                      {isAr ? "عرض السعر المسجل حالياً:" : "Current Registered Quote:"}
+                    </span>
+                    <span className="font-mono text-xs font-black px-2.5 py-0.5 rounded-lg bg-indigo-200 text-indigo-900 dark:bg-indigo-900 dark:text-indigo-200">
+                      {existingQuote.quoteNumber}
+                    </span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-white/80 dark:bg-secondary-800 text-secondary-700 dark:text-secondary-300">
+                      {existingQuote.status === "accepted" ? (isAr ? "معتمد" : "Accepted") :
+                       existingQuote.status === "rejected" ? (isAr ? "مرفوض" : "Rejected") :
+                       (isAr ? "مُرسل للعميل" : "Sent")}
+                    </span>
+                  </div>
+                  <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
+                    {isAr
+                      ? `تم تحميل بيانات العرض المسجل مسبقاً (${existingQuote.totalAmount?.toLocaleString()} ${existingQuote.currency}). يمكنك مراجعة الأسعار وتعديلها وحفظ التحديثات.`
+                      : `Loaded registered quote data (${existingQuote.totalAmount?.toLocaleString()} ${existingQuote.currency}). You can review and update pricing.`}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ═══════════ STEP 1 ═══════════ */}
           <AnimatePresence mode="wait">
@@ -609,6 +671,7 @@ export default function AdminGenerateQuotePage() {
                                           type="number"
                                           min={0}
                                           placeholder="0"
+                                          disabled={!!leg.progressivePricing}
                                           value={leg.basePrice}
                                           onChange={(e) => handleBreakdownChange(service._id, leg.id, "basePrice", e.target.value === "" ? "" : Number(e.target.value))}
                                           className="w-full rounded-xl border border-secondary-200 bg-white py-2 pl-7 pr-3 text-sm font-semibold text-secondary-900 transition focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-secondary-700 dark:bg-secondary-800 dark:text-white rtl:pl-3 rtl:pr-7"
@@ -637,6 +700,7 @@ export default function AdminGenerateQuotePage() {
                                       </div>
                                     </div>
                                   </div>
+                                  <ProgressivePriceEditor value={leg.progressivePricing} ar={isAr} currency={currency} onChange={value=>changeProgressive(service._id,leg.id,value)} />
                                 </div>
                               ))}
                               
@@ -804,7 +868,7 @@ export default function AdminGenerateQuotePage() {
                       </div>
                       <div className="text-right rtl:text-left">
                         <p className="text-xs text-primary-200">{isAr ? "رقم العرض" : "Quote No."}</p>
-                        <p className="font-mono text-lg font-black">NL-QT-{new Date().getFullYear()}-XXXX</p>
+                        <p className="font-mono text-lg font-black">{existingQuote?.quoteNumber || `NL-QT-${new Date().getFullYear()}-XXXX`}</p>
                         <p className="mt-1 flex items-center justify-end gap-1 text-xs text-primary-200 rtl:justify-start">
                           <Calendar className="h-3 w-3" />
                           {new Date().toLocaleDateString(isAr ? "ar-EG" : "en-US")}
@@ -833,7 +897,7 @@ export default function AdminGenerateQuotePage() {
                           {isAr ? "تفاصيل الطلب" : "Request Details"}
                         </p>
                         <p className="font-mono text-sm font-bold text-primary-600 dark:text-primary-400">
-                          {request.trackingNumber}
+                          <bdi dir="ltr">{request.trackingNumber}</bdi>
                         </p>
                         <p className="text-sm font-semibold text-secondary-700 dark:text-secondary-300">
                           {request.subject}
@@ -949,7 +1013,9 @@ export default function AdminGenerateQuotePage() {
                     className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-3 font-black text-white shadow-lg shadow-emerald-500/25 hover:from-emerald-700 hover:to-teal-700"
                   >
                     {isSubmitting ? (
-                      <><RefreshCw className="mr-1.5 h-4 w-4 animate-spin rtl:mr-0 rtl:ml-1.5" /> {isAr ? "جاري الإرسال..." : "Sending..."}</>
+                      <><RefreshCw className="mr-1.5 h-4 w-4 animate-spin rtl:mr-0 rtl:ml-1.5" /> {isAr ? "جاري الإرسال والتحديث..." : "Sending & Updating..."}</>
+                    ) : existingQuote ? (
+                      <><Send className="mr-1.5 h-4 w-4 rtl:mr-0 rtl:ml-1.5" /> {isAr ? "تحديث وإعادة إرسال عرض السعر" : "Update & Resend Quote"}</>
                     ) : (
                       <><Send className="mr-1.5 h-4 w-4 rtl:mr-0 rtl:ml-1.5" /> {isAr ? "إرسال عرض السعر للعميل" : "Send Quote to Customer"}</>
                     )}

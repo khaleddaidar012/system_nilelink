@@ -37,10 +37,10 @@ export function ContactCards() {
                     href={channel.href}
                     target={isExternal ? "_blank" : undefined}
                     rel={isExternal ? "noopener noreferrer" : undefined}
-                    dir="ltr"
+                    dir={channel.valueKey ? undefined : "ltr"}
                     className="mt-1 block break-all text-sm font-medium text-primary-600 transition-colors group-hover:text-primary-500 dark:text-primary-400"
                   >
-                    {channel.value}
+                    {channel.valueKey ? t(channel.valueKey) : channel.value}
                   </a>
                   {channel.secondaryValue && channel.secondaryHref && (
                     <a

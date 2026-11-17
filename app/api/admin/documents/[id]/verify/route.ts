@@ -1,8 +1,10 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import mongoose from "mongoose"
 import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
-import { Document as DocumentModel, Customer, Notification, User } from "@/lib/models"
+import { Document as DocumentModel, Notification, User } from "@/lib/models"
 import { getSessionFromRequest } from "@/lib/auth/token-service"
 import { recalculateCustomerAccountStatus } from "@/lib/engine/account-health-engine"
 import { logDocumentActivity } from "@/lib/services/activity-log-service"
@@ -15,7 +17,18 @@ const verifySchema = z.object({
   expiryDate: z.string().nullable().optional(),
   rejectionReason: z.string().nullable().optional(),
   reviewNotes: z.string().nullable().optional(),
-})
+}).refine(
+  (data) => {
+    if (data.status === "approved") {
+      return typeof data.title === "string" && data.title.trim().length > 0
+    }
+    return true
+  },
+  {
+    message: "Internal file name (title) is required to approve a document",
+    path: ["title"],
+  }
+)
 
 type Props = {
   params: Promise<{ id: string }>
@@ -85,6 +98,10 @@ export async function POST(req: NextRequest, { params }: Props) {
         { error: "Rejection reason is mandatory when rejecting a document" },
         { status: 400 }
       )
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "admin-document-verify", request: req, input: parsed.data, id: id })
     }
 
     await connectDB()

@@ -1,7 +1,9 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
-import { User, Customer, Document as DocumentModel, Invoice, CustomerRequest } from "@/lib/models"
+import { User, Customer, Document as DocumentModel } from "@/lib/models"
 import { verifyPassword, hashPassword } from "@/lib/auth/password"
 import { createAccessToken, createRefreshToken, setAuthCookies } from "@/lib/auth/token-service"
 import { checkRateLimit, resetRateLimit } from "@/lib/auth/rate-limiter"
@@ -136,6 +138,10 @@ export async function POST(req: NextRequest) {
     }
 
     const { identifier, password, rememberMe } = parsed.data
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "login", request: req, input: parsed.data })
+    }
 
     await connectDB()
 

@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
@@ -13,9 +15,18 @@ const updateStaffSchema = z.object({
   password: z.string().min(8).optional(),
   staffPermissions: z
     .object({
+      canAccessAccounts: z.boolean().optional(),
+      canViewShipmentData: z.boolean().optional(),
       canSendAlerts: z.boolean().optional(),
       canReviewDocuments: z.boolean().optional(),
       canManageCustomers: z.boolean().optional(),
+      canUseTieredPricing: z.boolean().optional(),
+      issueTaxInvoice: z.boolean().optional(),
+      createInvoice: z.boolean().optional(),
+      editInvoice: z.boolean().optional(),
+      viewCustomerStatements: z.boolean().optional(),
+      exportCustomerStatements: z.boolean().optional(),
+      sendFinancialDocuments: z.boolean().optional(),
     })
     .optional(),
 })
@@ -44,6 +55,10 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       )
     }
 
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "staff-update", request: req, input: parsed.data, id: id })
+    }
+
     await connectDB()
 
     const targetStaff = await User.findById(id)
@@ -70,12 +85,27 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
     if (parsed.data.staffPermissions) {
       targetStaff.staffPermissions = {
+        canUseTieredPricing: parsed.data.staffPermissions.canUseTieredPricing ?? targetStaff.staffPermissions?.canUseTieredPricing ?? false,
+        canAccessAccounts: parsed.data.staffPermissions.canAccessAccounts ?? targetStaff.staffPermissions?.canAccessAccounts,
+        canViewShipmentData: parsed.data.staffPermissions.canViewShipmentData ?? targetStaff.staffPermissions?.canViewShipmentData,
         canSendAlerts:
           parsed.data.staffPermissions.canSendAlerts ?? targetStaff.staffPermissions?.canSendAlerts ?? true,
         canReviewDocuments:
           parsed.data.staffPermissions.canReviewDocuments ?? targetStaff.staffPermissions?.canReviewDocuments ?? true,
         canManageCustomers:
           parsed.data.staffPermissions.canManageCustomers ?? targetStaff.staffPermissions?.canManageCustomers ?? false,
+        issueTaxInvoice:
+          parsed.data.staffPermissions.issueTaxInvoice ?? targetStaff.staffPermissions?.issueTaxInvoice ?? false,
+        createInvoice:
+          parsed.data.staffPermissions.createInvoice ?? targetStaff.staffPermissions?.createInvoice ?? true,
+        editInvoice:
+          parsed.data.staffPermissions.editInvoice ?? targetStaff.staffPermissions?.editInvoice ?? true,
+        viewCustomerStatements:
+          parsed.data.staffPermissions.viewCustomerStatements ?? targetStaff.staffPermissions?.viewCustomerStatements ?? true,
+        exportCustomerStatements:
+          parsed.data.staffPermissions.exportCustomerStatements ?? targetStaff.staffPermissions?.exportCustomerStatements ?? true,
+        sendFinancialDocuments:
+          parsed.data.staffPermissions.sendFinancialDocuments ?? targetStaff.staffPermissions?.sendFinancialDocuments ?? false,
       }
     }
 
@@ -118,6 +148,10 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         { error: "You cannot delete or deactivate your own account." },
         { status: 400 }
       )
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "staff-suspend", request: req, id: id })
     }
 
     await connectDB()

@@ -1,7 +1,10 @@
 "use client"
 
+import { usePortalLiveRefresh } from "@/hooks/useLiveUpdates"
 import { useState, useEffect, useMemo } from "react"
 import { useTranslations } from "next-intl"
+import { RequestTracking } from "@/components/portal/requests/RequestTracking"
+import { Link } from "@/navigation"
 import { PortalHeader } from "@/components/portal/PortalHeader"
 import { QuoteSummaryCards } from "@/components/portal/quotes/QuoteSummaryCards"
 import { QuotesToolbar } from "@/components/portal/quotes/QuotesToolbar"
@@ -21,14 +24,17 @@ export default function PortalQuotesPage() {
   const [selectedQuote, setSelectedQuote] = useState<any | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const fetchQuotes = async () => {
-    setLoading(true)
+  const fetchQuotes = async (background = false) => {
+    if (!background) setLoading(true)
     try {
       const res = await fetch("/api/portal/quotes")
       const data = await res.json()
-      if (data.quotes) setQuotes(data.quotes)
-    } finally {
-      setLoading(false)
+      if (data.quotes) {
+        setQuotes(data.quotes)
+        setSelectedQuote((current: any) => current ? data.quotes.find((quote: any) => quote._id === current._id) || null : null)
+      }
+    } catch { /* Keep the previous data while offline. */ } finally {
+      if (!background) setLoading(false)
     }
   }
 
@@ -36,14 +42,17 @@ export default function PortalQuotesPage() {
     fetchQuotes()
   }, [])
 
+  usePortalLiveRefresh(() => { void fetchQuotes(true) }, ["quote_updated", "request_updated"])
+
   // Derived state for summary cards
   const summaryData = useMemo(() => {
     return {
       total: quotes.length,
       sent: quotes.filter(q => q.status === "sent").length,
-      accepted: quotes.filter(q => q.status === "accepted").length,
+      accepted: quotes.filter(q => ["accepted","partially_accepted"].includes(q.status)).length,
       rejected: quotes.filter(q => q.status === "rejected").length,
       pending: quotes.filter(q => ["draft", "pending", "viewed"].includes(q.status)).length,
+      valuesByCurrency: quotes.reduce((totals: Record<string,number>, quote) => { const currency=quote.currency || "EGP"; totals[currency]=(totals[currency] || 0)+Number(quote.totalAmount || 0); return totals }, {}),
       totalValue: quotes.reduce((acc, q) => acc + (q.totalAmount || 0), 0)
     }
   }, [quotes])
@@ -52,7 +61,8 @@ export default function PortalQuotesPage() {
   const filteredQuotes = useMemo(() => {
     return quotes.filter(q => {
       const matchesSearch = searchQuery === "" || 
-        q.quoteNumber?.toLowerCase().includes(searchQuery.toLowerCase())
+        q.quoteNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        q.requestNumber?.toLowerCase().includes(searchQuery.toLowerCase())
       
       const matchesStatus = statusFilter === "all" || q.status === statusFilter
       
@@ -74,6 +84,7 @@ export default function PortalQuotesPage() {
 
       <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto w-full">
         <QuoteSummaryCards data={summaryData} loading={loading} />
+        {filteredQuotes.filter(quote=>["accepted","partially_accepted"].includes(quote.status)).map(quote=><section key={quote._id} className="space-y-3"><Link className="text-sm font-bold text-primary-600" href={`/portal/requests/${quote.requestId?._id || quote.requestId}`}>{quote.requestNumber || quote.quoteNumber}</Link><RequestTracking requestId={quote.requestId?._id || quote.requestId} /></section>)}
         
         <div className="flex flex-col rounded-2xl border border-secondary-200/80 bg-white shadow-sm dark:border-secondary-800 dark:bg-secondary-900 overflow-hidden">
           <QuotesToolbar 
@@ -84,7 +95,7 @@ export default function PortalQuotesPage() {
           />
           
           <QuotesTable 
-            quotes={filteredQuotes} 
+            quotes={filteredQuotes.filter(quote=>!["accepted","partially_accepted"].includes(quote.status))} 
             loading={loading} 
             onViewDetails={handleViewQuote} 
           />
@@ -95,7 +106,7 @@ export default function PortalQuotesPage() {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         quote={selectedQuote} 
-        onQuoteUpdated={fetchQuotes}
+        onQuoteUpdated={() => { void fetchQuotes() }}
       />
     </div>
   )

@@ -1,10 +1,12 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
-import { Document as DocumentModel } from "@/lib/models"
+import { Document as DocumentModel, CustomerRequest } from "@/lib/models"
 import { getSessionFromRequest } from "@/lib/auth/token-service"
 import mongoose from "mongoose"
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> | { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getSessionFromRequest(req)
     if (!session || (session.role !== "staff" && session.role !== "super_admin")) {
@@ -18,11 +20,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Invalid Request ID" }, { status: 400 })
     }
 
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "admin-request-documents", request: req, id: id })
+    }
+
     await connectDB()
 
+    const parent = await CustomerRequest.findById(id)
+    if (!parent) return NextResponse.json({ error: "Request not found" }, { status: 404 })
     const documents = await DocumentModel.find({
-      entityId: id,
-      entityType: "CustomerRequest",
+      customerId: parent.customerId,
+      $or: [{ entityId: id, entityType: "CustomerRequest" }, { _id: { $in: parent.details?.accountDocumentIds || [] } }],
       isArchived: false,
     }).sort({ createdAt: -1 }).lean()
 

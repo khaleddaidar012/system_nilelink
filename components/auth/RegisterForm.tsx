@@ -32,6 +32,15 @@ const registerSchema = z
   .object({
     firstName: z.string().min(2, "First name is required"),
     lastName: z.string().min(2, "Last name is required"),
+    username: z
+      .string()
+      .max(30, "Username must be 30 characters or less")
+      .refine(
+        (val) => !val || (val.length >= 3 && /^[a-zA-Z0-9_]+$/.test(val)),
+        { message: "Username must be 3-30 characters (letters, numbers, and underscores only)" }
+      )
+      .optional()
+      .or(z.literal("")),
     email: z.string().min(1, "Email is required").email("Valid email is required"),
     phone: z.string().min(8, "Phone number is required"),
     password: z
@@ -76,6 +85,7 @@ export function RegisterForm() {
     defaultValues: {
       firstName: "",
       lastName: "",
+      username: "",
       email: "",
       phone: "",
       password: "",
@@ -333,6 +343,31 @@ export function RegisterForm() {
                 />
               </div>
               {errors.phone && <p className="mt-1 text-xs text-red-500">{errors.phone.message}</p>}
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-semibold text-secondary-700 dark:text-secondary-300">
+                {t("auth.register.username") || "Username (Optional)"}
+              </label>
+              <div className="relative">
+                <User className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-secondary-400 rtl:right-3 rtl:left-auto" />
+                <input
+                  type="text"
+                  placeholder={t("auth.register.usernamePlaceholder") || "e.g. ahmed_cairo"}
+                  {...register("username")}
+                  className={cn(
+                    "w-full rounded-xl border bg-secondary-50/50 pr-3.5 pl-10 text-sm transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:bg-secondary-800/50 dark:text-white rtl:pr-10 rtl:pl-3.5",
+                    errors.username ? "border-red-500" : "border-secondary-200 dark:border-secondary-700"
+                  )}
+                />
+              </div>
+              {errors.username ? (
+                <p className="mt-1 text-xs text-red-500">{errors.username.message}</p>
+              ) : (
+                <p className="mt-1 text-[10px] text-secondary-400">
+                  {t("auth.register.usernameDesc") || "Letters, numbers, and underscores only"}
+                </p>
+              )}
             </div>
 
             <div>

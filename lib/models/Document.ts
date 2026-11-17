@@ -34,6 +34,7 @@ export interface IDocument extends MongooseDoc {
   reviewedAt?: Date
   warningEscalationTier: WarningTier
   lastNotificationSentAt?: Date
+  lastExpiryAlertKey?: string
   isArchived: boolean
   createdAt: Date
   updatedAt: Date
@@ -137,6 +138,7 @@ const DocumentSchema = new Schema<IDocument>(
       default: "none",
       index: true,
     },
+    lastExpiryAlertKey: { type: String, default: null },
     lastNotificationSentAt: {
       type: Date,
       default: null,

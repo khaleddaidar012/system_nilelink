@@ -22,6 +22,7 @@ import { ManualWarningModal } from "@/components/admin/documents/ManualWarningMo
 
 export interface CustomerAdminItem {
   id: string
+  customerCode?: string
   companyName: string
   commercialRegisterNumber: string
   taxCardNumber: string
@@ -191,6 +192,7 @@ export function CustomerOverviewTable() {
                         <div>
                           <p className="font-bold text-secondary-900 dark:text-white text-sm">
                             {cust.companyName}
+                            {cust.customerCode && <bdi dir="ltr" className="block text-xs font-mono text-primary-600 dark:text-primary-300">{cust.customerCode}</bdi>}
                           </p>
                           <p className="text-[11px] text-secondary-500">
                             CR: {cust.commercialRegisterNumber} • {cust.contactEmail}

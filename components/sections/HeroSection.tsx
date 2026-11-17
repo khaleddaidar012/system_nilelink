@@ -15,7 +15,7 @@ export function HeroSection() {
     <section className="relative flex min-h-screen items-center overflow-hidden">
       <div className="absolute inset-0">
         <Image
-          src="/images/hero-ship-bg.jpg"
+          src="/images/hero-ship-bg.webp"
           alt="Container ship at sea"
           fill
           sizes="100vw"
@@ -23,7 +23,7 @@ export function HeroSection() {
           className="object-cover object-[80%_center] lg:object-[85%_center] xl:object-right"
         />
         {/* Uniform dark overlay — same as login page */}
-        <div className="absolute inset-0 z-10 bg-secondary-900/60" />
+        <div className="absolute inset-0 z-10 bg-site-dark/60" />
         {/* Directional gradients for content readability */}
         <div className="absolute inset-0 z-10 bg-gradient-to-r from-secondary-950/95 via-secondary-950/70 to-transparent rtl:bg-gradient-to-l rtl:from-secondary-950/95 rtl:via-secondary-950/70 rtl:to-transparent" />
         <div className="absolute inset-0 z-10 bg-gradient-to-t from-secondary-950/60 via-transparent to-secondary-950/30" />

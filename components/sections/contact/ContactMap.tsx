@@ -5,7 +5,7 @@ import { Container } from "@/components/ui/Container"
 
 export function ContactMap() {
   return (
-    <section className="section-padding-sm bg-secondary-50 dark:bg-secondary-900/50">
+    <section className="section-padding-sm bg-secondary-50 dark:bg-site-dark/50">
       <Container>
         <motion.div
           initial={{ opacity: 0, y: 20 }}

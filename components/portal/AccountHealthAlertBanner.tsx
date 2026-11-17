@@ -14,10 +14,12 @@ import {
   ShieldAlert,
   FileCheck,
   X,
+  Clock,
 } from "lucide-react"
 import { Link } from "@/navigation"
 import { Button } from "@/components/ui/Button"
 import { usePortal } from "./PortalContext"
+import { CompanyStatusBadge } from "./CompanyStatusBadge"
 import { cn } from "@/lib/utils"
 
 export function AccountHealthAlertBanner() {
@@ -54,7 +56,83 @@ export function AccountHealthAlertBanner() {
     }
   }
 
-  // 1. UNVERIFIED ACCOUNT STATE (Mandatory Business Email Verification)
+  // 1. UNVERIFIED ACCOUNT STATE (New Registration — No Documents Uploaded Yet)
+  if (customer.accountStatus === "unverified") {
+    return (
+      <div className="space-y-4">
+        <div className="relative overflow-hidden rounded-2xl border border-amber-500/50 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent p-5 text-amber-950 shadow-md backdrop-blur-md dark:border-amber-500/40 dark:bg-slate-900/90 dark:text-amber-200">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-600 shadow-inner ring-4 ring-amber-500/10 dark:bg-amber-950/60 dark:text-amber-400">
+                <ShieldAlert className="h-6 w-6 animate-pulse text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-black text-amber-950 dark:text-amber-200">
+                    {t("portal.healthBanners.unverifiedAccountTitle") || "حسابك غير موثق"}
+                  </h2>
+                  <CompanyStatusBadge status={customer.accountStatus} />
+                </div>
+                <p className="mt-1 text-xs font-medium text-amber-900/90 dark:text-amber-300/90 max-w-2xl leading-relaxed">
+                  {t("portal.healthBanners.unverifiedAccountDesc") ||
+                    "تم إنشاء حسابك بنجاح. يرجى رفع المستندات الرسمية للشركة (السجل التجاري، البطاقة الضريبية) لتوثيق الحساب وفتح خدمات المنصة."}
+                </p>
+              </div>
+            </div>
+            <Link href="/portal/documents">
+              <Button
+                size="sm"
+                className="shrink-0 rounded-xl bg-amber-600 font-bold text-white shadow-md transition-all hover:bg-amber-700 hover:shadow-amber-500/25"
+              >
+                <UploadCloud className="mr-1.5 h-4 w-4 rtl:mr-0 rtl:ml-1.5" />
+                <span>{t("portal.healthBanners.uploadDocsBtn") || "رفع المستندات الآن"}</span>
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // 2. UNDER REVIEW STATE (Documents Uploaded — Awaiting Admin Approval)
+  if (customer.accountStatus === "under_review") {
+    return (
+      <div className="space-y-4">
+        <div className="relative overflow-hidden rounded-2xl border border-sky-500/50 bg-gradient-to-r from-sky-500/20 via-sky-500/10 to-transparent p-5 text-sky-950 shadow-md backdrop-blur-md dark:border-sky-500/40 dark:bg-slate-900/90 dark:text-sky-200">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-500/20 text-sky-600 shadow-inner ring-4 ring-sky-500/10 dark:bg-sky-950/60 dark:text-sky-400">
+                <Clock className="h-6 w-6 animate-pulse text-sky-600 dark:text-sky-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-black text-sky-950 dark:text-sky-200">
+                    {t("portal.healthBanners.underReviewTitle") || "حسابك قيد المراجعة"}
+                  </h2>
+                  <CompanyStatusBadge status={customer.accountStatus} />
+                </div>
+                <p className="mt-1 text-xs font-medium text-sky-900/90 dark:text-sky-300/90 max-w-2xl leading-relaxed">
+                  {t("portal.healthBanners.underReviewDesc") ||
+                    "تم رفع المستندات بنجاح وجاري مراجعتها من قبل الإدارة لتفعيل حسابك بالكامل وفتح خدمات المنصة."}
+                </p>
+              </div>
+            </div>
+            <Link href="/portal/documents">
+              <Button
+                size="sm"
+                className="shrink-0 rounded-xl bg-sky-600 font-bold text-white shadow-md transition-all hover:bg-sky-700 hover:shadow-sky-500/25"
+              >
+                <FileCheck className="mr-1.5 h-4 w-4 rtl:mr-0 rtl:ml-1.5" />
+                <span>{t("portal.healthBanners.viewDocsBtn") || "عرض المستندات المرفوعة"}</span>
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // 2. UNVERIFIED ACCOUNT STATE (Mandatory Business Email Verification)
   if (isChannelsUnverified) {
     return (
       <div className="space-y-4">

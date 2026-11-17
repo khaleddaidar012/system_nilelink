@@ -1,29 +1,22 @@
-Tasks
-TASK 1 — Domain & Database Foundation
-[/] 1.1 Create RequestService model
-[ ] 1.2 Update CustomerRequest model
-[ ] 1.3 Create PricingRule, Quote, and QuoteItem models
-[ ] 1.4 Update Document model schema
-TASK 2 — Admin Pricing Management
-[ ] 2.1 Build API routes for CRUD operations on PricingRule
-[ ] 2.2 Build Admin UI dashboard for managing pricing rules
-TASK 3 — Customer Request Creation (Service Selection)
-[ ] 3.1 Build UI components for visual Service Cards selection
-[ ] 3.2 Implement dynamic form rendering based on selected services
-[ ] 3.3 Update request submission API to handle multiple services
-TASK 4 — Documents & Communication
-[ ] 4.1 Update Document Upload UI to support multiple service requirements
-[ ] 4.2 Integrate existing messaging/notes system to tie into the Request/Service level
-TASK 5 — Employee Request Review & Pricing Engine
-[ ] 5.1 Build Employee UI to view incoming Requests and nested Services
-[ ] 5.2 Implement Pricing Engine backend logic to calculate default prices based on PricingRule
-TASK 6 — Quotes Workflow
-[ ] 6.1 Build Employee UI to adjust prices and issue a Quote
-[ ] 6.2 Build API endpoints for Customer Quote Accept/Reject
-[ ] 6.3 Build Customer UI to view and interact with Quotes
-TASK 7 — Bookings / Operational Services
-[ ] 7.1 Implement logic to lock in RequestService as an active "Booking" upon Quote acceptance
-[ ] 7.2 Build Employee Operations UI to manage individual service statuses independently
-TASK 8 — Final Dashboard Refinements
-[ ] 8.1 Update Customer Dashboard to track overall Request and sub-services
-[ ] 8.2 Update Employee Dashboard filters and views
+1- الحساب الجديد اول ما يتم انشاء بيتكتب جاري المراجعه المفروض حساب غير مفعل و كمان كل الخدمات لما اجي افتها وهو لسه مش متفعل يقولي عذرا الرجاء تفعيل حساب اولا وبيتم التفعيل لما اوافق علي المستندات 
+
+2-بعد لما العميل بيرفع مستندات بيظهر له في الاشعارات اشعارات وهمية تم رفض المستندات 3 مرات لما برفع 3 مستندات 
+
+4-اللون الدراك في الموقع برا عاوز ارزق غامق كدا عشان يبقي فاتح شوية يعني لون  او رمادي مغمق شوية كدا زي لون الشات بتاعك 
+
+
+5- لما العميل بيجي يرفع ملفات تكون بالطريقه دي 
+بيختار من خيارات الخيرات ال عندنا عبارة عن مربعات لما بيختار بيتعمله صح علي المرفع المربعات فيها الانواع ال عندنا ثم علي الشمال بدء الرفع ويكون عامل مؤشر اخضر علي الاول ولما يرفع يتعمل علي اول مرفع تم الرفع وهكذا 
+زي نظام نافذه بالظبط 
+
+6- انواع المستندات افضل بين بطاقه استيرادية وبطاقة تصديرية 
+
+7-واحنا بنعمل approve نكتب اسم الملف عندنا ويظهر للعميل الاسم بتاع الملف ال احنا كتبناه 
+
+8-عاوز اثناء تسجيل عميل او تسجيل الدخول يكون فيه username يستحخدم بدل او مكان ال email يعني دا او دا 
+
+9- خانة قنوات الاتصال في صفحة الايميل خليها في الناف بار الجاني ولو مش موثه تعطي كدا فلاش ينبه لو حتي موثق واحده ووحاده لاء 
+وكمان تظهر في اعدادات حساب العيمل 
+
+
+10 -*عاوزين رقم الشركة ال اوله 010 تحط مكانه لينك بحيث نخفي الرقم ويبقي لينك بس 

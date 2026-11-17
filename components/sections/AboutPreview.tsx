@@ -46,7 +46,7 @@ export function AboutPreview() {
         >
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
             <Image
-              src="/images/container-ship.jpg"
+              src="/images/container-ship.webp"
               alt="Global logistics container ship"
               fill
               className="object-cover"

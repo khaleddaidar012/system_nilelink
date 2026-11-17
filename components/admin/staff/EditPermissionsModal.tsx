@@ -1,5 +1,7 @@
 "use client"
 
+import { canAccessShipmentData } from "@/lib/auth/shipment-access"
+import { canAccessAccounts as accountsAccess } from "@/lib/auth/accounts-access"
 import { useState } from "react"
 import { useTranslations } from "next-intl"
 import { motion, AnimatePresence } from "framer-motion"
@@ -12,6 +14,9 @@ import {
   Loader2,
   CheckCircle2,
   Ban,
+  Receipt,
+  FileSpreadsheet,
+  Send,
 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 
@@ -21,13 +26,23 @@ export interface StaffItem {
   lastName: string
   jobTitle?: string
   email: string
+  username?: string
   phone: string
   role: string
   status: string
   staffPermissions: {
+    canAccessAccounts?: boolean
+    canViewShipmentData?: boolean
     canSendAlerts: boolean
     canReviewDocuments: boolean
     canManageCustomers: boolean
+    canUseTieredPricing?: boolean
+    issueTaxInvoice?: boolean
+    createInvoice?: boolean
+    editInvoice?: boolean
+    viewCustomerStatements?: boolean
+    exportCustomerStatements?: boolean
+    sendFinancialDocuments?: boolean
   }
 }
 
@@ -45,6 +60,14 @@ export function EditPermissionsModal({
   onSuccess,
 }: EditPermissionsModalProps) {
   const t = useTranslations()
+  const [canAccessAccounts, setCanAccessAccounts] = useState(() => staff ? accountsAccess(staff) : false)
+  const [canViewShipmentData, setCanViewShipmentData] = useState(() =>
+    staff ? canAccessShipmentData({
+      email: staff.email,
+      role: staff.role,
+      staffPermissions: staff.staffPermissions,
+    }) : false
+  )
   const [canSendAlerts, setCanSendAlerts] = useState(
     staff?.staffPermissions?.canSendAlerts ?? true
   )
@@ -53,6 +76,19 @@ export function EditPermissionsModal({
   )
   const [canManageCustomers, setCanManageCustomers] = useState(
     staff?.staffPermissions?.canManageCustomers ?? false
+  )
+  const [issueTaxInvoice, setIssueTaxInvoice] = useState(
+    staff?.staffPermissions?.issueTaxInvoice ?? false
+  )
+  const [canUseTieredPricing,setCanUseTieredPricing]=useState(staff?.staffPermissions?.canUseTieredPricing ?? false)
+  const [createInvoice, setCreateInvoice] = useState(
+    staff?.staffPermissions?.createInvoice ?? true
+  )
+  const [viewCustomerStatements, setViewCustomerStatements] = useState(
+    staff?.staffPermissions?.viewCustomerStatements ?? true
+  )
+  const [sendFinancialDocuments, setSendFinancialDocuments] = useState(
+    staff?.staffPermissions?.sendFinancialDocuments ?? false
   )
   const [status, setStatus] = useState(staff?.status || "active")
   const [loading, setLoading] = useState(false)
@@ -72,9 +108,18 @@ export function EditPermissionsModal({
         body: JSON.stringify({
           status,
           staffPermissions: {
+            canAccessAccounts,
+            canViewShipmentData,
             canSendAlerts,
             canReviewDocuments,
             canManageCustomers,
+            canUseTieredPricing,
+            issueTaxInvoice,
+            createInvoice,
+            editInvoice: createInvoice,
+            viewCustomerStatements,
+            exportCustomerStatements: viewCustomerStatements,
+            sendFinancialDocuments,
           },
         }),
       })
@@ -132,6 +177,7 @@ export function EditPermissionsModal({
               </div>
             )}
 
+            <label className="flex items-center gap-2 rounded-lg border p-3 text-sm"><input type="checkbox" checked={canUseTieredPricing} onChange={event=>setCanUseTieredPricing(event.target.checked)} />التسعير المتدرج / Tiered pricing</label>
             {/* Account Status Toggle */}
             <div>
               <label className="text-xs font-bold text-secondary-700 dark:text-secondary-300">
@@ -224,6 +270,92 @@ export function EditPermissionsModal({
                   </div>
                   <p className="text-[11px] text-secondary-500">
                     {t("admin.staff.permCustomersDesc") || "Can change customer status (Active, Warning, Restricted)"}
+                  </p>
+                </div>
+              </label>
+
+              {/* Create & Manage Invoices */}
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 transition-colors hover:bg-white dark:hover:bg-secondary-800">
+                <input
+                  type="checkbox"
+                  checked={createInvoice}
+                  onChange={(e) => setCreateInvoice(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded text-primary-600 focus:ring-primary-500"
+                />
+                <div className="text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-secondary-900 dark:text-white">
+                    <Receipt className="h-3.5 w-3.5 text-blue-500" />
+                    <span>إنشاء وإدارة الفواتير (Manage Invoices)</span>
+                  </div>
+                  <p className="text-[11px] text-secondary-500">
+                    صلاحية إنشاء وتعديل مسودات الفواتير والمطالبات
+                  </p>
+                </div>
+              </label>
+
+              {/* Issue Tax Invoice (Strict Permission) */}
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 transition-colors hover:bg-white dark:hover:bg-secondary-800 border border-emerald-200/60 dark:border-emerald-900/40 bg-emerald-50/30 dark:bg-emerald-950/20">
+                <input
+                  type="checkbox"
+                  checked={issueTaxInvoice}
+                  onChange={(e) => setIssueTaxInvoice(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500"
+                />
+                <div className="text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-emerald-800 dark:text-emerald-300">
+                    <Shield className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>إصدار فواتير ضريبية (Issue Tax Invoices)</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
+                    صلاحية أمنية خاصة لإصدار وطباعة الفاتورة الضريبية الرسمية
+                  </p>
+                </div>
+              </label>
+
+              {/* Customer Account Statements */}
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 transition-colors hover:bg-white dark:hover:bg-secondary-800">
+                <input
+                  type="checkbox"
+                  checked={viewCustomerStatements}
+                  onChange={(e) => setViewCustomerStatements(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded text-primary-600 focus:ring-primary-500"
+                />
+                <div className="text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-secondary-900 dark:text-white">
+                    <FileSpreadsheet className="h-3.5 w-3.5 text-purple-500" />
+                    <span>كشوف حسابات العملاء (Customer Statements)</span>
+                  </div>
+                  <p className="text-[11px] text-secondary-500">
+                    استخراج ومراجعة كشوف الحسابات وحركات المدين والدائن
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg p-2 text-xs font-bold">
+                <input type="checkbox" checked={canViewShipmentData} onChange={(event) => setCanViewShipmentData(event.target.checked)} />
+                عرض بيانات الشحنات (View shipment data)
+              </label>
+
+              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg p-2 text-xs font-bold">
+                <input type="checkbox" checked={canAccessAccounts} disabled={staff.role === "super_admin"} onChange={event => setCanAccessAccounts(event.target.checked)} />
+                عرض كارت الحسابات والوصول إليه (Accounts access)
+              </label>
+
+              {/* Send Financial Documents */}
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 transition-colors hover:bg-white dark:hover:bg-secondary-800">
+                <input
+                  type="checkbox"
+                  checked={sendFinancialDocuments}
+                  onChange={(e) => setSendFinancialDocuments(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded text-primary-600 focus:ring-primary-500"
+                />
+                <div className="text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-secondary-900 dark:text-white">
+                    <Send className="h-3.5 w-3.5 text-amber-500" />
+                    <span>إرسال المستندات المالية (Email Financials)</span>
+                  </div>
+                  <p className="text-[11px] text-secondary-500">
+                    إرسال الفواتير وكشوف الحسابات إلى البريد الإلكتروني للعميل
                   </p>
                 </div>
               </label>

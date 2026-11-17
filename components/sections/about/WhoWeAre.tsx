@@ -35,7 +35,7 @@ export function WhoWeAre() {
         >
           <div className="relative aspect-square overflow-hidden rounded-2xl">
             <Image
-              src="/images/container-ship.jpg"
+              src="/images/container-ship.webp"
               alt="Container ship at sea"
               fill
               className="object-cover"
@@ -44,7 +44,7 @@ export function WhoWeAre() {
           </div>
           <div className="relative mt-8 aspect-square overflow-hidden rounded-2xl">
             <Image
-              src="/images/hero-bg.jpg"
+              src="/images/hero-bg.webp"
               alt="Shipping containers"
               fill
               className="object-cover"
@@ -53,7 +53,7 @@ export function WhoWeAre() {
           </div>
           <div className="relative -mt-8 aspect-square overflow-hidden rounded-2xl">
             <Image
-              src="/images/pexels-yankrukov-7693158.jpg"
+              src="/images/pexels-yankrukov-7693158.webp"
               alt="Cargo plane"
               fill
               className="object-cover"
@@ -62,7 +62,7 @@ export function WhoWeAre() {
           </div>
           <div className="relative aspect-square overflow-hidden rounded-2xl">
             <Image
-              src="/images/road-freight.jpg"
+              src="/images/road-freight.webp"
               alt="Truck fleet"
               fill
               className="object-cover"

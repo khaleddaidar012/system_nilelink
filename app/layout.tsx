@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     template: "%s | NileLink",
   },
   description:
-    "NileLink is a leading freight forwarding company in Egypt, offering sea freight, air freight, road freight, customs clearance, and warehousing services worldwide.",
+    "NileLink is a leading freight forwarding company in Egypt, offering sea freight, air freight, land freight, customs clearance, and warehousing services worldwide.",
   keywords: [
     "freight forwarding",
     "logistics Egypt",

@@ -5,7 +5,7 @@ import { logDocumentActivity } from "@/lib/services/activity-log-service"
 export async function recalculateCustomerAccountStatus(
   customerId?: string | mongoose.Types.ObjectId | null,
   triggerActorId?: string | mongoose.Types.ObjectId | null
-): Promise<{ status: "active" | "warning" | "inactive"; reason: string }> {
+): Promise<{ status: "active" | "warning" | "inactive" | "under_review" | "unverified"; reason: string }> {
   if (!customerId || !mongoose.Types.ObjectId.isValid(customerId.toString())) {
     return { status: "inactive", reason: "Valid customer ID required" }
   }
@@ -18,6 +18,7 @@ export async function recalculateCustomerAccountStatus(
   const activeDocuments = await DocumentModel.find({
     customerId: customer._id,
     isArchived: false,
+    entityType: { $ne: "CustomerRequest" },
   })
 
   const now = new Date()
@@ -56,12 +57,12 @@ export async function recalculateCustomerAccountStatus(
     }
   }
 
-  let newStatus: "active" | "warning" | "inactive" = "active"
+  let newStatus: "active" | "warning" | "inactive" | "under_review" | "unverified" = "active"
   let newReason = "All company documents are verified and up to date."
 
-  if (activeDocuments.length === 0) {
-    newStatus = "warning"
-    newReason = "No legal documents uploaded yet. Please upload required certificates."
+  if (activeDocuments.length === 0 && customer.accountStatus !== "active") {
+    newStatus = "unverified"
+    newReason = "Account is not verified yet. Please upload required documents to begin verification."
   } else if (hasExpired || hasRejected) {
     newStatus = "inactive"
     newReason = hasExpired
@@ -70,6 +71,15 @@ export async function recalculateCustomerAccountStatus(
   } else if (hasExpiringSoon) {
     newStatus = "warning"
     newReason = `${expiringSoonDocTitle} will expire in ${daysUntilExpiryMin} days.`
+  } else {
+    const hasPending = activeDocuments.some((d) => d.status === "pending_review" || !d.status)
+    if (hasPending && customer.accountStatus !== "active") {
+      newStatus = "under_review"
+      newReason = "Documents submitted and currently under review by compliance team."
+    } else {
+      newStatus = "active"
+      newReason = "All company documents are verified and up to date."
+    }
   }
 
   const previousStatus = customer.accountStatus

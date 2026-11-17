@@ -79,11 +79,11 @@ export function Navbar() {
       className={cn(
         "fixed top-0 right-0 left-0 z-50 transition-all duration-300",
         scrolled
-          ? "bg-white shadow-premium backdrop-blur-xl dark:bg-secondary-900"
-          : "bg-white shadow-sm dark:bg-secondary-900"
+          ? "bg-white shadow-premium backdrop-blur-xl dark:bg-site-dark"
+          : "bg-white shadow-sm dark:bg-site-dark"
       )}
     >
-      <div className="hidden border-b border-white/10 bg-secondary-900 text-sm text-white/80 md:block dark:border-secondary-800">
+      <div className="hidden border-b border-white/10 bg-site-dark text-sm text-white/80 md:block dark:border-secondary-800">
         <Container className="flex items-center justify-between py-2">
           <div className="flex items-center gap-6">
             <a href="tel:+20572222008" className="flex items-center gap-1.5 transition-colors hover:text-white">
@@ -100,8 +100,8 @@ export function Navbar() {
 
       <nav className="border-b border-transparent">
         <Container className="flex h-16 items-center justify-between md:h-20">
-          <Link href="/" className="flex items-center gap-1 sm:gap-1.5 transition-transform hover:scale-[1.02]" dir="ltr">
-            <div className="relative h-[52px] w-[52px] sm:h-[56px] sm:w-[56px] shrink-0 translate-y-[5px]">
+          <Link href="/" className="flex shrink-0 items-center gap-1 rounded-xl sm:gap-1.5 transition-transform hover:scale-[1.02] dark:bg-white dark:px-2 dark:py-1 dark:shadow-sm" dir="ltr">
+            <div className="relative h-[52px] w-[52px] sm:h-[56px] sm:w-[56px] shrink-0 translate-y-[5px] dark:h-9 dark:sm:h-10 dark:translate-y-[2px]">
               <Image
                 src={logoImg}
                 alt="NileLink Logistics"
@@ -111,9 +111,9 @@ export function Navbar() {
                 className="object-contain"
               />
             </div>
-            <span className="flex flex-col justify-center leading-none">
+            <span className="flex flex-col justify-center whitespace-nowrap leading-none">
               <span
-                className="text-sm font-bold tracking-wide text-secondary-900 dark:text-white sm:text-base"
+                className="text-sm font-bold tracking-wide text-secondary-900 dark:text-secondary-900 sm:text-base"
               >
                 Nile Link
               </span>
@@ -121,7 +121,7 @@ export function Navbar() {
                 className="my-0.5 border-t w-full border-primary-500"
               />
               <span
-                className="flex w-full justify-between text-[9px] font-semibold uppercase text-secondary-600 dark:text-white sm:text-[10px]"
+                className="flex w-full justify-between text-[9px] font-semibold uppercase text-secondary-600 dark:text-secondary-600 sm:text-[10px]"
               >
                 {"LOGISTICS".split("").map((l, i) => (
                   <span key={i}>{l}</span>
@@ -266,7 +266,7 @@ export function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden border-t border-secondary-200 bg-white dark:border-secondary-700 dark:bg-secondary-900 lg:hidden"
+            className="overflow-hidden border-t border-secondary-200 bg-white dark:border-secondary-700 dark:bg-site-dark lg:hidden"
           >
             <Container className="py-4">
               <div className="flex flex-col gap-1">

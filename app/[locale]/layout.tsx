@@ -26,8 +26,12 @@ export async function generateMetadata({ params }: Props) {
     title: t("title"),
     description: t("description"),
     icons: {
-      icon: "/images/logo.png",
-      apple: "/images/logo.png",
+      icon: [
+        { url: "/favicon.ico?v=nilelink-circle-20261026", type: "image/x-icon" },
+        { url: "/favicon-32.png?v=nilelink-circle-20261026", type: "image/png", sizes: "32x32" },
+      ],
+      shortcut: "/favicon.ico?v=nilelink-circle-20261026",
+      apple: "/apple-touch-icon.png?v=nilelink-circle-20261026",
     },
     alternates: {
       canonical: `https://nilelink-eg.com/${locale}`,

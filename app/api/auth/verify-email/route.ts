@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { User } from "@/lib/models"
@@ -9,6 +11,10 @@ export async function GET(req: NextRequest) {
 
     if (!token) {
       return NextResponse.json({ error: "Missing verification token" }, { status: 400 })
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "verify-email", request: req, input: { token } })
     }
 
     await connectDB()

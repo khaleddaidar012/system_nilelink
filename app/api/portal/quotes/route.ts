@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { Quote } from "@/lib/models"
@@ -10,19 +12,43 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    await connectDB()
-
-    // Find the customer's customerId from session
-    const { Customer } = await import("@/lib/models")
-    const customer = await Customer.findOne({ userId: session.userId }).lean() as any
-
-    if (!customer) {
-      return NextResponse.json({ error: "Customer not found" }, { status: 404 })
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "quotes-list", request: req })
     }
 
-    const quotes = await Quote.find({ customerId: customer._id })
+    await connectDB()
+
+    let customerId = session.customerId
+    if (!customerId) {
+      const { User, Customer } = await import("@/lib/models")
+      const user = await User.findById(session.userId).lean() as any
+      customerId = user?.customerId
+      if (!customerId && user?.email) {
+        const customer = await Customer.findOne({ contactEmail: user.email }).lean() as any
+        customerId = customer?._id
+      }
+    }
+
+    if (!customerId) {
+      return NextResponse.json({ success: true, quotes: [] })
+    }
+
+    const { QuoteItem } = await import("@/lib/models")
+    const rawQuotes = await Quote.find({ customerId })
+      .populate("requestId", "trackingNumber subject operationType origin destination status")
       .sort({ createdAt: -1 })
       .lean()
+
+    const quotes = await Promise.all(
+      rawQuotes.map(async (q: any) => {
+        const items = await QuoteItem.find({ quoteId: q._id }).lean()
+        return {
+          ...q,
+          requestNumber: q.requestId?.trackingNumber || q.requestNumber || "-",
+          items,
+        }
+      })
+    )
 
     return NextResponse.json({ success: true, quotes })
   } catch (error) {

@@ -26,7 +26,7 @@ const organizationSchema = {
   url: "https://nilelink-eg.com",
   logo: "https://nilelink-eg.com/images/logo.png",
   description:
-    "NileLink is a leading freight forwarding company in Egypt, offering sea freight, air freight, road freight, customs clearance, and warehousing services worldwide.",
+    "NileLink is a leading freight forwarding company in Egypt, offering sea freight, air freight, land freight, customs clearance, and warehousing services worldwide.",
   contactPoint: {
     "@type": "ContactPoint",
     telephone: "+20-10-00018549",
@@ -35,7 +35,7 @@ const organizationSchema = {
   },
   address: {
     "@type": "PostalAddress",
-    streetAddress: "Awal Tareeq Al-Anania, opposite the Ice Factory",
+    streetAddress: "Entrance to Al-Ananiyah Road, opposite the Ice Factory",
     addressLocality: "Damietta",
     addressCountry: "EG",
   },
@@ -61,7 +61,7 @@ const localBusinessSchema = {
   email: CONTACT.EMAIL,
   address: {
     "@type": "PostalAddress",
-    streetAddress: "Awal Tareeq Al-Anania, opposite the Ice Factory",
+    streetAddress: "Entrance to Al-Ananiyah Road, opposite the Ice Factory",
     addressLocality: "Damietta",
     addressCountry: "EG",
   },

@@ -1,13 +1,24 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
 import { User, Customer } from "@/lib/models"
-import { hashPassword, generateSecureToken, validatePasswordComplexity, isBusinessEmail } from "@/lib/auth/password"
+import { hashPassword, generateSecureToken, validatePasswordComplexity } from "@/lib/auth/password"
 import { createAccessToken, createRefreshToken, setAuthCookies } from "@/lib/auth/token-service"
 
 const registerSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters").trim(),
   lastName: z.string().min(2, "Last name must be at least 2 characters").trim(),
+  username: z
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .max(30, "Username must be 30 characters or less")
+    .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain English letters, numbers, and underscores")
+    .toLowerCase()
+    .trim()
+    .optional()
+    .or(z.literal("")),
   email: z
     .string()
     .email("Invalid email address")
@@ -39,6 +50,7 @@ export async function POST(req: NextRequest) {
     const {
       firstName,
       lastName,
+      username,
       email,
       password,
       confirmPassword,
@@ -63,13 +75,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: passwordCheck.error }, { status: 400 })
     }
 
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "register", request: req, input: parsed.data })
+    }
+
     await connectDB()
+
+    const sanitizedUsername = username && username.trim() ? username.toLowerCase().trim() : undefined
+
+    // Check if username already exists if provided
+    if (sanitizedUsername) {
+      const existingUsername = await User.findOne({ username: sanitizedUsername })
+      if (existingUsername) {
+        return NextResponse.json(
+          { error: "Username is already taken", field: "username" },
+          { status: 409 }
+        )
+      }
+    }
 
     // Check if user email already exists
     const existingUser = await User.findOne({ email })
     if (existingUser) {
       return NextResponse.json(
-        { error: "An account with this email address already exists" },
+        { error: "An account with this email address already exists", field: "email" },
         { status: 409 }
       )
     }
@@ -93,8 +122,8 @@ export async function POST(req: NextRequest) {
       city,
       contactPhone: phone,
       contactEmail: email,
-      accountStatus: "warning",
-      statusReason: "Pending document upload and verification",
+      accountStatus: "unverified",
+      statusReason: "Account is not verified yet. Please upload required documents to begin verification.",
       maxAllowedDocuments: 20,
     })
 
@@ -105,6 +134,7 @@ export async function POST(req: NextRequest) {
 
     const user = await User.create({
       email,
+      username: sanitizedUsername,
       passwordHash,
       role: "customer_admin",
       customerId: customer._id,
@@ -144,6 +174,7 @@ export async function POST(req: NextRequest) {
         user: {
           id: user._id.toString(),
           email: user.email,
+          username: user.username,
           role: user.role,
           firstName: user.firstName,
           lastName: user.lastName,

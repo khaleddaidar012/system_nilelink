@@ -1,8 +1,9 @@
 "use client"
 
+import { usePortalLiveRefresh } from "@/hooks/useLiveUpdates"
 import React, { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { PortalHeader } from "@/components/portal/PortalHeader"
 import { UploadCloud, CheckCircle2, Clock, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
@@ -10,14 +11,22 @@ import { MultiFileUploadZone } from "@/components/portal/documents/MultiFileUplo
 import { DocumentTable } from "@/components/portal/documents/DocumentTable"
 import { usePortal } from "@/components/portal/PortalContext"
 import { cn } from "@/lib/utils"
+import { Link } from "@/navigation"
 import { Button } from "@/components/ui/Button"
+import { UCRSection } from "@/components/portal/requests/UCRSection"
+import { QuoteServiceSelector } from "@/components/portal/quotes/QuoteServiceSelector"
+import { RequestInvoices } from "@/components/admin/shipments/RequestInvoices"
+import { PublishedInvoiceLink, ServiceProgress } from "@/components/portal/requests/ServiceProgress"
 
 export default function RequestDetailsAndDocumentsPage() {
   const params = useParams()
   const t = useTranslations()
+  const isAr=useLocale()==="ar"
   const [request, setRequest] = useState<any>(null)
   const [quote, setQuote] = useState<any>(null)
+  const [selection,setSelection]=useState<{quoteId:string;keys:string[]}|null>(null)
   const [quoteItems, setQuoteItems] = useState<any[]>([])
+  const selectedServices=selection && selection.quoteId===quote?._id?selection.keys:[...new Set(quoteItems.map(item=>String(item.serviceKey)))]
   const [loading, setLoading] = useState(true)
   const { refreshData } = usePortal()
 
@@ -26,10 +35,18 @@ export default function RequestDetailsAndDocumentsPage() {
       fetchRequestDetails()
     }
   }, [params.id])
+  useEffect(()=>{
+    let active=true
+    const refresh=async()=>{if(document.visibilityState!=="visible")return;try{const response=await fetch("/api/portal/requests",{cache:"no-store"});if(!response.ok)return;const data=await response.json();const current=data.requests?.find((row:any)=>row._id===params.id);if(active&&current)setRequest(current)}catch{}}
+    window.addEventListener("focus",refresh)
+    return()=>{active=false;window.removeEventListener("focus",refresh)}
+  },[params.id])
 
-  const fetchRequestDetails = async () => {
+  usePortalLiveRefresh(() => { void fetchRequestDetails(true) }, ["request_updated", "quote_updated", "document_updated"])
+
+  const fetchRequestDetails = async (background = false) => {
     try {
-      setLoading(true)
+      if (!background) setLoading(true)
       // Fetch request list and find ours
       const res = await fetch("/api/portal/requests")
       const data = await res.json()
@@ -48,7 +65,7 @@ export default function RequestDetailsAndDocumentsPage() {
     } catch (err) {
       toast.error("Failed to load request")
     } finally {
-      setLoading(false)
+      if (!background) setLoading(false)
     }
   }
 
@@ -65,7 +82,7 @@ export default function RequestDetailsAndDocumentsPage() {
       const res = await fetch(`/api/portal/quotes/${quote._id}/action`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, acceptedServices:quoteItems.length?selectedServices:undefined }),
       })
       if (!res.ok) throw new Error("Failed to update quote")
       toast.success(action === "accept" ? "Quote accepted" : "Quote rejected")
@@ -116,33 +133,13 @@ export default function RequestDetailsAndDocumentsPage() {
 
 
 
-        {/* Action Required: Upload Documents */}
-        {request.status === "document_required" && (
-          <div className="bg-white dark:bg-secondary-900 rounded-xl border-2 border-rose-500 p-6 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-              <AlertCircle className="w-32 h-32 text-rose-500" />
-            </div>
-            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-rose-600 dark:text-rose-400">
-              <UploadCloud className="text-rose-600" />
-              {t("portal.requests.details.action_required") || "Action Required: Upload Documents"}
-            </h2>
-            <p className="text-sm text-secondary-500 mb-6 max-w-3xl relative z-10">
-              {t("portal.requests.details.upload_docs_desc", { type: request.operationType === "export" ? "UCR" : "ACID" }) || `Your request requires additional documentation (e.g. UCR, ACID) to proceed. Please upload them below.`}
-            </p>
-            <div className="relative z-10">
-              <MultiFileUploadZone
-                currentCount={0}
-                maxAllowed={5}
-                onUploadComplete={handleUploadDone}
-                entityId={request._id}
-              />
-            </div>
-          </div>
-        )}
-
+        <UCRSection requestId={String(params.id)} />
+        <ServiceProgress services={request.services||[]} />
+        <PublishedInvoiceLink invoice={request.publishedInvoice} />
         {/* Quotation & Offer */}
-        {quote && (
+        {quote && !["accepted","partially_accepted"].includes(quote.status) && (
           <div className="bg-white dark:bg-secondary-900 rounded-xl border-2 border-primary-500 p-6 shadow-sm">
+            {request.quoteRequired===false&&<p className="mb-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">{isAr?"عرض سعر سابق محفوظ للمرجع. هذا الطلب يعمل حاليًا بمسار التنفيذ المباشر.":"Previous quotation retained for reference. This request currently uses direct processing."}</p>}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <CheckCircle2 className="text-primary-600 h-6 w-6" />
@@ -159,29 +156,14 @@ export default function RequestDetailsAndDocumentsPage() {
             </div>
 
             <div className="space-y-4 mb-8">
-              {quoteItems.map((item: any, idx: number) => (
-                <div key={idx} className="flex justify-between items-center p-4 rounded-lg bg-secondary-50 dark:bg-secondary-800 border border-secondary-200 dark:border-secondary-700">
-                  <div>
-                    <p className="font-bold capitalize">{t(`portal.requests.new.${item.serviceKey}`) === `portal.requests.new.${item.serviceKey}` ? item.serviceKey.replace(/_/g, " ") : t(`portal.requests.new.${item.serviceKey}`)}</p>
-                    {item.note && <p className="text-sm text-secondary-500 mt-1">{item.note}</p>}
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-lg">{item.finalPrice} {quote.currency}</p>
-                    {item.additionalCharges > 0 && <p className="text-xs text-secondary-500">Includes {item.additionalCharges} {quote.currency} surcharges</p>}
-                  </div>
-                </div>
-              ))}
-              
-              <div className="flex justify-between items-center p-4 border-t-2 border-primary-100 dark:border-primary-900 mt-4">
-                <span className="text-lg font-bold">{t("portal.requests.details.total_final_price") || "Total Final Price"}</span>
-                <span className="text-2xl font-black text-primary-600 dark:text-primary-400">{quote.totalAmount} {quote.currency}</span>
-              </div>
+              <QuoteServiceSelector items={quoteItems} currency={quote.currency || "EGP"} ar={isAr} selected={quote.acceptedServices || selectedServices} onChange={keys=>setSelection({quoteId:quote._id,keys})} editable={request.quoteRequired!==false&&request.status==="quote_provided"} />
+
             </div>
 
-            {request.status === "quote_provided" && (
+            {request.quoteRequired !== false && request.status === "quote_provided" && (
               <div className="flex gap-4">
-                <Button className="flex-1" size="lg" onClick={() => handleQuoteAction("accept")}>
-                  {t("portal.requests.details.accept_quotation") || "Accept Quotation"}
+                <Button disabled={loading || (quoteItems.length>0&&!selectedServices.length)} className="flex-1" size="lg" onClick={() => handleQuoteAction("accept")}>
+                  {isAr ? "قبول الخدمات المحددة" : "Accept selected services"}
                 </Button>
                 <Button variant="outline" className="flex-1" size="lg" onClick={() => handleQuoteAction("reject")}>
                   {t("portal.requests.details.reject_quotation") || "Reject Quotation"}
@@ -202,6 +184,8 @@ export default function RequestDetailsAndDocumentsPage() {
                 </h3>
                 <div className="text-sm text-secondary-600 dark:text-secondary-400 space-y-1">
                   <p><span className="font-semibold">{t("portal.requests.details.status")}</span> {t(`portal.requests.status_${service.status}`) || service.status}</p>
+                  {service.details?.containerType && <div><span className="font-semibold">{t("portal.requests.details.container_type")}:</span> {t.has(`portal.requests.details.container_types.${service.details.containerType}`) ? t(`portal.requests.details.container_types.${service.details.containerType}`) : service.details.containerType}</div>}
+                  {service.details?.containerSize && <div><span className="font-semibold">{t("portal.requests.details.container_size")}:</span> {t.has(`portal.requests.details.container_sizes.${service.details.containerSize}`) ? t(`portal.requests.details.container_sizes.${service.details.containerSize}`) : service.details.containerSize}</div>}
                   {service.details?.origin && <p><span className="font-semibold">{t("portal.requests.details.origin")}:</span> {service.details.origin}</p>}
                   {service.details?.destination && <p><span className="font-semibold">{t("portal.requests.details.destination")}:</span> {service.details.destination}</p>}
                 </div>
@@ -233,12 +217,12 @@ export default function RequestDetailsAndDocumentsPage() {
         )}
 
         <div className="flex flex-col items-center mt-8 space-y-4">
-          <a
+          <Link
             href="/portal/requests"
             className="rounded-xl bg-primary-600 px-8 py-3 font-bold text-white shadow hover:bg-primary-700 transition-colors"
           >
             {t("portal.requests.details.finish_return") || "Finish & Return to Requests"}
-          </a>
+          </Link>
           
           {request.complianceNumber && (
             <div className="w-full p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg text-center mt-4">
@@ -249,6 +233,7 @@ export default function RequestDetailsAndDocumentsPage() {
             </div>
           )}
         </div>
+        {request && <RequestInvoices requestId={request._id} portal />}
       </div>
     </div>
   )

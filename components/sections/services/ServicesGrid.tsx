@@ -14,37 +14,37 @@ const services = [
     id: "sea-freight",
     key: "seaFreight",
     icon: Ship,
-    image: "/images/hero-bg.jpg",
+    image: "/images/hero-bg.webp",
   },
   {
     id: "air-freight",
     key: "airFreight",
     icon: Plane,
-    image: "/images/air-freight.jpg",
+    image: "/images/air-freight.webp",
   },
   {
     id: "road-freight",
     key: "roadFreight",
     icon: Truck,
-    image: "/images/road-freight.jpg",
+    image: "/images/road-freight.webp",
   },
   {
     id: "customs-clearance",
     key: "customsClearance",
     icon: FileCheck,
-    image: "/images/customs-clearance.jpg",
+    image: "/images/customs-clearance.webp",
   },
   {
     id: "warehousing",
     key: "warehousing",
     icon: Warehouse,
-    image: "/images/container-ship.jpg",
+    image: "/images/container-ship.webp",
   },
   {
     id: "specialized",
     key: "specialized",
     icon: Settings2,
-    image: "/images/specialized-cargo.jpg",
+    image: "/images/specialized-cargo.webp",
   },
 ]
 

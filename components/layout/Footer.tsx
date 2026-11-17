@@ -71,7 +71,7 @@ export function Footer() {
 
   return (
     <>
-      <footer className="border-t border-secondary-200 bg-secondary-900 text-white dark:border-secondary-800">
+      <footer className="border-t border-secondary-200 bg-site-dark text-white dark:border-secondary-800">
         <Container className="section-padding">
           <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             <div className="lg:col-span-1">

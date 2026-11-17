@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: Props) {
       {/* Background Image */}
       <div className="absolute inset-0 -z-20">
         <Image
-          src="/images/hero-bg.jpg"
+          src="/images/hero-bg.webp"
           alt="NileLink Freight & Logistics"
           fill
           sizes="100vw"

@@ -1,0 +1,9 @@
+Source: United Nations Economic Commission for Europe (UNECE), UN/CEFACT UN/LOCODE 2025-1.
+Publication: https://unlocode.unece.org/publications/
+Original release: https://opensource.unicc.org/un/unece/uncefact/vocab-locode/-/jobs/artifacts/2025-1/download?job=package-release
+UN/CEFACT standards are published under CC BY 4.0 as stated on the publication website.
+License: https://creativecommons.org/licenses/by/4.0/
+Changes: CSV files combined; locations with Functions 1 (port), 3 (road) and 4 (air) selected; deleted (X) and alias (=) rows excluded; duplicate location codes combined; JSON output generated.
+Country and port names are reference data. No endorsement of NileLink by UNECE is implied.
+
+Locations may support more than one transport mode. Files are split by country for loading on demand.

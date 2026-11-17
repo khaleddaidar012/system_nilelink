@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer"
-import { EmailConfig, EmailProvider, SendEmailOptions } from "../types"
+import type { EmailConfig, EmailProvider, SendEmailOptions } from "../types"
+import { brandedSender, plainTextFromHtml } from "../message"
 
 export function createSmtpProvider(config: EmailConfig): EmailProvider {
   const transporter = nodemailer.createTransport({
@@ -16,15 +17,15 @@ export function createSmtpProvider(config: EmailConfig): EmailProvider {
     name: "smtp",
 
     async send(options: SendEmailOptions) {
-      // Authenticated sender address to ensure strict SPF/DKIM/DMARC delivery
-      const senderEmail = config.smtpUser || config.from
-      const from = `\"NileLink Logistics\" <${senderEmail}>`
-
       const info = await transporter.sendMail({
-        from,
+        from: brandedSender(config.from),
         to: options.to,
         subject: options.subject,
         html: options.html,
+        text: options.text || plainTextFromHtml(options.html),
+        replyTo: options.replyTo || config.replyTo,
+        headers: { "X-Mailer": "NileLink Logistics" },
+        attachments: options.attachments,
       })
 
       console.log(`[SMTP SENT]: To=${options.to}, MessageId=${info.messageId}, Accepted=${JSON.stringify(info.accepted)}, Response=${info.response}`)

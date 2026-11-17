@@ -24,7 +24,7 @@ export function ShippingComparison() {
   const t = useTranslations("services.comparison")
 
   return (
-    <Section className="bg-secondary-50 dark:bg-secondary-900/50">
+    <Section className="bg-secondary-50 dark:bg-site-dark/50">
       <SectionTitle title={t("title")} subtitle={t("subtitle")} />
       <div className="grid gap-6 md:grid-cols-3">
         {comparisonKeys.map((key, index) => {
@@ -63,7 +63,7 @@ export function ShippingComparison() {
                   <span className="font-medium text-secondary-900 dark:text-white">{t(`${key}.capacity`)}</span>
                 </div>
               </div>
-              <div className="mt-4 rounded-lg bg-secondary-50 px-3 py-2 text-xs text-secondary-600 dark:bg-secondary-900 dark:text-secondary-400">
+              <div className="mt-4 rounded-lg bg-secondary-50 px-3 py-2 text-xs text-secondary-600 dark:bg-site-dark dark:text-secondary-400">
                 {t("labels.bestFor")}: {t(`${key}.bestFor`)}
               </div>
             </motion.div>

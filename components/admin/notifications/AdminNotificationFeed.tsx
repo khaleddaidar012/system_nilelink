@@ -1,0 +1,11 @@
+"use client"
+import { useEffect, useState } from "react"
+import { useLocale } from "next-intl"
+import { Link } from "@/navigation"
+type Note={_id:string;title:string;message:string;createdAt:string;actionUrl?:string;isRead:boolean}
+export function AdminNotificationFeed(){
+  const ar=useLocale()==="ar"
+  const [notes,setNotes]=useState<Note[]>([]),[error,setError]=useState("")
+  useEffect(()=>{let active=true;async function refresh(){if(document.hidden)return;try{const response=await fetch("/api/admin/notifications?limit=30",{cache:"no-store"});const data=await response.json();if(!response.ok)throw Error(data.error);if(!active)return;setNotes(data.notifications);setError("");const unread=data.notifications.filter((note:Note)=>!note.isRead).map((note:Note)=>note._id);if(unread.length){const marked=await fetch("/api/portal/notifications/mark-read",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({notificationIds:unread})});if(marked.ok&&active)window.dispatchEvent(new Event("nilelink-workspace-updates"))}}catch(error){if(active)setError((error as Error).message)}}void refresh();const interval=setInterval(refresh,30000);window.addEventListener("focus",refresh);return()=>{active=false;clearInterval(interval);window.removeEventListener("focus",refresh)}},[])
+  return <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"><h2 className="font-bold">{ar?"سجل الإشعارات والتحديثات":"Notifications & updates"}</h2>{error&&<p role="alert" className="text-sm text-rose-600">{error}</p>}{!notes.length&&!error&&<p className="text-sm text-slate-500">{ar?"لا توجد إشعارات لعرضها.":"No notifications to display."}</p>}{notes.map(note=><article key={note._id} className="space-y-2 rounded-xl border border-slate-200 p-4 dark:border-slate-700"><h3 className="font-semibold">{note.title}</h3><p className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">{note.message}</p><p className="text-xs text-slate-500">{new Date(note.createdAt).toLocaleString(ar?"ar-EG":"en-GB",{timeZone:"Africa/Cairo",hour12:true})}</p>{note.actionUrl&&note.actionUrl.startsWith("/admin/")&&<Link className="inline-block text-sm font-semibold text-primary-600 underline" href={note.actionUrl}>{ar?"عرض التفاصيل":"View details"}</Link>}</article>)}</section>
+}

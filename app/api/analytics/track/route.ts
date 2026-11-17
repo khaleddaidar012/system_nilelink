@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import crypto from "crypto"
 import { connectDB } from "@/lib/mongodb"
 import { AnalyticsEvent } from "@/lib/models/AnalyticsEvent"
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 
 const DEDUP_WINDOW_MS = 30_000
 
@@ -18,6 +20,7 @@ function detectDevice(userAgent: string): "mobile" | "desktop" | "tablet" {
 
 export async function POST(request: NextRequest) {
   try {
+    if (getDatabaseProvider() === "d1") return handleD1Workflow({ action: "analytics-track", request })
     const ANALYTICS_ENABLED = process.env.ANALYTICS_ENABLED !== "false"
     if (!ANALYTICS_ENABLED) {
       return NextResponse.json({ success: true, message: "Analytics disabled" })

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useLocale } from "next-intl"
+import { useCanViewShipmentData } from "@/components/admin/AdminExperienceContext"
 import {
   ChevronDown,
   Sparkles,
@@ -87,6 +88,7 @@ const UPCOMING_FEATURES = [
 ]
 
 export function UpcomingFeaturesDropdown() {
+  const canViewShipmentData = useCanViewShipmentData()
   const [isOpen, setIsOpen] = useState(false)
   const locale = useLocale()
   const isAr = locale === "ar"
@@ -163,7 +165,7 @@ export function UpcomingFeaturesDropdown() {
 
               {/* Features Grid — 2 columns */}
               <div className="grid grid-cols-1 sm:grid-cols-2">
-                {UPCOMING_FEATURES.map((feature, idx) => {
+                {UPCOMING_FEATURES.filter(feature => feature.slug !== "shipments" || canViewShipmentData).map((feature, idx) => {
                   const Icon = feature.icon
                   return (
                     <motion.div

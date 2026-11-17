@@ -1,3 +1,6 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { validShippingOperation } from "@/lib/requests/operation-type"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
@@ -17,13 +20,17 @@ const createRequestSchema = z.object({
   subject: z.string().min(3, "Subject is required"),
   description: z.string().min(5, "Description is required"),
   priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
-})
+}).refine(validShippingOperation, { message: "Choose import, export or transit for shipping/customs services", path: ["operationType"] })
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getSessionFromRequest(req)
     if (!session?.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "requests-list", request: req })
     }
 
     await connectDB()
@@ -57,6 +64,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "request-create", request: req })
+    }
+
     await connectDB()
 
     let customerId = session.customerId
@@ -70,11 +81,23 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
+
+    // Support single service requests from dedicated form pages
+    if (!body.services && body.serviceType) {
+      body.services = [
+        {
+          serviceKey: body.serviceType,
+          details: body.details || {},
+        },
+      ]
+    }
+
     const parsed = createRequestSchema.safeParse(body)
 
     if (!parsed.success) {
+      const firstIssue = parsed.error.issues?.[0]?.message || "Validation error"
       return NextResponse.json(
-        { error: "Validation error", details: parsed.error.format() },
+        { error: firstIssue, details: parsed.error.format() },
         { status: 400 }
       )
     }
@@ -144,6 +167,19 @@ export async function POST(req: NextRequest) {
       targetAudience: "staff",
       title: `New Service Request: ${trackingNumber}`,
       message: `${session.firstName} requested: ${serviceNames.join(", ")}.`,
+      channel: "in_app",
+      type: "request_update",
+      severity: "normal",
+      relatedRequestId: newRequest._id,
+    })
+
+    // Customer notification — confirm request submission
+    await Notification.create({
+      recipientCustomerId: session.customerId || undefined,
+      recipientUserId: session.userId,
+      targetAudience: "customer",
+      title: `تم استلام طلبك بنجاح — ${trackingNumber}`,
+      message: `تم تقديم طلب الخدمة الخاص بك (${serviceNames.join("، ")}) وهو الآن قيد المراجعة من قِبَل فريق نايل لينك.`,
       channel: "in_app",
       type: "request_update",
       severity: "normal",

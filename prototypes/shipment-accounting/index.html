@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NileLink — حسابات الشحنة</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#"><span class="brand-mark">N↗</span><span>NILELINK<small>FINANCE WORKSPACE</small></span></a>
+    <div class="workspace-label">مساحة العمل المالية</div>
+    <nav><button class="nav-item active">▦ <span>حسابات الشحنات</span><b>01</b></button></nav>
+    <div class="sidebar-note"><span class="live-dot"></span> كل شحنة، حساب واحد<p>التكاليف والإيرادات والفاتورة في ملف موحد.</p></div>
+    <div class="profile"><span class="avatar">خ</span><div>خالد ديدار<small>مدير الحسابات</small></div><span>⌄</span></div>
+  </aside>
+  <div class="app">
+    <header class="topbar"><div>الإدارة المالية <span>/</span> حسابات الشحنات <span>/</span> <strong>NL-260184</strong></div><select id="role" aria-label="تجربة الدور"><option value="admin">الأدمن</option><option value="staff">الموظف</option><option value="customer">العميل</option></select><span class="prototype">تصور تفاعلي · بيانات تجريبية</span></header>
+    <main>
+      <div class="page-heading"><div><div class="eyebrow">SHIPMENT ACCOUNTING</div><h1>كل مراحل الشحنة. في فاتورة واحدة.</h1><p>أضف مصروفات كل مرحلة، راجع هامش الربح، وانشر الفاتورة عندما تكتمل.</p></div><button class="button ghost" id="reset">↺ إعادة التجربة</button></div>
+      <section class="shipment-card"><div class="shipment-icon">▤</div><div class="shipment-identity"><div class="inline"><h2>شركة النخيل للتصدير</h2><span class="pill neutral">تصدير بحري</span></div><p>NL-260184 <span>•</span> حجز 28738928 <span>•</span> 3 × 40HC</p></div><div class="route"><strong>دمياط <span>←</span> الدار البيضاء</strong><small>ميناء الانطلاق <span>ميناء الوصول</span></small></div><span class="pill draft" id="shipment-status">فاتورة مسودة</span></section>
+      <section class="metrics"><article data-admin-only><span>إجمالي التكاليف</span><strong id="cost-total"></strong><small>مستحقات الموردين والمصروفات</small></article><article><span>إجمالي الفاتورة</span><strong id="sales-total"></strong><small>قيمة الخدمات المقدمة للعميل</small></article><article class="profit-card" data-admin-only><span>هامش الربح المتوقع</span><strong id="profit-total"></strong><small id="margin"></small></article><article><span>المراحل المكتملة</span><strong id="completed-total"></strong><small>الشحن ← النقل ← التخليص</small></article></section>
+      <section class="panel" id="customer-view" hidden></section><div class="content-grid"><div class="operations">
+        <section class="panel workflow"><div class="internal-sale" data-admin-only><label>سعر البيع الداخلي للشحنة · للأدمن فقط<input id="internal-sale" type="number" min="0" max="1000000000" step="0.01" placeholder="أدخل سعر البيع"></label><p>الربح المتوقع = سعر البيع الداخلي − إجمالي التكاليف</p></div><div class="section-heading"><div><h2>رحلة الفاتورة</h2><p>كل مرحلة تضيف بنودها إلى نفس المسودة</p></div><span class="pill neutral" id="progress-text"></span></div><div id="steps" class="steps"></div><div class="workflow-note">◈ DRAFT · مسودة داخلية للموظفين. لكل شحنة فاتورة مستقلة حتى النشر.</div></section>
+        <section class="panel stage-panel"><div class="section-heading"><div><div class="eyebrow" id="stage-kicker"></div><h2 id="stage-title"></h2><p id="stage-description"></p></div><span id="stage-badge" class="pill"></span></div>
+          <div class="stage-meta"><label>المورد المسؤول<input id="supplier" autocomplete="off"></label><label>مرجع المستند<input id="reference" autocomplete="off"></label></div>
+          <div class="table-wrap"><table><thead><tr><th>بند الخدمة</th><th data-admin-only>التكلفة</th><th>سعر بند الفاتورة</th><th data-admin-only>الربح</th><th></th></tr></thead><tbody id="line-items"></tbody></table></div>
+          <form id="add-line" class="add-line"><label>وصف البند<input id="item-name" placeholder="مثال · رسوم أرضيات" required maxlength="100"></label><label data-admin-only>التكلفة بالجنيه<input id="item-cost" type="number" min="0" max="100000000" step="0.01" placeholder="0.00" required></label><label>سعر بند الفاتورة بالجنيه<input id="item-sale" type="number" min="0" max="100000000" step="0.01" placeholder="0.00" required></label><button class="button secondary" type="submit">＋ إضافة بند</button></form>
+          <div class="stage-footer"><div><small>إجمالي المرحلة</small><strong id="stage-total"></strong></div><button class="button primary" id="complete-stage"></button></div>
+        </section>
+        <section class="panel history-panel"><h2>سجل التغييرات</h2><div id="history"></div></section>
+      </div><aside class="invoice-column"><section class="panel invoice-preview"><div class="section-heading"><h2>مسودة الفاتورة</h2><span class="pill draft" id="invoice-badge">داخلية</span></div><div class="invoice-brand">NILELINK<span>LOGISTICS</span></div><div class="invoice-number">فاتورة خدمات شحن <strong id="invoice-number">رقم الفاتورة عند النشر</strong></div><div class="invoice-client"><small>فاتورة إلى</small><strong>شركة النخيل للتصدير</strong><span>ملف الشحنة NL-260184</span></div><div id="invoice-lines"></div><div class="invoice-total"><span>الإجمالي المستحق</span><strong id="invoice-total"></strong><small>جنيه مصري · EGP</small></div><div class="tax-note">المبالغ التجريبية بدون ضرائب. تُحدد المعالجة الضريبية لكل بند عند التنفيذ.</div><button class="button primary publish" id="review-invoice">مراجعة ونشر الفاتورة <span>↗</span></button><p class="publish-note" id="publish-note"></p></section><div class="visibility-note"><span>◉</span><div><strong id="visibility-title">العميل لا يرى المسودة</strong><p id="visibility-detail">التكاليف وهامش الربح بيانات داخلية. النسخة المنشورة تعرض أسعار الخدمات فقط.</p></div></div><button class="button ghost customer-button" id="customer-preview">◫ معاينة نسخة العميل</button></aside></div>
+    </main><footer>تجربة محلية تفاعلية <span>•</span> تُحفظ التغييرات في هذا المتصفح</footer>
+  </div>
+  <dialog id="review-dialog"><div class="dialog-heading"><div><div class="eyebrow">FINAL REVIEW</div><h2>جاهزة للإرسال للعميل؟</h2></div><button class="icon-button close-dialog" aria-label="إغلاق">×</button></div><p>بعد النشر تحصل الفاتورة على رقم، وتصبح متاحة للعميل داخل هذا التصور.</p><div id="review-summary"></div><label class="confirmation"><input type="checkbox" id="confirm-review">راجعت البنود والأسعار وأوافق على نشر الفاتورة.</label><div class="dialog-actions"><button class="button ghost close-dialog">رجوع للمراجعة</button><button class="button primary" id="publish-confirm" disabled>نشر الفاتورة</button></div></dialog>
+  <dialog id="customer-dialog"><div class="dialog-heading"><h2>نسخة العميل</h2><button class="icon-button close-dialog" aria-label="إغلاق">×</button></div><div id="customer-content"></div></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body></html>

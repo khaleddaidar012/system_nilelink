@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { RequestService, CustomerRequest } from "@/lib/models"
@@ -8,6 +10,10 @@ export async function GET(req: NextRequest) {
     const session = await getSessionFromRequest(req)
     if (!session?.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "operations", request: req })
     }
 
     await connectDB()

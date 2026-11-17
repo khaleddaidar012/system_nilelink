@@ -1,14 +1,15 @@
 "use client"
 
-import { useTranslations } from "next-intl"
-import { FileText, DollarSign, Wallet, CreditCard } from "lucide-react"
+import { useTranslations, useLocale } from "next-intl"
+import { FileText, Wallet, CreditCard } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface FinancialsSummaryCardsProps {
   data: {
-    totalInvoicesValue: number
-    totalPaid: number
-    totalRemaining: number
+    totalInvoicesValue: number | null
+    totalPaid: number | null
+    totalRemaining: number | null
+    byCurrency?: Record<string, { totalInvoicesValue: number | null; totalPaid: number | null; totalRemaining: number | null }>
   }
   count: number
   loading: boolean
@@ -16,15 +17,18 @@ interface FinancialsSummaryCardsProps {
 
 export function FinancialsSummaryCards({ data, count, loading }: FinancialsSummaryCardsProps) {
   const t = useTranslations()
+  const isAr = useLocale() === "ar"
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EGP' }).format(value || 0)
+  const formatCurrency = (key: "totalInvoicesValue" | "totalPaid" | "totalRemaining") => {
+    if (data.byCurrency && Object.keys(data.byCurrency).length) return Object.entries(data.byCurrency).map(([currency, group]) =>
+      `${group[key] === null ? (isAr ? "يتطلب مراجعة" : "Review required") : group[key].toLocaleString(undefined, { maximumFractionDigits: 2 })} ${currency}`).join(" · ")
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EGP' }).format(data[key] || 0)
   }
 
   const cards = [
     {
       title: t("portal.financials.metrics.totalValue") || "Total Invoices Value",
-      value: formatCurrency(data.totalInvoicesValue),
+      value: formatCurrency("totalInvoicesValue"),
       subtitle: `${count} ${t("portal.financials.metrics.invoices") || "invoices"}`,
       icon: FileText,
       color: "text-blue-600 dark:text-blue-400",
@@ -33,7 +37,7 @@ export function FinancialsSummaryCards({ data, count, loading }: FinancialsSumma
     },
     {
       title: t("portal.financials.metrics.totalPaid") || "Total Paid",
-      value: formatCurrency(data.totalPaid),
+      value: formatCurrency("totalPaid"),
       subtitle: t("portal.financials.metrics.received") || "Payments received",
       icon: Wallet,
       color: "text-emerald-600 dark:text-emerald-400",
@@ -42,7 +46,7 @@ export function FinancialsSummaryCards({ data, count, loading }: FinancialsSumma
     },
     {
       title: t("portal.financials.metrics.totalRemaining") || "Total Remaining",
-      value: formatCurrency(data.totalRemaining),
+      value: formatCurrency("totalRemaining"),
       subtitle: t("portal.financials.metrics.outstanding") || "Outstanding balance",
       icon: CreditCard,
       color: "text-rose-600 dark:text-rose-400",

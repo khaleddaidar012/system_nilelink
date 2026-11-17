@@ -1,4 +1,5 @@
-import { EmailConfig, EmailProvider, SendEmailOptions } from "../types"
+import type { EmailConfig, EmailProvider, SendEmailOptions } from "../types"
+import { brandedSender, plainTextFromHtml } from "../message"
 
 export function createResendProvider(config: EmailConfig): EmailProvider {
   return {
@@ -19,29 +20,44 @@ export function createResendProvider(config: EmailConfig): EmailProvider {
         return { success: false, error: "RESEND_API_KEY is not configured" }
       }
 
+      const payload: Record<string, any> = {
+        from: brandedSender(config.from),
+        to: [options.to],
+        subject: options.subject,
+        html: options.html,
+        text: options.text || plainTextFromHtml(options.html),
+        reply_to: options.replyTo || config.replyTo,
+        headers: { "X-Mailer": "NileLink Logistics" },
+      }
+
+      if (options.attachments && options.attachments.length > 0) {
+        payload.attachments = options.attachments.map((att) => ({
+          filename: att.filename,
+          content: Buffer.isBuffer(att.content) ? att.content.toString("base64") : att.content,
+        }))
+      }
+
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
+          ...(options.idempotencyKey ? { "Idempotency-Key": options.idempotencyKey } : {}),
         },
-        body: JSON.stringify({
-          from: config.from,
-          to: [options.to],
-          subject: options.subject,
-          html: options.html,
-        }),
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(30000),
       })
 
       if (!response.ok) {
-        const errorBody = await response.text()
+        await response.arrayBuffer()
         return {
           success: false,
-          error: `Resend API error ${response.status}: ${errorBody}`,
+          error: `Resend API rejected the request (${response.status})`,
         }
       }
 
       const data = (await response.json()) as { id?: string }
+      if (!data.id) return { success: false, error: "Email provider returned no receipt" }
       return { success: true, messageId: data.id }
     },
   }

@@ -1,4 +1,4 @@
-import { EmailConfig, EmailProvider } from "../types"
+import type { EmailConfig, EmailProvider } from "../types"
 import { createSmtpProvider } from "./smtp"
 import { createResendProvider } from "./resend"
 

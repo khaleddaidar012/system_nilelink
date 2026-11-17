@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import mongoose from "mongoose"
 import { connectDB } from "@/lib/mongodb"
@@ -24,6 +26,10 @@ export async function POST(req: NextRequest) {
         { error: "Authentication required as customer" },
         { status: 401 }
       )
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "document-upload", request: req })
     }
 
     await connectDB()
@@ -206,6 +212,19 @@ export async function POST(req: NextRequest) {
       type: "document_uploaded",
       severity: "normal",
       actionUrl: "/admin/documents/review",
+    })
+
+    // Customer confirmation notification
+    await Notification.create({
+      recipientCustomerId: customer._id,
+      recipientUserId: session.userId,
+      targetAudience: "customer",
+      title: `تم رفع ${files.length} مستند(ات) بنجاح`,
+      message: `تم رفع مستنداتك وهي الآن قيد المراجعة من قِبَل فريق نايل لينك. سيتم إشعارك عند اتخاذ أي إجراء.`,
+      channel: "in_app",
+      type: "document_uploaded",
+      severity: "normal",
+      actionUrl: "/portal/documents",
     })
 
     return NextResponse.json(

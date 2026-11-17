@@ -1,10 +1,12 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { CustomerRequest, Notification } from "@/lib/models"
 import { getSessionFromRequest } from "@/lib/auth/token-service"
 import mongoose from "mongoose"
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> | { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getSessionFromRequest(req)
     if (!session || (session.role !== "staff" && session.role !== "super_admin")) {
@@ -23,6 +25,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     if (!complianceType || !complianceNumber) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "admin-request-compliance", request: req, input: body, id: id })
     }
 
     await connectDB()

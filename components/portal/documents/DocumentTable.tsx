@@ -1,5 +1,6 @@
 "use client"
 
+import { usePortalLiveRefresh } from "@/hooks/useLiveUpdates"
 import { useState, useEffect } from "react"
 import { useTranslations } from "next-intl"
 import {
@@ -57,8 +58,8 @@ export function DocumentTable({ onRenewClick, onPreviewClick }: DocumentTablePro
   const [previewDoc, setPreviewDoc] = useState<CustomerDocumentItem | null>(null)
   const [rejectionTarget, setRejectionTarget] = useState<CustomerDocumentItem | null>(null)
 
-  const fetchDocuments = async () => {
-    setLoading(true)
+  const fetchDocuments = async (background = false) => {
+    if (!background) setLoading(true)
     try {
       const params = new URLSearchParams()
       if (search) params.set("search", search)
@@ -73,13 +74,15 @@ export function DocumentTable({ onRenewClick, onPreviewClick }: DocumentTablePro
     } catch {
       // Handle fetch error
     } finally {
-      setLoading(false)
+      if (!background) setLoading(false)
     }
   }
 
   useEffect(() => {
     fetchDocuments()
   }, [search, selectedCategory, selectedStatus])
+
+  usePortalLiveRefresh(() => { void fetchDocuments(true) }, ["document_updated"])
 
   const categories = [
     { id: "all", label: t("documents.allCategories") || "All Categories" },
@@ -220,12 +223,12 @@ export function DocumentTable({ onRenewClick, onPreviewClick }: DocumentTablePro
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600 transition-transform group-hover:scale-105 dark:bg-primary-950/50 dark:text-primary-400">
                           <FileText className="h-5 w-5" />
                         </div>
-                        <div className="min-w-0">
-                          <p className="truncate font-bold text-secondary-900 dark:text-white">
-                            {doc.title}
+                        <div className="min-w-0 max-w-[220px] sm:max-w-xs md:max-w-md">
+                          <p className="truncate font-bold text-secondary-900 dark:text-white" title={doc.title || doc.fileName}>
+                            {doc.title || doc.fileName}
                           </p>
-                          <p className="text-[11px] text-secondary-500">
-                            {doc.fileName} • {(doc.fileSize / (1024 * 1024)).toFixed(2)} MB
+                          <p className="truncate text-[11px] text-secondary-500 dark:text-secondary-400" title={doc.fileName}>
+                            {doc.title && doc.title !== doc.fileName ? `${doc.fileName} • ` : ""}{(doc.fileSize / (1024 * 1024)).toFixed(2)} MB
                           </p>
                           {doc.rejectionReason && (
                             <button

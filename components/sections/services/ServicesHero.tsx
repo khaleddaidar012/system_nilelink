@@ -11,14 +11,14 @@ export function ServicesHero() {
   return (
     <section className="relative flex min-h-[50vh] items-center overflow-hidden pt-20">
       <Image
-        src="/images/air-freight.jpg"
+        src="/images/air-freight.webp"
         alt="Air freight services"
         fill
         sizes="100vw"
         priority
         className="object-cover"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-secondary-900/95 to-secondary-900/70" />
+      <div className="absolute inset-0 bg-gradient-to-r from-site-dark/95 to-site-dark/70" />
       <Container className="relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 30 }}

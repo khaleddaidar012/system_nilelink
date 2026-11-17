@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { Notification } from "@/lib/models"
@@ -8,6 +10,10 @@ export async function POST(req: NextRequest) {
     const session = await getSessionFromRequest(req)
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "notifications-read", request: req })
     }
 
     await connectDB()
@@ -21,12 +27,15 @@ export async function POST(req: NextRequest) {
         $addToSet: { readBy: session.userId }
       })
     } else {
-      // 1. Direct notifications
+      // 1. Direct notifications + customer-targeted company notifications
       await Notification.updateMany(
         {
           $or: [
             { recipientUserId: session.userId },
-            { recipientCustomerId: session.customerId },
+            {
+              recipientCustomerId: session.customerId,
+              targetAudience: "customer",
+            },
           ],
           isRead: false,
         },

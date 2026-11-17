@@ -1,0 +1,12 @@
+{
+  "hmacKey": "GENERATED_IN_PRIVATE_INSTALLATION_PACKAGE",
+  "allowedDomain": "nilelinklogistics.com",
+  "imapHost": "127.0.0.1",
+  "imapPort": 993,
+  "smtpHost": "127.0.0.1",
+  "smtpPort": 465,
+  "smtpSecure": true,
+  "tlsServerName": "webmail.nilelinklogistics.com",
+  "stateDirectory": "C:\\NileLink\\MailAgent\\state",
+  "port": 8791
+}

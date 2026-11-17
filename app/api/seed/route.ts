@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { User, Customer, Document as DocumentModel, Notification, CustomerRequest, Invoice, ServiceConfig } from "@/lib/models"
 import { hashPassword } from "@/lib/auth/password"
+import { getDatabaseProvider } from "@/lib/db/provider"
 
 export async function GET(req: NextRequest) {
   try {
+    if (getDatabaseProvider() === "d1") return NextResponse.json({ error: "Demo seeding is disabled in the D1 migration preview", code: "D1_SEED_DISABLED" }, { status: 409 })
     await connectDB()
 
     // 1. Clean existing test data (optional or upsert)

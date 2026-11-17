@@ -1,7 +1,9 @@
 export interface EmailConfig {
+  enabled?: boolean
   provider: "smtp" | "resend" | "ses"
   from: string
   to: string
+  replyTo?: string
   resendApiKey?: string
   smtpHost?: string
   smtpPort?: number
@@ -10,10 +12,20 @@ export interface EmailConfig {
   smtpSecure?: boolean
 }
 
+export interface EmailAttachment {
+  filename: string
+  content: Buffer | string
+  contentType?: string
+}
+
 export interface SendEmailOptions {
   to: string
   subject: string
   html: string
+  text?: string
+  replyTo?: string
+  attachments?: EmailAttachment[]
+  idempotencyKey?: string
 }
 
 export interface SendEmailResult {

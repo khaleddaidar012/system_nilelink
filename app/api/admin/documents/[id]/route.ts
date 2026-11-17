@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import mongoose from "mongoose"
 import { connectDB } from "@/lib/mongodb"
@@ -25,6 +27,10 @@ export async function DELETE(req: NextRequest, { params }: Props) {
     const { id } = await params
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid or missing document ID" }, { status: 400 })
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "admin-document-delete", request: req, id: id })
     }
 
     await connectDB()

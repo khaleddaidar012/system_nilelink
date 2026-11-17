@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, Fragment } from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { Dialog, Transition } from "@headlessui/react"
 import { X, RefreshCw } from "lucide-react"
 import { InvoiceLivePreview } from "./InvoiceLivePreview"
@@ -14,21 +14,26 @@ interface InvoiceDetailsModalProps {
 
 export function InvoiceDetailsModal({ isOpen, onClose, invoiceToken }: InvoiceDetailsModalProps) {
   const t = useTranslations()
+  const ar = useLocale() === "ar"
   const [data, setData] = useState<{ invoice: any, payments: any[] } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const controller = new AbortController()
     if (isOpen && invoiceToken) {
       setLoading(true)
-      fetch(`/api/invoice/${invoiceToken}`)
-        .then(res => res.json())
+      setData(null)
+      fetch(`/api/invoice/${invoiceToken}`, { cache: "no-store", signal: controller.signal })
+        .then(res => res.ok ? res.json() : null)
         .then(data => {
-          if (data.success) {
+          if (data?.success && !controller.signal.aborted) {
             setData({ invoice: data.invoice, payments: data.payments })
           }
         })
-        .finally(() => setLoading(false))
+        .catch(() => {})
+        .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     }
+    return () => controller.abort()
   }, [isOpen, invoiceToken])
 
   return (
@@ -77,7 +82,12 @@ export function InvoiceDetailsModal({ isOpen, onClose, invoiceToken }: InvoiceDe
                       <p className="text-secondary-500 font-medium">{t("portal.financials.loadingDetails") || "Loading invoice details..."}</p>
                     </div>
                   ) : data?.invoice ? (
-                    <InvoiceLivePreview invoice={data.invoice} payments={data.payments} />
+                    <>
+                      {data.invoice.shipmentRecordId && <p className="mb-4 rounded-xl bg-primary-50 p-3 text-sm font-bold text-primary-700 dark:bg-primary-950 dark:text-primary-300">
+                        {ar ? "فاتورة الشحنة · الإصدار المنشور" : "Shipment invoice · published version"} {data.invoice.publishedVersion} · {data.invoice.shipmentSnapshot?.trackingNumber}
+                      </p>}
+                      <InvoiceLivePreview invoice={data.invoice} payments={data.payments} />
+                    </>
                   ) : (
                     <div className="py-20 text-center text-rose-500 font-bold">Failed to load invoice.</div>
                   )}

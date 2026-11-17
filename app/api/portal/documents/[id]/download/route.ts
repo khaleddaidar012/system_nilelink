@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { Document as DocumentModel } from "@/lib/models"
@@ -17,6 +19,10 @@ export async function GET(req: NextRequest, { params }: Props) {
     }
 
     const { id } = await params
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "document-download", request: req, id: id })
+    }
+
     await connectDB()
 
     const document = await DocumentModel.findById(id)

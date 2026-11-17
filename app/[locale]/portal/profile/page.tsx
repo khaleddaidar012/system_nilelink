@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { useTranslations, useLocale } from "next-intl"
 import { motion, AnimatePresence } from "framer-motion"
 import { PortalHeader } from "@/components/portal/PortalHeader"
@@ -17,14 +18,21 @@ import {
   FileCheck2,
   Package,
   Globe,
-  MapPin,
-  AtSign,
-  KeyRound,
   FileText,
   Clock,
   Sparkles,
+  Radio,
+  MessageSquare,
+  ExternalLink,
+  ShieldAlert,
+  Check,
+  KeyRound,
+  ArrowRight,
+  AtSign,
+  MapPin,
 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
+import { Link } from "@/navigation"
 import { usePortal } from "@/components/portal/PortalContext"
 import { PasswordRequirements } from "@/components/auth/PasswordRequirements"
 import { ExpiringDocumentsList, ExpiringDocumentItem } from "@/components/portal/profile/ExpiringDocumentsList"
@@ -35,26 +43,57 @@ export default function PortalProfilePage() {
   const t = useTranslations()
   const locale = useLocale()
   const { user: authUser, customer: authCustomer, refreshData } = usePortal()
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get("tab")
 
-  const [activeTab, setActiveTab] = useState<"corporate" | "security" | "compliance">("corporate")
+  const [activeTab, setActiveTab] = useState<"corporate" | "security" | "compliance" | "channels">(
+    tabParam === "channels" || tabParam === "security" || tabParam === "compliance" || tabParam === "corporate"
+      ? (tabParam as any)
+      : "corporate"
+  )
   const [loading, setLoading] = useState(true)
 
-  // Profile data from /api/portal/profile
-  const [companyName, setCompanyName] = useState("")
-  const [commercialRegisterNumber, setCommercialRegisterNumber] = useState("")
-  const [taxCardNumber, setTaxCardNumber] = useState("")
-  const [industry, setIndustry] = useState("")
-  const [address, setAddress] = useState("")
-  const [city, setCity] = useState("Alexandria")
-  const [country, setCountry] = useState("Egypt")
+  // Profile data initialized from authUser / authCustomer to prevent flash of empty / unverified state
+  const [companyName, setCompanyName] = useState(authCustomer?.companyName || "")
+  const [commercialRegisterNumber, setCommercialRegisterNumber] = useState(authCustomer?.commercialRegisterNumber || "")
+  const [taxCardNumber, setTaxCardNumber] = useState(authCustomer?.taxCardNumber || "")
+  const [industry, setIndustry] = useState(authCustomer?.industry || "")
+  const [address, setAddress] = useState(authCustomer?.address || "")
+  const [city, setCity] = useState(authCustomer?.city || "Alexandria")
+  const [country, setCountry] = useState(authCustomer?.country || "Egypt")
 
-  const [username, setUsername] = useState("")
-  const [firstName, setFirstName] = useState("")
-  const [lastName, setLastName] = useState("")
-  const [phone, setPhone] = useState("")
-  const [email, setEmail] = useState("")
-  const [emailVerified, setEmailVerified] = useState(false)
-  const [whatsappVerified, setWhatsappVerified] = useState(false)
+  const [username, setUsername] = useState(authUser?.username || "")
+  const [firstName, setFirstName] = useState(authUser?.firstName || "")
+  const [lastName, setLastName] = useState(authUser?.lastName || "")
+  const [phone, setPhone] = useState(authUser?.phone || "")
+  const [email, setEmail] = useState(authUser?.email || "")
+  const [emailVerified, setEmailVerified] = useState(authUser?.emailVerified ?? false)
+  const [whatsappVerified, setWhatsappVerified] = useState(authUser?.whatsappVerified ?? false)
+
+  // Keep state synced with authUser when it becomes available
+  useEffect(() => {
+    if (authUser) {
+      if (authUser.email && !email) setEmail(authUser.email)
+      if (authUser.phone && !phone) setPhone(authUser.phone)
+      if (authUser.username && !username) setUsername(authUser.username)
+      if (authUser.firstName && !firstName) setFirstName(authUser.firstName)
+      if (authUser.lastName && !lastName) setLastName(authUser.lastName)
+      if (authUser.emailVerified !== undefined) setEmailVerified(!!authUser.emailVerified)
+      if (authUser.whatsappVerified !== undefined) setWhatsappVerified(!!authUser.whatsappVerified)
+    }
+  }, [authUser])
+
+  useEffect(() => {
+    if (authCustomer) {
+      if (authCustomer.companyName && !companyName) setCompanyName(authCustomer.companyName)
+      if (authCustomer.commercialRegisterNumber && !commercialRegisterNumber) setCommercialRegisterNumber(authCustomer.commercialRegisterNumber)
+      if (authCustomer.taxCardNumber && !taxCardNumber) setTaxCardNumber(authCustomer.taxCardNumber)
+      if (authCustomer.industry && !industry) setIndustry(authCustomer.industry)
+      if (authCustomer.address && !address) setAddress(authCustomer.address)
+      if (authCustomer.city && !city) setCity(authCustomer.city)
+      if (authCustomer.country && !country) setCountry(authCustomer.country)
+    }
+  }, [authCustomer])
 
   const [operations, setOperations] = useState<OperationsStats>({
     totalShipments: 0,
@@ -123,6 +162,22 @@ export default function PortalProfilePage() {
   useEffect(() => {
     fetchProfileData()
   }, [])
+
+  useEffect(() => {
+    if (tabParam && (tabParam === "channels" || tabParam === "security" || tabParam === "compliance" || tabParam === "corporate")) {
+      setActiveTab(tabParam)
+    }
+  }, [tabParam])
+
+  // Effective verified flags combine local state and authUser to eliminate flashes during initial network fetch
+  const effectiveEmailVerified = emailVerified || !!authUser?.emailVerified
+  const effectiveWhatsappVerified = whatsappVerified || !!authUser?.whatsappVerified
+  const effectiveEmail = email || authUser?.email || ""
+  const effectivePhone = phone || authUser?.phone || ""
+  const isChannelsLoading = loading && !authUser
+
+  const hasAnyVerifiedChannel = effectiveEmailVerified || effectiveWhatsappVerified
+  const showChannelsAlert = !isChannelsLoading && !hasAnyVerifiedChannel
 
   const handleSaveCorporateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -237,6 +292,28 @@ export default function PortalProfilePage() {
           >
             <Building2 className="h-4 w-4" />
             <span>{locale === "ar" ? "بيانات الشركة والكيان القانوني" : "Corporate Legal Info"}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab("channels")
+              setProfileSuccess(null)
+              setProfileError(null)
+            }}
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all relative",
+              activeTab === "channels"
+                ? "bg-primary-600 text-white shadow-md shadow-primary-500/20"
+                : "text-secondary-600 hover:bg-secondary-100 dark:text-secondary-400 dark:hover:bg-secondary-800"
+            )}
+          >
+            <Radio className="h-4 w-4" />
+            <span>{t("portal.sidebar.channels") || (locale === "ar" ? "قنوات الاتصال" : "Communication Channels")}</span>
+            {showChannelsAlert && (
+              <span className="rounded-full bg-rose-500 px-1.5 py-0.2 text-[10px] font-bold text-white animate-pulse">
+                !
+              </span>
+            )}
           </button>
 
           <button
@@ -415,7 +492,217 @@ export default function PortalProfilePage() {
           </div>
         )}
 
-        {/* Tab 2: Security, Username & Password Management */}
+        {/* Tab 2: Communication Channels */}
+        {activeTab === "channels" && (
+          <div className="space-y-6">
+            {/* Status Summary Banner */}
+            {isChannelsLoading ? (
+              <div className="h-20 animate-pulse rounded-2xl bg-secondary-100 dark:bg-secondary-800/50" />
+            ) : effectiveEmailVerified && effectiveWhatsappVerified ? (
+              <div className="flex items-center gap-3.5 rounded-2xl border border-emerald-500/30 bg-emerald-50/80 p-5 text-emerald-900 shadow-sm dark:bg-emerald-950/30 dark:text-emerald-200">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold">
+                    {locale === "ar" ? "كافة قنوات الاتصال موثقة ونشطة بالكامل" : "All Communication Channels Verified & Active"}
+                  </h4>
+                  <p className="mt-0.5 text-xs text-emerald-700/90 dark:text-emerald-300/80">
+                    {locale === "ar"
+                      ? "حسابك متصل وجاهز لاستلام تنبيهات الشحن، الفواتير، ومستجدات التخليص الجمركي الفورية."
+                      : "Your company account is fully connected to receive freight tracking alerts, invoice receipts, and real-time customs updates."}
+                  </p>
+                </div>
+              </div>
+            ) : hasAnyVerifiedChannel ? (
+              <div className="flex items-center gap-3.5 rounded-2xl border border-sky-500/30 bg-sky-50/80 p-5 text-sky-900 shadow-sm dark:bg-sky-950/30 dark:text-sky-200">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500 text-white shadow">
+                  <Check className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold">
+                    {locale === "ar" ? "قناة اتصال واحدة على الأقل موثقة" : "At Least One Channel Verified & Active"}
+                  </h4>
+                  <p className="mt-0.5 text-xs text-sky-700/90 dark:text-sky-300/80">
+                    {locale === "ar"
+                      ? "يمكنك توثيق القناة المتبقية لضمان استلام كافة الإشعارات الهامة والرسائل الفورية عبر القناتين معاً."
+                      : "You have verified a communication channel. You can optionally verify the remaining channel to receive multi-channel alerts."}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3.5 rounded-2xl border border-amber-500/30 bg-amber-50/90 p-5 text-amber-900 shadow-sm dark:bg-amber-950/40 dark:text-amber-200">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white shadow">
+                  <ShieldAlert className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold">
+                    {locale === "ar" ? "تنبيه: لا توجد أي قناة اتصال موثقة حالياً" : "Action Required: No Verified Channels"}
+                  </h4>
+                  <p className="mt-0.5 text-xs text-amber-700/90 dark:text-amber-300/80">
+                    {locale === "ar"
+                      ? "يرجى توثيق البريد الإلكتروني أو رقم الواتساب لتفعيل حسابك وتلقي عروض الأسعار وتحديثات الشحنات."
+                      : "Please verify your email or WhatsApp number to unlock operational features and receive critical logistics updates."}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Channels Grid */}
+            {isChannelsLoading ? (
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div className="h-56 animate-pulse rounded-2xl bg-secondary-100 dark:bg-secondary-800/50" />
+                <div className="h-56 animate-pulse rounded-2xl bg-secondary-100 dark:bg-secondary-800/50" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                {/* Channel 1: Corporate Work Email */}
+                <div className="flex flex-col justify-between rounded-2xl border border-secondary-200/80 bg-white p-6 shadow-sm dark:border-secondary-800 dark:bg-secondary-900 transition-all hover:shadow-md">
+                  <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-950/60 dark:text-primary-400 shadow-sm">
+                          <Mail className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-secondary-900 dark:text-white">
+                            {t("portal.channels.email") || (locale === "ar" ? "البريد الإلكتروني للعمل" : "Corporate Work Email")}
+                          </h4>
+                          <p className="text-xs font-mono font-semibold text-secondary-600 dark:text-secondary-300 mt-0.5">
+                            {effectiveEmail || "—"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold border",
+                          effectiveEmailVerified
+                            ? "border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+                            : "border-amber-500/30 bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                        )}
+                      >
+                        {effectiveEmailVerified ? (
+                          <>
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            <span>{t("portal.channels.verified") || (locale === "ar" ? "موثق" : "Verified")}</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
+                            <span>{t("portal.channels.notVerified") || (locale === "ar" ? "غير موثق" : "Not Verified")}</span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+
+                    <p className="mt-4 text-xs text-secondary-500 dark:text-secondary-400 leading-relaxed">
+                      {locale === "ar"
+                        ? "يُستخدم لاستلام الفواتير الرسمية، عروض الأسعار المعتمدة، وتنبيهات الأمان وإشعارات تسجيل الدخول."
+                        : "Used for official quotation approvals, tax invoice receipts, document audit trails, and secure login alerts."}
+                    </p>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-secondary-100 dark:border-secondary-800 flex items-center justify-between">
+                    <span className="text-[11px] text-secondary-400 font-medium">
+                      {effectiveEmailVerified ? (locale === "ar" ? "القناة نشطة وجاهزة" : "Channel active") : (locale === "ar" ? "يتطلب تأكيد الرابط" : "Requires verification link")}
+                    </span>
+
+                    {effectiveEmailVerified ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        <Check className="h-4 w-4" />
+                        <span>{locale === "ar" ? "تم التحقق بنجاح" : "Verified"}</span>
+                      </span>
+                    ) : (
+                      <Link href="/portal/verification">
+                        <Button
+                          size="sm"
+                          className="rounded-xl bg-primary-600 text-xs font-bold text-white shadow hover:bg-primary-700"
+                        >
+                          <span>{t("portal.channels.verifyNow") || (locale === "ar" ? "توثيق البريد الآن" : "Verify Email Now")}</span>
+                          <ArrowRight className="ml-1.5 h-3.5 w-3.5 rtl:mr-1.5 rtl:ml-0 rtl:rotate-180" />
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+
+                {/* Channel 2: WhatsApp Business Notifications */}
+                <div className="flex flex-col justify-between rounded-2xl border border-secondary-200/80 bg-white p-6 shadow-sm dark:border-secondary-800 dark:bg-secondary-900 transition-all hover:shadow-md">
+                  <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 shadow-sm">
+                          <MessageSquare className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-secondary-900 dark:text-white">
+                            {t("portal.channels.whatsapp") || (locale === "ar" ? "واتساب للأعمال (WhatsApp)" : "WhatsApp Business Notifications")}
+                          </h4>
+                          <p className="text-xs font-mono font-semibold text-secondary-600 dark:text-secondary-300 mt-0.5">
+                            {effectivePhone || "—"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold border",
+                          effectiveWhatsappVerified
+                            ? "border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+                            : "border-secondary-200 bg-secondary-50 text-secondary-600 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-400"
+                        )}
+                      >
+                        {effectiveWhatsappVerified ? (
+                          <>
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            <span>{t("portal.channels.verified") || (locale === "ar" ? "موثق" : "Verified")}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Phone className="h-3.5 w-3.5 text-secondary-400" />
+                            <span>{t("portal.channels.notVerified") || (locale === "ar" ? "غير موثق" : "Not Verified")}</span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+
+                    <p className="mt-4 text-xs text-secondary-500 dark:text-secondary-400 leading-relaxed">
+                      {locale === "ar"
+                        ? "يُستخدم لإرسال تنبيهات وصول الحاويات، تحديثات الإفراج الجمركي اللحظية، وإشعارات الشحن السريعة."
+                        : "Used for live container tracking alerts, customs milestone notifications, and direct logistics communications."}
+                    </p>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-secondary-100 dark:border-secondary-800 flex items-center justify-between">
+                    <span className="text-[11px] text-secondary-400 font-medium">
+                      {effectiveWhatsappVerified ? (locale === "ar" ? "القناة نشطة وجاهزة" : "Channel active") : (locale === "ar" ? "يتطلب تأكيد رقم الهاتف" : "Requires WhatsApp confirmation")}
+                    </span>
+
+                    {effectiveWhatsappVerified ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        <Check className="h-4 w-4" />
+                        <span>{locale === "ar" ? "تم التحقق بنجاح" : "Verified"}</span>
+                      </span>
+                    ) : (
+                      <Link href="/portal/verification?channel=whatsapp#whatsapp-verification">
+                        <Button
+                          size="sm"
+                          className="rounded-xl bg-emerald-600 text-xs font-bold text-white shadow hover:bg-emerald-700"
+                        >
+                          <span>{t("portal.channels.verifyNow") || (locale === "ar" ? "توثيق الواتساب الآن" : "Verify WhatsApp Now")}</span>
+                          <ArrowRight className="ml-1.5 h-3.5 w-3.5 rtl:mr-1.5 rtl:ml-0 rtl:rotate-180" />
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 3: Security, Username & Password Management */}
         {activeTab === "security" && (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Account Manager & Username Box */}
@@ -545,7 +832,7 @@ export default function PortalProfilePage() {
             </form>
 
             {/* Password Change Box with PasswordRequirements Component */}
-            <form
+            <form id="password"
               onSubmit={handleChangePassword}
               className="rounded-2xl border border-secondary-200/80 bg-white p-6 shadow-sm dark:border-secondary-800 dark:bg-secondary-900"
             >

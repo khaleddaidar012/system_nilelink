@@ -11,7 +11,7 @@ export function AboutCTA() {
   const t = useTranslations("cta")
 
   return (
-    <section className="relative overflow-hidden bg-secondary-900 py-20">
+    <section className="relative overflow-hidden bg-site-dark py-20">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(14,165,233,0.15),transparent_50%)]" />
       <Container className="relative z-10 text-center">
         <motion.div

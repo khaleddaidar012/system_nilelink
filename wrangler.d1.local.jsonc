@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nilelink-d1-local",
+  "compatibility_date": "2025-04-01",
+  "r2_buckets": [
+    { "binding": "D1_PREVIEW_FILES", "bucket_name": "nilelink-d1-preview-local", "remote": false },
+    { "binding": "D1_SOURCE_FILES", "bucket_name": "nilelink-d1-source-fixture", "remote": false }
+  ],
+  // Local migration laboratory only. Never deploy with this configuration.
+  // The zero UUID is a local placeholder, not a remote database ID.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nilelink-d1-local",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations/d1"
+    }
+  ]
+}

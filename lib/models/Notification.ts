@@ -14,6 +14,9 @@ export type NotificationType =
   | "manual_staff_warning"
   | "account_status_change"
   | "request_update"
+  | "invoice_created"
+  | "invoice_confirmed"
+  | "invoice_ready"
 
 export interface INotification extends MongooseDoc {
   recipientUserId?: mongoose.Types.ObjectId
@@ -27,6 +30,7 @@ export interface INotification extends MongooseDoc {
   relatedDocumentId?: mongoose.Types.ObjectId
   relatedRequestId?: mongoose.Types.ObjectId
   relatedServiceId?: mongoose.Types.ObjectId
+  relatedInvoiceId?: mongoose.Types.ObjectId
   actionUrl?: string
   isRead: boolean
   readBy?: mongoose.Types.ObjectId[]
@@ -88,6 +92,9 @@ const NotificationSchema = new Schema<INotification>(
         "manual_staff_warning",
         "account_status_change",
         "request_update",
+        "invoice_created",
+        "invoice_confirmed",
+        "invoice_ready",
       ],
       required: true,
       index: true,
@@ -112,6 +119,12 @@ const NotificationSchema = new Schema<INotification>(
     relatedServiceId: {
       type: Schema.Types.ObjectId,
       ref: "RequestService",
+      default: null,
+      index: true,
+    },
+    relatedInvoiceId: {
+      type: Schema.Types.ObjectId,
+      ref: "Invoice",
       default: null,
       index: true,
     },

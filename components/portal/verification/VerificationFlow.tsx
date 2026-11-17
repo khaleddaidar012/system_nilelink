@@ -18,12 +18,11 @@ import {
   Edit2,
   Check,
   X,
-  ShieldAlert,
   KeyRound,
   Inbox,
   CheckCircle,
 } from "lucide-react"
-import { useRouter } from "@/navigation"
+import { refreshVerifiedPortalSession } from "@/lib/auth/portal-verification-navigation"
 import { useTranslations, useLocale } from "next-intl"
 import { Button } from "@/components/ui/Button"
 import { cn } from "@/lib/utils"
@@ -40,7 +39,21 @@ interface UserStatus {
 export function VerificationFlow() {
   const t = useTranslations()
   const locale = useLocale()
-  const router = useRouter()
+  const [isEnteringPortal, setIsEnteringPortal] = useState(false)
+  const [portalError, setPortalError] = useState<string | null>(null)
+  const enterPortal = async () => {
+    if (isEnteringPortal) return
+    setIsEnteringPortal(true)
+    setPortalError(null)
+    try {
+      await refreshVerifiedPortalSession()
+      // A full navigation discards any prefetched redirect from the old JWT.
+      window.location.assign(`/${locale}/portal`)
+    } catch {
+      setPortalError(locale === "ar" ? "تعذر تحديث الجلسة. حاول مرة أخرى، أو سجّل خروجًا ثم ادخل من جديد." : "Could not refresh your session. Try again, or sign out and sign in again.")
+      setIsEnteringPortal(false)
+    }
+  }
 
   // WhatsApp verification message per language
   const whatsappMessages: Record<string, string> = {
@@ -88,6 +101,7 @@ export function VerificationFlow() {
   // Input refs
   const emailInputRefs = useRef<(HTMLInputElement | null)[]>([])
   const whatsappInputRefs = useRef<(HTMLInputElement | null)[]>([])
+  const whatsappSectionRef = useRef<HTMLDivElement | null>(null)
   const autoSentEmailOtpRef = useRef(false)
 
   // Send OTP
@@ -121,7 +135,9 @@ export function VerificationFlow() {
           data.message || "تم إرسال كود التفعيل إلى بريدك الإلكتروني بنجاح!"
         )
       } else {
-        setSuccess(null)
+        setSuccess(
+          "تم تجهيز طلب التوثيق اليدوي. أدخل الكود الذي يقدمه موظف الشركة (6 أرقام)."
+        )
       }
       setCooldown(60)
       if (data.previewCode) {
@@ -137,6 +153,26 @@ export function VerificationFlow() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Trigger WhatsApp Flow (open chat, start OTP/cooldown, scroll to input)
+  const handleTriggerWhatsappFlow = async () => {
+    setShowWhatsappDrawer(true)
+    const cleanPhone = userStatus.phone || ""
+    const msg = (whatsappMessages[locale] || whatsappMessages["ar"]).replace("PHONE_PLACEHOLDER", cleanPhone)
+    const waUrl = `https://wa.me/201000018549?text=${encodeURIComponent(msg)}`
+    if (typeof window !== "undefined") {
+      window.open(waUrl, "_blank", "noopener,noreferrer")
+    }
+
+    if (whatsappCooldown <= 0) {
+      await handleSendOtp("whatsapp")
+    }
+
+    setTimeout(() => {
+      whatsappSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+      whatsappInputRefs.current[0]?.focus()
+    }, 350)
   }
 
   // Fetch initial verification status
@@ -155,6 +191,7 @@ export function VerificationFlow() {
             lastName: data.lastName,
           })
           setEditEmailValue(data.email || "")
+          if (data.emailVerified && !data.whatsappVerified && new URLSearchParams(window.location.search).get("channel") === "whatsapp") setShowWhatsappDrawer(true)
 
           // Auto-send OTP code when entering verification page
           if (!data.emailVerified && !autoSentEmailOtpRef.current) {
@@ -198,7 +235,7 @@ export function VerificationFlow() {
     targetOtp[index] = cleanVal
     setTargetOtp(targetOtp)
 
-    if (cleanVal && index < 5) {
+    if (cleanVal && index < targetOtp.length - 1) {
       inputRefs.current[index + 1]?.focus()
     }
   }
@@ -209,10 +246,11 @@ export function VerificationFlow() {
     e: React.ClipboardEvent<HTMLInputElement>
   ) => {
     e.preventDefault()
-    const pastedData = e.clipboardData.getData("text").replace(/[^0-9]/g, "").slice(0, 6)
+    const length = 6
+    const pastedData = e.clipboardData.getData("text").replace(/[^0-9]/g, "").slice(0, length)
     if (!pastedData) return
 
-    const newOtp = Array(6).fill("")
+    const newOtp = Array(length).fill("")
     for (let i = 0; i < pastedData.length; i++) {
       newOtp[i] = pastedData[i]
     }
@@ -222,7 +260,7 @@ export function VerificationFlow() {
       emailInputRefs.current[Math.min(pastedData.length, 5)]?.focus()
     } else {
       setWhatsappOtp(newOtp)
-      whatsappInputRefs.current[Math.min(pastedData.length, 5)]?.focus()
+      whatsappInputRefs.current[Math.min(pastedData.length, 6)]?.focus()
     }
   }
 
@@ -299,8 +337,8 @@ export function VerificationFlow() {
     const setError = isEmail ? setEmailError : setWhatsappError
     const setSuccess = isEmail ? setEmailSuccess : setWhatsappSuccess
 
-    if (code.length !== 6) {
-      setError("الرجاء إدخال كود التفعيل المكون من 6 أرقام كاملاً.")
+    if (!(isEmail ? /^\d{6}$/ : /^\d{6}$/).test(code)) {
+      setError(isEmail ? "الرجاء إدخال كود البريد المكون من 6 أرقام كاملاً." : "الرجاء إدخال كود التوثيق اليدوي كاملاً (6 أرقام).")
       return
     }
 
@@ -327,9 +365,9 @@ export function VerificationFlow() {
         whatsappVerified: channel === "whatsapp" ? true : prev.whatsappVerified,
       }))
 
-      if (channel === "email" || data.isFullyVerified) {
+      if (channel === "whatsapp" && (data.isFullyVerified || userStatus.emailVerified)) {
         setTimeout(() => {
-          router.push("/portal")
+          void enterPortal()
         }, 1500)
       }
     } catch {
@@ -364,14 +402,20 @@ export function VerificationFlow() {
           <ShieldCheck className="h-7 w-7" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-          توثيق البريد الإلكتروني للعمل
+          {userStatus.emailVerified ? userStatus.whatsappVerified ? "قنوات الاتصال موثّقة" : "توثيق واتساب الآن" : "توثيق البريد الإلكتروني للعمل"}
         </h1>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto leading-relaxed">
-          خطوة واحدة إجبارية لاستكمال إعداد حسابك في منصة نيل لينك واستلام التنبيهات والفواتير الجمركية الرسمية
+          {userStatus.emailVerified ? userStatus.whatsappVerified ? "تم توثيق البريد الإلكتروني ورقم واتساب بنجاح." : "تم توثيق بريدك الإلكتروني. أكمل توثيق رقم واتساب لاستلام تحديثات الشحن والتنبيهات." : "خطوة واحدة إجبارية لاستكمال إعداد حسابك في منصة نيل لينك واستلام التنبيهات والفواتير الجمركية الرسمية"}
         </p>
       </motion.div>
 
       {/* Main Mandatory Email Card */}
+      {userStatus.emailVerified ? (
+        <div className="mb-5 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
+          <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-600" />
+          <div className="min-w-0"><p className="text-sm font-bold">تم توثيق البريد الإلكتروني بنجاح</p><p className="mt-1 break-all text-xs" dir="ltr">{userStatus.email}</p></div>
+        </div>
+      ) : (
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -507,36 +551,31 @@ export function VerificationFlow() {
               تم توثيق بريد العمل بنجاح!
             </h3>
             <p className="mt-1.5 text-xs text-emerald-800/90 dark:text-emerald-300 max-w-md">
-              حسابك الآن مفعل بالكامل. جاري توجيهك إلى لوحة تحكم المنصة...
+              {!userStatus.whatsappVerified
+                ? "يمكنك الآن توثيق رقم الواتساب بالأسفل لضمان استلام التنبيهات الفورية، أو الانتقال فوراً إلى لوحة التحكم."
+                : "حسابك الآن مفعل بالكامل وموثق عبر كافة القنوات."}
             </p>
             <div className="mt-6 flex flex-col sm:flex-row items-center gap-3 justify-center w-full">
               <Button
-                onClick={() => router.push("/portal")}
+                onClick={() => void enterPortal()}
+                disabled={isEnteringPortal}
                 className="rounded-xl bg-emerald-600 px-6 py-2 text-xs font-bold text-white shadow-md hover:bg-emerald-700 w-full sm:w-auto"
               >
-                <span>الانتقال فوراً إلى البوابة</span>
+                <span>{isEnteringPortal ? "جارٍ فتح البوابة…" : "الانتقال فوراً إلى البوابة"}</span>
                 <ArrowRight className="mr-2 h-4 w-4 rtl:mr-0 rtl:ml-2 rtl:rotate-180" />
               </Button>
               {!userStatus.whatsappVerified && (
-                <a
-                  href={`https://wa.me/201000018549?text=${encodeURIComponent(
-                    (whatsappMessages[locale] || whatsappMessages["ar"]).replace("PHONE_PLACEHOLDER", userStatus.phone)
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => {
-                    setShowWhatsappDrawer(true)
-                    setTimeout(() => {
-                      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })
-                    }, 300)
-                  }}
-                  className="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 bg-white px-6 py-2 text-xs font-bold text-emerald-700 shadow-sm hover:bg-emerald-50 dark:bg-slate-900 dark:text-emerald-400 dark:border-emerald-900 w-full sm:w-auto"
+                <button
+                  type="button"
+                  onClick={handleTriggerWhatsappFlow}
+                  className="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 bg-white px-6 py-2 text-xs font-bold text-emerald-700 shadow-sm hover:bg-emerald-50 dark:bg-slate-900 dark:text-emerald-400 dark:border-emerald-900 w-full sm:w-auto transition-all"
                 >
                   <Phone className="mr-2 h-4 w-4 text-emerald-500 rtl:mr-0 rtl:ml-2" />
                   <span>الخطوة القادمة توثيق الواتس</span>
-                </a>
+                </button>
               )}
             </div>
+            {portalError && <p role="alert" className="mt-3 text-sm text-rose-700 dark:text-rose-300">{portalError}</p>}
           </div>
         ) : (
           /* OTP Input Form */
@@ -651,25 +690,28 @@ export function VerificationFlow() {
           </div>
         )}
       </motion.div>
+      )}
 
       {/* Secondary Optional WhatsApp Preferences Card */}
       <motion.div
+        id="whatsapp-verification"
+        ref={whatsappSectionRef}
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="mt-8 rounded-3xl border border-slate-200/80 bg-white/70 p-6 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/70 shadow-sm"
+        className={cn("rounded-3xl border bg-white/90 p-6 backdrop-blur-md dark:bg-slate-900/90", userStatus.emailVerified ? "border-emerald-300 p-6 shadow-xl shadow-emerald-500/10 sm:p-8 dark:border-emerald-800" : "mt-8 border-slate-200/80 shadow-sm dark:border-slate-800/80")}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
               <Phone className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  توثيق رقم WhatsApp
+                <h3 className={cn("font-black text-slate-900 dark:text-white", userStatus.emailVerified ? "text-xl sm:text-2xl" : "text-sm")}>
+                  {userStatus.whatsappVerified ? "رقم واتساب موثّق" : "توثيق واتساب الآن"}
                 </h3>
-                <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
                   إجراء هام
                 </span>
               </div>
@@ -689,32 +731,27 @@ export function VerificationFlow() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push("/portal")}
+                onClick={() => void enterPortal()}
+                disabled={isEnteringPortal}
                 className="h-8 rounded-lg px-2.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
               >
                 <span>تخطي الآن</span>
                 <ChevronRight className="h-3 w-3 rtl:rotate-180 ml-1 rtl:ml-0 rtl:mr-1" />
               </Button>
-              <a
-                href={`https://wa.me/201000018549?text=${encodeURIComponent(
-                  (whatsappMessages[locale] || whatsappMessages["ar"]).replace("PHONE_PLACEHOLDER", userStatus.phone)
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => {
-                  setShowWhatsappDrawer(true)
-                }}
-                className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 px-3 text-[11px] font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              <button
+                type="button"
+                onClick={handleTriggerWhatsappFlow}
+                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-colors hover:bg-emerald-700"
               >
                 توثيق الواتساب
-              </a>
+              </button>
             </div>
           )}
         </div>
 
         {/* WhatsApp OTP Input Flow */}
         <AnimatePresence>
-          {!userStatus.whatsappVerified && (showWhatsappDrawer || whatsappError) && (
+          {!userStatus.whatsappVerified && (showWhatsappDrawer || whatsappError || whatsappCooldown > 0) && (
             <motion.div
               key="whatsapp-otp-drawer"
               initial={{ height: 0, opacity: 0 }}
@@ -729,25 +766,41 @@ export function VerificationFlow() {
                 </div>
               )}
 
-              {/* Dev Helper Preview Code (Hidden per user request) */}
+              {whatsappSuccess && (
+                <div className="mb-4 flex items-center gap-2 rounded-2xl bg-emerald-50 p-3 text-xs font-bold text-emerald-800 border border-emerald-200 dark:bg-emerald-950/50 dark:border-emerald-900 dark:text-emerald-300">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                  <span>{whatsappSuccess}</span>
+                </div>
+              )}
 
-              <div className="mb-6 flex flex-col items-center justify-center rounded-2xl bg-slate-50/50 p-4 border border-slate-200/60 dark:bg-slate-800/30 dark:border-slate-700/60">
-                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-3 text-center leading-relaxed">
-                  للحصول على كود التفعيل، يرجى التواصل معنا عبر الواتساب واطلب الكود الخاص برقمك:
-                  <br />
-                  <span className="font-mono text-emerald-600 dark:text-emerald-400 mt-1 inline-block" dir="ltr">{userStatus.phone}</span>
+              {/* Status and Countdown Banner */}
+              <div className="mb-6 flex flex-col items-center justify-center rounded-2xl bg-slate-50/80 p-5 border border-slate-200/80 dark:bg-slate-800/40 dark:border-slate-700/80 text-center">
+                <div className="flex items-center gap-2 mb-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
+                  <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
+                  <span>اطلب رمز التفعيل لرقم واتساب:</span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400" dir="ltr">{userStatus.phone}</span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 max-w-md leading-relaxed">
+                  اطلب كود التوثيق اليدوي من موظف الشركة عبر واتساب، ثم أدخله بالأسفل (6 أرقام). لا يتم إرسال رسالة تلقائيًا.
                 </p>
-                <a
-                  href={`https://wa.me/201000018549?text=${encodeURIComponent(
-                    (whatsappMessages[locale] || whatsappMessages["ar"]).replace("PHONE_PLACEHOLDER", userStatus.phone)
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-emerald-600 transition-colors"
-                >
-                  <Phone className="h-4 w-4" />
-                  <span>طلب كود التفعيل عبر الواتساب</span>
-                </a>
+
+                <div className="mt-3 flex items-center gap-2">
+                  {whatsappCooldown > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/90 dark:bg-emerald-950/60 px-3.5 py-1 text-xs font-bold text-emerald-800 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-800">
+                      <Clock className="h-3.5 w-3.5 animate-spin text-emerald-600 dark:text-emerald-400" />
+                      <span>يمكن إعادة طلب الرمز بعد {whatsappCooldown} ثانية</span>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleTriggerWhatsappFlow}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-white px-3.5 py-1.5 text-xs font-bold text-emerald-700 shadow-sm hover:bg-emerald-50 dark:bg-slate-900 dark:text-emerald-300 transition-colors"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      <span>إعادة فتح الواتساب وطلب الكود</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -773,16 +826,17 @@ export function VerificationFlow() {
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <Button
                     type="button"
-                    disabled={isVerifyingWhatsapp || whatsappOtp.join("").length !== 6}
+                    disabled={isVerifyingWhatsapp || !/^\d{6}$/.test(whatsappOtp.join(""))}
                     onClick={() => handleVerifyOtp("whatsapp")}
                     className="flex-1 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
                   >
-                    {isVerifyingWhatsapp ? <Loader2 className="h-4 w-4 animate-spin" /> : "تأكيد الرمز"}
+                    {isVerifyingWhatsapp ? <Loader2 className="h-4 w-4 animate-spin" /> : "تأكيد وتفعيل الواتساب"}
                   </Button>
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => router.push("/portal")}
+                    onClick={() => void enterPortal()}
+                    disabled={isEnteringPortal}
                     className="rounded-xl px-3 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
                   >
                     تخطي الآن
@@ -793,6 +847,7 @@ export function VerificationFlow() {
           )}
         </AnimatePresence>
       </motion.div>
+      {portalError && <p role="alert" className="mt-4 text-center text-sm text-rose-700 dark:text-rose-300">{portalError}</p>}
     </div>
   )
 }

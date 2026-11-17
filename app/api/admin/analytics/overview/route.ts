@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { Customer, Document as DocumentModel, Notification, CustomerRequest } from "@/lib/models"
 import { getSessionFromRequest } from "@/lib/auth/token-service"
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 
 export async function GET(req: NextRequest) {
   try {
+    if (getDatabaseProvider() === "d1") return handleD1Workflow({ action: "admin-analytics-overview", request: req })
     const session = await getSessionFromRequest(req)
     if (!session || (session.role !== "staff" && session.role !== "super_admin")) {
       return NextResponse.json({ error: "Forbidden: Staff access required" }, { status: 403 })

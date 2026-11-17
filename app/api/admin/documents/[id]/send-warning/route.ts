@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
@@ -34,6 +36,10 @@ export async function POST(req: NextRequest, { params }: Props) {
     }
 
     const { channel, customMessage } = parsed.data
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "admin-document-warning", request: req, input: parsed.data, id: id })
+    }
 
     await connectDB()
     const document = await DocumentModel.findById(id)

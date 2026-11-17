@@ -16,37 +16,37 @@ const services = [
     key: "seaFreight",
     icon: Ship,
     image:
-      "/images/hero-bg.jpg",
+      "/images/hero-bg.webp",
   },
   {
     key: "airFreight",
     icon: Plane,
     image:
-      "/images/air-freight.jpg",
+      "/images/air-freight.webp",
   },
   {
     key: "roadFreight",
     icon: Truck,
     image:
-      "/images/road-freight.jpg",
+      "/images/road-freight.webp",
   },
   {
     key: "customsClearance",
     icon: FileCheck,
     image:
-      "/images/customs-clearance.jpg",
+      "/images/customs-clearance.webp",
   },
   {
     key: "warehousing",
     icon: Warehouse,
     image:
-      "/images/container-ship.jpg",
+      "/images/container-ship.webp",
   },
   {
     key: "specialized",
     icon: Settings2,
     image:
-      "/images/specialized-cargo.jpg",
+      "/images/specialized-cargo.webp",
   },
 ]
 
@@ -54,7 +54,7 @@ export function ServicesPreview() {
   const t = useTranslations("services")
 
   return (
-    <Section className="bg-secondary-50 dark:bg-secondary-900/50">
+    <Section className="bg-secondary-50 dark:bg-site-dark/50">
       <SectionTitle title={t("title")} subtitle={t("subtitle")} />
       <p className="mx-auto mb-12 max-w-2xl text-center text-lg text-secondary-600 dark:text-secondary-400">
         {t("description")}

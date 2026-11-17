@@ -1,7 +1,9 @@
 "use client"
 
 import { use } from "react"
+import { notFound } from "next/navigation"
 import { AdminHeader } from "@/components/admin/AdminHeader"
+import { ShipmentRegister } from "@/components/admin/shipments/ShipmentRegister"
 import { ModuleComingSoonView, LOGISTICS_MODULES } from "@/components/admin/coming-soon/ModuleComingSoonView"
 
 interface ComingSoonPageProps {
@@ -10,7 +12,9 @@ interface ComingSoonPageProps {
 
 export default function AdminComingSoonPage({ params }: ComingSoonPageProps) {
   const resolvedParams = use(params)
-  const moduleData = LOGISTICS_MODULES[resolvedParams.module] || LOGISTICS_MODULES.shipments
+  if (resolvedParams.module === "shipments") return <ShipmentRegister />
+  if (!Object.hasOwn(LOGISTICS_MODULES, resolvedParams.module)) notFound()
+  const moduleData = LOGISTICS_MODULES[resolvedParams.module]
 
   return (
     <div className="flex flex-col">

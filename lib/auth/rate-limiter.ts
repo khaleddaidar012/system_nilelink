@@ -7,7 +7,7 @@ const rateLimitMap = new Map<string, RateLimitRecord>()
 
 // Clean up expired records every 5 minutes
 if (typeof setInterval !== "undefined") {
-  setInterval(() => {
+  const cleanup = setInterval(() => {
     const now = Date.now()
     for (const [key, record] of rateLimitMap.entries()) {
       if (now > record.resetAt) {
@@ -15,6 +15,7 @@ if (typeof setInterval !== "undefined") {
       }
     }
   }, 5 * 60 * 1000)
+  cleanup.unref?.()
 }
 
 export interface RateLimitOptions {

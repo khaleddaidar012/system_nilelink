@@ -4,6 +4,7 @@ import React, { useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { useRouter } from "@/navigation"
 import { useTranslations } from "next-intl"
+import { CONTAINER_TYPES, CONTAINER_SIZES } from "@/lib/container-options"
 import { PortalHeader } from "@/components/portal/PortalHeader"
 import { toast } from "sonner"
 import { Loader2, ArrowLeft, ArrowRight, FileText } from "lucide-react"
@@ -15,16 +16,17 @@ export default function RequestDetailsPage() {
 
   const services = searchParams.getAll("services")
   const [loading, setLoading] = useState(false)
+  const [shipmentInvoice, setShipmentInvoice] = useState<File | null>(null)
 
   const [formData, setFormData] = useState({
     subject: "",
     description: "",
-    operationType: "none",
-    priority: "medium",
+    operationType: "",
+    containerType: "",
     origin: "",
     destination: "",
     weight: "",
-    volume: "",
+    containerSize: "",
   })
 
   // Dynamic details per service. Keyed by service ID.
@@ -61,7 +63,7 @@ export default function RequestDetailsPage() {
         ...formData,
         services: services.map((s) => ({
           serviceKey: s,
-          details: serviceDetails[s] || {},
+          details: { ...serviceDetails[s], origin: formData.origin, destination: formData.destination, weight: formData.weight, containerType: formData.containerType, containerSize: formData.containerSize },
         })),
       }
 
@@ -73,7 +75,23 @@ export default function RequestDetailsPage() {
 
       const data = await res.json()
       if (data.success) {
-        toast.success("Request submitted successfully!")
+        if (shipmentInvoice) {
+          try {
+            const upload = new FormData()
+            upload.append("files", shipmentInvoice)
+            upload.append("categories", "other")
+            upload.append("titles", t("portal.requests.details.shipment_invoice"))
+            upload.append("entityId", data.request._id)
+            const uploadRes = await fetch("/api/portal/documents/upload", { method: "POST", body: upload })
+            const uploadData = await uploadRes.json()
+            if (!uploadRes.ok || !uploadData.success) throw new Error("Invoice upload failed")
+            toast.success(t("portal.requests.details.invoice_uploaded"))
+          } catch {
+            toast.error(t("portal.requests.details.invoice_upload_failed"))
+          }
+        } else {
+          toast.success(t("portal.requests.details.success"))
+        }
         // Go to document upload or dashboard
         router.push(`/portal/requests/${data.request._id}`)
       } else {
@@ -151,28 +169,27 @@ export default function RequestDetailsPage() {
                 <label className="block text-sm font-medium mb-1">{t("portal.requests.details.operation_type") || "Operation Type"}</label>
                 <select
                   name="operationType"
+                  required
                   value={formData.operationType}
                   onChange={handleGlobalChange}
                   className="w-full p-3 border rounded-lg dark:bg-secondary-800 dark:border-secondary-700 focus:ring-2 focus:ring-primary-500"
                 >
-                  <option value="none">{t("portal.requests.details.options.none") || "N/A"}</option>
+                  <option value="" disabled>{t("portal.requests.details.options.choose_operation")}</option>
                   <option value="import">{t("portal.requests.details.options.import") || "Import"}</option>
                   <option value="export">{t("portal.requests.details.options.export") || "Export"}</option>
                   <option value="transit">{t("portal.requests.details.options.transit") || "Transit"}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">{t("portal.requests.details.priority") || "Priority"}</label>
+                <label className="block text-sm font-medium mb-1">{t("portal.requests.details.container_type")}</label>
                 <select
-                  name="priority"
-                  value={formData.priority}
+                  name="containerType"
+                  value={formData.containerType}
                   onChange={handleGlobalChange}
                   className="w-full p-3 border rounded-lg dark:bg-secondary-800 dark:border-secondary-700 focus:ring-2 focus:ring-primary-500"
                 >
-                  <option value="low">{t("portal.requests.details.options.low") || "Low"}</option>
-                  <option value="medium">{t("portal.requests.details.options.medium") || "Medium"}</option>
-                  <option value="high">{t("portal.requests.details.options.high") || "High"}</option>
-                  <option value="urgent">{t("portal.requests.details.options.urgent") || "Urgent"}</option>
+                  <option value="">{t("portal.requests.details.select_container_type")}</option>
+                  {CONTAINER_TYPES.map(type => <option key={type} value={type}>{t(`portal.requests.details.container_types.${type}`)}</option>)}
                 </select>
               </div>
             </div>
@@ -188,14 +205,16 @@ export default function RequestDetailsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">{t("portal.requests.details.volume") || "Volume (CBM)"}</label>
-                <input
-                  type="number"
-                  name="volume"
-                  value={formData.volume}
+                <label className="block text-sm font-medium mb-1">{t("portal.requests.details.container_size")}</label>
+                <select
+                  name="containerSize"
+                  value={formData.containerSize}
                   onChange={handleGlobalChange}
                   className="w-full p-3 border rounded-lg dark:bg-secondary-800 dark:border-secondary-700 focus:ring-2 focus:ring-primary-500"
-                />
+                >
+                  <option value="">{t("portal.requests.details.select_container_size")}</option>
+                  {CONTAINER_SIZES.map(size => <option key={size} value={size}>{t(`portal.requests.details.container_sizes.${size}`)}</option>)}
+                </select>
               </div>
             </div>
           </div>
@@ -223,6 +242,28 @@ export default function RequestDetailsPage() {
           </div>
           )
         ))}
+
+        <div className="bg-white dark:bg-secondary-900 rounded-xl border border-gray-200 dark:border-secondary-800 p-6 shadow-sm">
+          <h2 className="text-lg font-bold mb-2">{t("portal.requests.details.shipment_invoice")}</h2>
+          <p id="invoice-help" className="text-sm text-secondary-500 mb-4">{t("portal.requests.details.invoice_hint")}</p>
+          <label className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-primary-600 text-white cursor-pointer focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2">
+            {t("portal.requests.details.upload_invoice")}
+            <input type="file" className="sr-only" accept="application/pdf,image/jpeg,image/png,image/webp" disabled={loading} aria-describedby="invoice-help" onChange={(e) => {
+              const file = e.target.files?.[0]
+              e.target.value = ""
+              if (!file) return
+              if (!["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size === 0 || file.size > 10 * 1024 * 1024) {
+                toast.error(t("portal.requests.details.invoice_invalid"))
+                return
+              }
+              setShipmentInvoice(file)
+            }} />
+          </label>
+          {shipmentInvoice && <div className="flex items-center gap-3 mt-3 text-sm" aria-live="polite">
+            <span className="break-all">{shipmentInvoice.name}</span>
+            <button type="button" disabled={loading} onClick={() => setShipmentInvoice(null)} className="p-2 text-red-600">{t("portal.requests.details.remove_invoice")}</button>
+          </div>}
+        </div>
 
         <div className="flex justify-between border-t border-gray-200 dark:border-secondary-800 pt-6">
           <button

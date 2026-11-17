@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { User, Customer } from "@/lib/models"
@@ -30,6 +32,10 @@ export async function POST(req: NextRequest) {
       const response = NextResponse.json({ error: "Invalid refresh token" }, { status: 401 })
       clearAuthCookies(response)
       return response
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "refresh", request: req })
     }
 
     await connectDB()

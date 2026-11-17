@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
@@ -35,6 +37,10 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         { error: "Validation failed", details: parsed.error.format() },
         { status: 400 }
       )
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "category-update", request: req, input: parsed.data, id: key })
     }
 
     await connectDB()

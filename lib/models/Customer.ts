@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Model } from "mongoose"
 
-export type AccountStatus = "active" | "warning" | "inactive"
+export type AccountStatus = "active" | "warning" | "inactive" | "under_review" | "unverified"
 
 export interface ICustomer extends Document {
   companyName: string
@@ -70,13 +70,13 @@ const CustomerSchema = new Schema<ICustomer>(
     },
     accountStatus: {
       type: String,
-      enum: ["active", "warning", "inactive"],
-      default: "warning",
+      enum: ["active", "warning", "inactive", "under_review", "unverified"],
+      default: "unverified",
       index: true,
     },
     statusReason: {
       type: String,
-      default: "Pending mandatory document verification",
+      default: "Account is not verified yet. Please upload required documents to begin verification.",
     },
     assignedStaffId: {
       type: Schema.Types.ObjectId,
@@ -97,6 +97,11 @@ const CustomerSchema = new Schema<ICustomer>(
   }
 )
 
+if (mongoose.models && mongoose.models.Customer) {
+  delete (mongoose.models as Record<string, unknown>).Customer
+}
+
 export const Customer: Model<ICustomer> =
   mongoose.models.Customer || mongoose.model<ICustomer>("Customer", CustomerSchema)
 export default Customer
+

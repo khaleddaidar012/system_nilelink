@@ -23,13 +23,18 @@ import {
   Phone,
   MapPin,
   FileCheck,
+  Receipt,
+  Plus,
 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { ExpiryStatusBadge } from "@/components/shared/ExpiryStatusBadge"
 import { LiveDocumentViewerModal } from "@/components/shared/LiveDocumentViewerModal"
 import { DocumentReviewModal, ReviewDocumentItem } from "@/components/admin/review/DocumentReviewModal"
+import { CustomerInvoicesTab } from "@/components/admin/customers/CustomerInvoicesTab"
+import { CustomerStatementTab } from "@/components/admin/customers/CustomerStatementTab"
 
 export interface CustomerDetailData {
+  customerCode?: string
   id: string
   companyName: string
   commercialRegisterNumber: string
@@ -40,7 +45,7 @@ export interface CustomerDetailData {
   address?: string
   contactEmail: string
   contactPhone: string
-  accountStatus: "active" | "warning" | "inactive"
+  accountStatus: "active" | "warning" | "inactive" | "under_review"
   statusReason?: string
   maxAllowedDocuments: number
   createdAt: string
@@ -90,8 +95,8 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ local
 
   const [loading, setLoading] = useState(true)
   const [updatingStatus, setUpdatingStatus] = useState(false)
-  const [selectedTab, setSelectedTab] = useState<"documents" | "profile" | "governance">("documents")
-  const [newStatus, setNewStatus] = useState<"active" | "warning" | "inactive">("active")
+  const [selectedTab, setSelectedTab] = useState<"documents" | "profile" | "invoices" | "statements" | "governance">("documents")
+  const [newStatus, setNewStatus] = useState<"active" | "warning" | "inactive" | "under_review">("active")
   const [statusReason, setStatusReason] = useState("")
   const [previewDoc, setPreviewDoc] = useState<CustomerDocumentItem | null>(null)
   const [reviewDocTarget, setReviewDocTarget] = useState<ReviewDocumentItem | null>(null)
@@ -128,7 +133,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ local
     }
   }, [customerId, refreshTrigger, fetchCustomerDetail])
 
-  const handleUpdateStatus = async (statusToSet: "active" | "warning" | "inactive") => {
+  const handleUpdateStatus = async (statusToSet: "active" | "warning" | "inactive" | "under_review") => {
     if (!customerId) return
     setUpdatingStatus(true)
     try {
@@ -143,6 +148,8 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ local
               ? "All documents approved & compliant"
               : statusToSet === "warning"
               ? "Action required on compliance documents"
+              : statusToSet === "under_review"
+              ? "Account is under review. Please upload required documents to begin verification."
               : "Account restricted by administrator"),
         }),
       })
@@ -271,6 +278,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ local
                   <div>
                     <h2 className="text-xl font-bold text-secondary-900 dark:text-white">
                       {data.customer.companyName}
+                      {data.customer.customerCode && <bdi dir="ltr" className="block font-mono text-sm text-primary-600">{data.customer.customerCode}</bdi>}
                     </h2>
                     <p className="mt-1 text-sm text-secondary-500">
                       CR: {data.customer.commercialRegisterNumber} • Tax ID: {data.customer.taxCardNumber}
@@ -286,6 +294,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ local
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">
                           <AlertTriangle className="h-4 w-4" />
                           <span>{isEn ? "Warning (Action Needed)" : "تحذير - مطلوب إجراء"}</span>
+                        </span>
+                      )}
+                      {data.customer.accountStatus === "under_review" && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700 dark:bg-sky-950/60 dark:text-sky-400 border border-sky-200 dark:border-sky-800/60">
+                          <Clock className="h-4 w-4" />
+                          <span>{isEn ? "Under Review" : "جاري المراجعة"}</span>
                         </span>
                       )}
                       {data.customer.accountStatus === "inactive" && (
@@ -326,6 +340,26 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ local
                 }`}
               >
                 {t("admin.customers.tabDocs") || (isEn ? "Documents Registry" : "سجل المستندات")} ({data.documents.length})
+              </button>
+              <button
+                onClick={() => setSelectedTab("invoices")}
+                className={`rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${
+                  selectedTab === "invoices"
+                    ? "bg-primary-50 text-primary-600 dark:bg-primary-950/60 dark:text-primary-400"
+                    : "text-secondary-500 hover:text-secondary-900 hover:bg-secondary-50 dark:hover:bg-secondary-800 dark:hover:text-white"
+                }`}
+              >
+                {isEn ? "Invoices & Billing" : "الفواتير والماليات"}
+              </button>
+              <button
+                onClick={() => setSelectedTab("statements")}
+                className={`rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${
+                  selectedTab === "statements"
+                    ? "bg-primary-50 text-primary-600 dark:bg-primary-950/60 dark:text-primary-400"
+                    : "text-secondary-500 hover:text-secondary-900 hover:bg-secondary-50 dark:hover:bg-secondary-800 dark:hover:text-white"
+                }`}
+              >
+                {isEn ? "Account Statement" : "كشف الحساب المالي"}
               </button>
               <button
                 onClick={() => setSelectedTab("governance")}
@@ -590,6 +624,19 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ local
                     </div>
                   </div>
                 </div>
+              )}
+              {selectedTab === "invoices" && (
+                <CustomerInvoicesTab
+                  customerId={data.customer.id}
+                  customerName={data.customer.companyName}
+                />
+              )}
+              {selectedTab === "statements" && (
+                <CustomerStatementTab
+                  customerId={data.customer.id}
+                  customerName={data.customer.companyName}
+                  customerEmail={data.customer.contactEmail}
+                />
               )}
             </div>
           </div>

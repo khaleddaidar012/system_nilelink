@@ -1,6 +1,8 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
-import { Document as DocumentModel, Customer } from "@/lib/models"
+import { Document as DocumentModel } from "@/lib/models"
 import { getSessionFromRequest } from "@/lib/auth/token-service"
 
 export async function GET(req: NextRequest) {
@@ -8,6 +10,10 @@ export async function GET(req: NextRequest) {
     const session = await getSessionFromRequest(req)
     if (!session || (session.role !== "staff" && session.role !== "super_admin")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "admin-documents-expiring", request: req })
     }
 
     await connectDB()

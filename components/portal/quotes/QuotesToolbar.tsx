@@ -46,6 +46,7 @@ export function QuotesToolbar({
             <option value="pending">{t("portal.quotes.status.pending") || "Pending"}</option>
             <option value="sent">{t("portal.quotes.status.sent") || "Sent"}</option>
             <option value="accepted">{t("portal.quotes.status.accepted") || "Accepted"}</option>
+            <option value="partially_accepted">{t("portal.quotes.status.partially_accepted")}</option>
             <option value="rejected">{t("portal.quotes.status.rejected") || "Rejected"}</option>
           </select>
         </div>

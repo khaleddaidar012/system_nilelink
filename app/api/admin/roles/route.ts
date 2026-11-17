@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
@@ -10,6 +12,12 @@ const createRoleSchema = z.object({
     canSendAlerts: z.boolean().default(false),
     canReviewDocuments: z.boolean().default(false),
     canManageCustomers: z.boolean().default(false),
+    issueTaxInvoice: z.boolean().default(false),
+    createInvoice: z.boolean().default(true),
+    editInvoice: z.boolean().default(true),
+    viewCustomerStatements: z.boolean().default(true),
+    exportCustomerStatements: z.boolean().default(true),
+    sendFinancialDocuments: z.boolean().default(false),
   }),
 })
 
@@ -18,6 +26,10 @@ export async function GET(req: NextRequest) {
     const session = await getSessionFromRequest(req)
     if (!session || (session.role !== "super_admin" && session.role !== "staff")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "roles-list", request: req })
     }
 
     await connectDB()
@@ -56,6 +68,10 @@ export async function POST(req: NextRequest) {
     }
 
     const { title, permissions } = parsed.data
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "roles-create", request: req, input: parsed.data })
+    }
 
     await connectDB()
 

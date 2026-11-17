@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { AnalyticsEvent } from "@/lib/models/AnalyticsEvent"
 import { verifyApiSession } from "@/lib/auth/session"
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 
 export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest) {
   try {
+    if (getDatabaseProvider() === "d1") return handleD1Workflow({ action: "analytics-dashboard", request })
     const authenticated = await verifyApiSession(request)
     if (!authenticated) {
       return NextResponse.json(

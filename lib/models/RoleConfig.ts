@@ -6,6 +6,12 @@ export interface IRoleConfig extends Document {
     canSendAlerts: boolean
     canReviewDocuments: boolean
     canManageCustomers: boolean
+    issueTaxInvoice?: boolean
+    createInvoice?: boolean
+    editInvoice?: boolean
+    viewCustomerStatements?: boolean
+    exportCustomerStatements?: boolean
+    sendFinancialDocuments?: boolean
   }
   isSystem: boolean // To prevent deletion of core roles if needed
   createdAt: Date
@@ -24,6 +30,12 @@ const RoleConfigSchema = new Schema<IRoleConfig>(
       canSendAlerts: { type: Boolean, default: false },
       canReviewDocuments: { type: Boolean, default: false },
       canManageCustomers: { type: Boolean, default: false },
+      issueTaxInvoice: { type: Boolean, default: false },
+      createInvoice: { type: Boolean, default: true },
+      editInvoice: { type: Boolean, default: true },
+      viewCustomerStatements: { type: Boolean, default: true },
+      exportCustomerStatements: { type: Boolean, default: true },
+      sendFinancialDocuments: { type: Boolean, default: false },
     },
     isSystem: {
       type: Boolean,

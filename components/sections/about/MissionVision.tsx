@@ -9,7 +9,7 @@ export function MissionVision() {
   const t = useTranslations("about")
 
   return (
-    <Section className="bg-secondary-50 dark:bg-secondary-900/50">
+    <Section className="bg-secondary-50 dark:bg-site-dark/50">
       <div className="grid gap-8 md:grid-cols-2">
         <motion.div
           initial={{ opacity: 0, y: 30 }}

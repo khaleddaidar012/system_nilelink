@@ -1,5 +1,6 @@
 "use client"
 
+import { usePortalLiveRefresh } from "@/hooks/useLiveUpdates"
 import { useState, useEffect } from "react"
 import { useTranslations } from "next-intl"
 import { PortalHeader } from "@/components/portal/PortalHeader"
@@ -7,6 +8,7 @@ import { Send, Plus, Search, Clock, CheckCircle2, AlertCircle, RefreshCw, X, Shi
 import { Button } from "@/components/ui/Button"
 import { Link } from "@/navigation"
 import { cn } from "@/lib/utils"
+import { PublishedInvoiceLink, ServiceProgress } from "@/components/portal/requests/ServiceProgress"
 
 export default function PortalRequestsPage() {
   const t = useTranslations()
@@ -14,22 +16,28 @@ export default function PortalRequestsPage() {
   const [loading, setLoading] = useState(true)
 
 
-  const fetchRequests = async () => {
-    setLoading(true)
+  const fetchRequests = async (background = false) => {
+    if (!background) setLoading(true)
     try {
       const res = await fetch("/api/portal/requests")
       const data = await res.json()
       if (data.requests) setRequests(data.requests)
-    } finally {
-      setLoading(false)
+    } catch { /* Keep the previous data while offline. */ } finally {
+      if (!background) setLoading(false)
     }
   }
 
   useEffect(() => {
     fetchRequests()
+    const refresh=()=>{if(document.visibilityState==="visible")void fetchRequests(true)}
+    window.addEventListener("focus",refresh)
+
+    return()=>{window.removeEventListener("focus",refresh);}
   }, [])
 
 
+
+  usePortalLiveRefresh(() => { void fetchRequests(true) }, ["request_updated", "quote_updated"])
 
   return (
     <div className="flex flex-col">
@@ -92,7 +100,7 @@ export default function PortalRequestsPage() {
                     <tr key={req._id} className="group hover:bg-secondary-50/60 dark:hover:bg-secondary-800/40 transition-colors">
                       <td className="px-5 py-4 font-mono font-bold text-primary-600 dark:text-primary-400 text-sm">
                         <Link href={`/portal/requests/${req._id}`} className="hover:underline">
-                          {req.trackingNumber}
+                          <bdi dir="ltr">{req.trackingNumber}</bdi>
                         </Link>
                       </td>
                       <td className="px-4 py-4 capitalize font-medium text-secondary-700 dark:text-secondary-300">
@@ -102,6 +110,7 @@ export default function PortalRequestsPage() {
                       </td>
                       <td className="px-4 py-4 font-bold text-secondary-900 dark:text-white">
                         {req.subject}
+                        <ServiceProgress services={req.services||[]} compact />
                       </td>
                       <td className="px-4 py-4">
                         <span className="inline-flex items-center gap-1 rounded-full border border-primary-500/20 bg-primary-50 px-2.5 py-0.5 text-xs font-bold text-primary-700 dark:bg-primary-950/60 dark:text-primary-300">
@@ -117,6 +126,7 @@ export default function PortalRequestsPage() {
                           <span>{t("portal.requests.viewMilestones") || "View Details"}</span>
                           <ChevronRight className="ml-1 h-3.5 w-3.5 rtl:mr-1 rtl:ml-0 rtl:rotate-180" />
                         </Link>
+                        <div className="mt-2"><PublishedInvoiceLink invoice={req.publishedInvoice}/></div>
                       </td>
                     </tr>
                   ))

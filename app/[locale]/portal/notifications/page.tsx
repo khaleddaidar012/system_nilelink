@@ -7,12 +7,14 @@ import { Bell, Check, Clock, AlertTriangle, AlertCircle, Info, RefreshCw } from 
 import { Button } from "@/components/ui/Button"
 import { Link } from "@/navigation"
 import { usePortal } from "@/components/portal/PortalContext"
+import { markPortalNotificationsRead } from "@/lib/notifications/mark-read"
 
 export default function PortalNotificationsPage() {
   const t = useTranslations()
-  const { refreshData } = usePortal()
+  const { refreshData, setUnreadCount } = usePortal()
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [readError, setReadError] = useState(false)
 
   const fetchNotifs = async () => {
     setLoading(true)
@@ -24,12 +26,13 @@ export default function PortalNotificationsPage() {
         const hasUnread = data.notifications.some((n: any) => !n.isRead)
         if (hasUnread) {
           // Automatically mark all as read when opening the page
-          await fetch("/api/portal/notifications/mark-read", { method: "POST" })
+          await markPortalNotificationsRead()
           setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
-          refreshData()
+          setUnreadCount(0)
+          await refreshData()
         }
       }
-    } finally {
+    } catch { setReadError(true) } finally {
       setLoading(false)
     }
   }
@@ -39,9 +42,13 @@ export default function PortalNotificationsPage() {
   }, [])
 
   const markAllRead = async () => {
-    await fetch("/api/portal/notifications/mark-read", { method: "POST" })
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
-    refreshData()
+    setReadError(false)
+    try {
+      await markPortalNotificationsRead()
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
+      setUnreadCount(0)
+      await refreshData()
+    } catch { setReadError(true) }
   }
 
   const getSeverityIcon = (severity: string) => {
@@ -65,6 +72,7 @@ export default function PortalNotificationsPage() {
       />
 
       <div className="space-y-6 p-6 sm:p-8">
+        {readError && <p role="alert" className="text-sm text-amber-700">تعذر تحديث الإشعارات. حاول مرة أخرى.</p>}
         <div className="rounded-2xl border border-secondary-200/80 bg-white p-6 shadow-sm dark:border-secondary-800 dark:bg-secondary-900">
           <div className="mb-4 flex items-center justify-between border-b border-secondary-100 pb-3 dark:border-secondary-800">
             <h3 className="text-sm font-bold text-secondary-900 dark:text-white">All Notifications</h3>
@@ -105,7 +113,7 @@ export default function PortalNotificationsPage() {
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-bold text-secondary-900 dark:text-white">
-                        {n.type ? t(`portal.notifications.${n.type}.title`) || n.title : n.title}
+                        {n.type&&!n.type.startsWith("invoice_")&&n.type!=="request_update"&&t.has(`portal.notifications.${n.type}.title`) ? t(`portal.notifications.${n.type}.title`) : n.title}
                       </h4>
                       <span className="text-[10px] text-secondary-400">
                         {new Date(n.createdAt).toLocaleDateString("en-GB", {
@@ -117,7 +125,7 @@ export default function PortalNotificationsPage() {
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-secondary-600 dark:text-secondary-400">
-                      {n.type ? t(`portal.notifications.${n.type}.message`) || n.message : n.message}
+                      {n.type&&!n.type.startsWith("invoice_")&&n.type!=="request_update"&&t.has(`portal.notifications.${n.type}.message`) ? t(`portal.notifications.${n.type}.message`) : n.message}
                     </p>
                   </div>
                 </Wrapper>

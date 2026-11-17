@@ -86,7 +86,7 @@ function sanitize(data: RequestBody): RequestBody {
 
 const freightLabels: Record<string, string> = {
   air: "Air Freight",
-  road: "Road Freight",
+  road: "Land Freight",
   ocean: "Ocean Freight",
 }
 

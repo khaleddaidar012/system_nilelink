@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { Customer, Document as DocumentModel } from "@/lib/models"
@@ -13,6 +15,10 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const search = searchParams.get("search") || ""
     const status = searchParams.get("status") || "all"
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "customers-list", request: req })
+    }
 
     await connectDB()
 

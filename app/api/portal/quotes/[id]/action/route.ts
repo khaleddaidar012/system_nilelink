@@ -1,10 +1,12 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { Quote, CustomerRequest, Notification } from "@/lib/models"
 import { getSessionFromRequest } from "@/lib/auth/token-service"
 import mongoose from "mongoose"
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> | { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getSessionFromRequest(req)
     if (!session || !session.role.startsWith("customer")) {
@@ -18,9 +20,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Invalid Quote ID" }, { status: 400 })
     }
 
-    const { action, message } = await req.json()
+    const { action, message, acceptedServices } = await req.json()
     if (!["accept", "reject"].includes(action)) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 })
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "quote-action", request: req, input: { action, message, acceptedServices }, id: quoteId })
     }
 
     await connectDB()

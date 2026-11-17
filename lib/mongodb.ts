@@ -1,11 +1,12 @@
 import mongoose from "mongoose"
+import { getDatabaseProvider } from "./db/provider"
 
 const cached = globalThis as unknown as { mongoose?: { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null } }
 
-function getMongoUri(): string | undefined {
+async function getMongoUri(): Promise<string | undefined> {
   if (process.env.MONGODB_URI) return process.env.MONGODB_URI
   try {
-    const { getCloudflareContext } = require("@opennextjs/cloudflare")
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare")
     return getCloudflareContext()?.env?.MONGODB_URI
   } catch {
     return undefined
@@ -13,7 +14,10 @@ function getMongoUri(): string | undefined {
 }
 
 export async function connectDB() {
-  const uri = getMongoUri()
+  if (getDatabaseProvider() !== "mongodb") {
+    throw new Error("This operation has not been converted to D1. MongoDB access is disabled in D1 preview.")
+  }
+  const uri = await getMongoUri()
   if (!uri) {
     throw new Error("MONGODB_URI is not defined in environment variables")
   }

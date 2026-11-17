@@ -50,6 +50,7 @@ export interface ICustomerRequest extends MongooseDoc {
   // New field for multi-service requests
   services: mongoose.Types.ObjectId[] // Array of RequestService IDs
   subject: string
+  quoteRequired?: boolean
   description: string
   priority: RequestPriority
   status: RequestStatus
@@ -125,6 +126,7 @@ const CustomerRequestSchema = new Schema<ICustomerRequest>(
       type: [{ type: Schema.Types.ObjectId, ref: "RequestService" }],
       default: [],
     },
+    quoteRequired: { type: Boolean, default: true },
     subject: {
       type: String,
       required: true,

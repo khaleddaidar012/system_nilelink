@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
@@ -5,7 +7,7 @@ import { Customer, Notification, User } from "@/lib/models"
 import { getSessionFromRequest } from "@/lib/auth/token-service"
 
 const statusUpdateSchema = z.object({
-  accountStatus: z.enum(["active", "warning", "inactive"]),
+  accountStatus: z.enum(["active", "warning", "inactive", "under_review"]),
   statusReason: z.string().min(2, "Status reason is required").trim(),
 })
 
@@ -44,6 +46,10 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
     const { accountStatus, statusReason } = parsed.data
 
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "customer-status", request: req, input: parsed.data, id: id })
+    }
+
     await connectDB()
 
     const customer = await Customer.findById(id)
@@ -67,11 +73,13 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             ? "Account Status Activated"
             : accountStatus === "warning"
             ? "Account Status: Action Required"
+            : accountStatus === "under_review"
+            ? "Account Under Review"
             : "Account Service Restricted",
         message: statusReason,
         channel: "in_app",
         type: "account_status_change",
-        severity: accountStatus === "active" ? "normal" : accountStatus === "warning" ? "warning" : "critical",
+        severity: accountStatus === "active" ? "normal" : accountStatus === "warning" || accountStatus === "under_review" ? "warning" : "critical",
         targetAudience: "customer",
         actionUrl: "/portal",
       })

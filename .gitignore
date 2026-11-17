@@ -58,3 +58,28 @@ next-env.d.ts
 # IDE & agent artifacts
 .playwright-mcp/
 
+
+# backup agent (independent project) & backup artifacts
+/backup-agent/node_modules/
+/backup-agent/dist/
+/backup-agent/.env*
+!/backup-agent/.env.example
+/backup-agent/config/*.local.*
+**/NileLink/Backups/
+*.archive.gz
+
+# Private database migration snapshots (contain credentials and personal data)
+/.private/d1-migration/
+/.private/d1-preview-files/
+/mail-agent/node_modules/
+/mail-agent/agent.config.json
+/mail-agent/state/
+
+
+# Local credentials, customer uploads and generated packages
+/.private/
+/storage/r2_local_fallback/
+/backup-agent/.dev-key.txt
+/backup-agent/release/
+/backup-agent.rar
+/Untitled-1.txt

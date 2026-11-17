@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
@@ -18,6 +20,10 @@ export async function GET(req: NextRequest) {
     const session = await getSessionFromRequest(req)
     if (!session || (session.role !== "staff" && session.role !== "super_admin")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "categories-list", request: req })
     }
 
     await connectDB()
@@ -54,6 +60,10 @@ export async function POST(req: NextRequest) {
         { error: "Validation failed", details: parsed.error.format() },
         { status: 400 }
       )
+    }
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "category-create", request: req, input: parsed.data })
     }
 
     await connectDB()

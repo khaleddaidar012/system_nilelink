@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Tag,
@@ -31,6 +31,9 @@ export interface DocumentCategoryRecord {
 
 export function DocumentCategoriesManager() {
   const t = useTranslations()
+  const locale = useLocale()
+  const isAr = locale === "ar"
+
   const [categories, setCategories] = useState<DocumentCategoryRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -126,7 +129,7 @@ export function DocumentCategoriesManager() {
 
         const data = await res.json()
         if (!res.ok) {
-          setError(data.error || "Failed to update category")
+          setError(data.error || (isAr ? "فشل تحديث تصنيف المستند" : "Failed to update category"))
           return
         }
       } else {
@@ -146,7 +149,7 @@ export function DocumentCategoriesManager() {
 
         const data = await res.json()
         if (!res.ok) {
-          setError(data.error || "Failed to create category")
+          setError(data.error || (isAr ? "فشل إنشاء تصنيف المستند" : "Failed to create category"))
           return
         }
       }
@@ -154,7 +157,7 @@ export function DocumentCategoriesManager() {
       setIsAddModalOpen(false)
       fetchCategories()
     } catch {
-      setError("Network error while saving category")
+      setError(isAr ? "خطأ في الاتصال أثناء حفظ التصنيف" : "Network error while saving category")
     } finally {
       setSaving(false)
     }
@@ -166,11 +169,14 @@ export function DocumentCategoriesManager() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-base font-bold text-secondary-900 dark:text-white">
-            {t("admin.settings.catTitle") || "Corporate Document Types & Categories"}
+            {t("admin.settings.catTitle") ||
+              (isAr ? "أنواع وتصنيفات مستندات الشركات" : "Corporate Document Types & Categories")}
           </h3>
           <p className="text-xs text-secondary-500">
             {t("admin.settings.catSubtitle") ||
-              "Configure acceptable business certificates, default validities, and client upload dropzone types"}
+              (isAr
+                ? "تكوين المستندات المقبولة، المدد الافتراضية، ومناطق رفع الملفات للعملاء"
+                : "Configure acceptable business certificates, default validities, and client upload dropzone types")}
           </p>
         </div>
 
@@ -189,7 +195,7 @@ export function DocumentCategoriesManager() {
             className="bg-primary-600 font-bold text-white shadow-md hover:bg-primary-700"
           >
             <Plus className="mr-1.5 h-4 w-4 rtl:mr-0 rtl:ml-1.5" />
-            <span>{t("admin.settings.addCat") || "Add Document Type"}</span>
+            <span>{t("admin.settings.addCat") || (isAr ? "إضافة نوع مستند" : "Add Document Type")}</span>
           </Button>
         </div>
       </div>
@@ -200,12 +206,12 @@ export function DocumentCategoriesManager() {
           <table className="w-full text-left text-xs rtl:text-right">
             <thead className="border-b border-secondary-100 bg-secondary-50/75 text-[11px] font-bold text-secondary-600 uppercase tracking-wider dark:border-secondary-800 dark:bg-secondary-800/50 dark:text-secondary-400">
               <tr>
-                <th className="px-5 py-3.5">{t("admin.settings.colType") || "Document Type"}</th>
-                <th className="px-4 py-3.5">{t("admin.settings.colKey") || "System Key"}</th>
-                <th className="px-4 py-3.5">{t("admin.settings.colValidity") || "Default Validity"}</th>
-                <th className="px-4 py-3.5">{t("admin.settings.colMandatory") || "Mandatory"}</th>
-                <th className="px-4 py-3.5">{t("admin.settings.colStatus") || "Status"}</th>
-                <th className="px-5 py-3.5 text-right rtl:text-left">{t("common.actions") || "Actions"}</th>
+                <th className="px-5 py-3.5">{t("admin.settings.colType") || (isAr ? "نوع المستند" : "Document Type")}</th>
+                <th className="px-4 py-3.5">{t("admin.settings.colKey") || (isAr ? "المفتاح البرمجي" : "System Key")}</th>
+                <th className="px-4 py-3.5">{t("admin.settings.colValidity") || (isAr ? "الصلاحية الافتراضية" : "Default Validity")}</th>
+                <th className="px-4 py-3.5">{t("admin.settings.colMandatory") || (isAr ? "إلزامي" : "Mandatory")}</th>
+                <th className="px-4 py-3.5">{t("admin.settings.colStatus") || (isAr ? "الحالة" : "Status")}</th>
+                <th className="px-5 py-3.5 text-right rtl:text-left">{t("common.actions") || (isAr ? "الإجراءات" : "Actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-secondary-100 dark:divide-secondary-800">
@@ -214,16 +220,16 @@ export function DocumentCategoriesManager() {
                   <td colSpan={6} className="py-12 text-center text-secondary-400">
                     <div className="flex items-center justify-center gap-2">
                       <RefreshCw className="h-4 w-4 animate-spin text-primary-500" />
-                      <span>Loading document categories...</span>
+                      <span>{isAr ? "جاري تحميل تصنيفات المستندات..." : "Loading document categories..."}</span>
                     </div>
                   </td>
                 </tr>
               ) : categories.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-secondary-400">
+                  <td colSpan={6} className="py-14 text-center text-secondary-400">
                     <Tag className="mx-auto h-8 w-8 text-secondary-300" />
                     <p className="mt-2 text-sm font-bold text-secondary-900 dark:text-white">
-                      No document categories configured
+                      {isAr ? "لم يتم تكوين أي تصنيفات مستندات" : "No document categories configured"}
                     </p>
                   </td>
                 </tr>
@@ -236,10 +242,10 @@ export function DocumentCategoriesManager() {
                     <td className="px-5 py-4">
                       <div>
                         <p className="font-bold text-secondary-900 dark:text-white text-xs">
-                          {cat.nameEn}
+                          {isAr ? cat.nameAr || cat.nameEn : cat.nameEn}
                         </p>
                         <p className="text-[11px] font-semibold text-primary-600 dark:text-primary-400">
-                          {cat.nameAr}
+                          {isAr ? cat.nameEn : cat.nameAr}
                         </p>
                         {cat.description && (
                           <p className="mt-0.5 text-[11px] text-secondary-500 line-clamp-1">
@@ -258,7 +264,11 @@ export function DocumentCategoriesManager() {
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-1.5 text-secondary-700 dark:text-secondary-300 font-medium">
                         <Calendar className="h-3.5 w-3.5 text-secondary-400" />
-                        <span>{cat.defaultValidityDays} days ({Math.round(cat.defaultValidityDays / 365 * 10) / 10} yr)</span>
+                        <span>
+                          {isAr
+                            ? `${cat.defaultValidityDays} يوم (${Math.round((cat.defaultValidityDays / 365) * 10) / 10} سنة)`
+                            : `${cat.defaultValidityDays} days (${Math.round((cat.defaultValidityDays / 365) * 10) / 10} yr)`}
+                        </span>
                       </div>
                     </td>
 
@@ -266,10 +276,10 @@ export function DocumentCategoriesManager() {
                       {cat.isMandatory ? (
                         <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
                           <Shield className="h-2.5 w-2.5" />
-                          <span>Required</span>
+                          <span>{isAr ? "إلزامي" : "Required"}</span>
                         </span>
                       ) : (
-                        <span className="text-[11px] text-secondary-400">Optional</span>
+                        <span className="text-[11px] text-secondary-400">{isAr ? "اختياري" : "Optional"}</span>
                       )}
                     </td>
 
@@ -283,7 +293,15 @@ export function DocumentCategoriesManager() {
                         }`}
                       >
                         {cat.isActive ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                        <span>{cat.isActive ? "Active (In Dropzone)" : "Archived"}</span>
+                        <span>
+                          {cat.isActive
+                            ? isAr
+                              ? "نشط (في الرفع)"
+                              : "Active (In Dropzone)"
+                            : isAr
+                            ? "مؤرشف"
+                            : "Archived"}
+                        </span>
                       </button>
                     </td>
 
@@ -295,7 +313,7 @@ export function DocumentCategoriesManager() {
                         className="rounded-xl border-secondary-200 bg-white font-semibold text-secondary-700 shadow-sm hover:bg-secondary-50 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-300"
                       >
                         <Edit2 className="mr-1.5 h-3 w-3 rtl:mr-0 rtl:ml-1.5" />
-                        <span>Edit</span>
+                        <span>{isAr ? "تعديل" : "Edit"}</span>
                       </Button>
                     </td>
                   </tr>
@@ -323,10 +341,18 @@ export function DocumentCategoriesManager() {
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-secondary-900 dark:text-white">
-                      {editingCategory ? "Edit Document Category" : "Add Allowed Document Type"}
+                      {editingCategory
+                        ? isAr
+                          ? "تعديل تصنيف المستند"
+                          : "Edit Document Category"
+                        : isAr
+                        ? "إضافة نوع مستند مصرح به"
+                        : "Add Allowed Document Type"}
                     </h3>
                     <p className="text-xs text-secondary-500">
-                      Configure legal title, Arabic name, and preset validity
+                      {isAr
+                        ? "تحديد الاسم القانوني، الاسم العربي، وفترة الصلاحية الافتراضية"
+                        : "Configure legal title, Arabic name, and preset validity"}
                     </p>
                   </div>
                 </div>
@@ -348,14 +374,14 @@ export function DocumentCategoriesManager() {
                 {!editingCategory && (
                   <div>
                     <label className="text-xs font-bold text-secondary-700 dark:text-secondary-300">
-                      System Key (Lowercase & underscores) *
+                      {isAr ? "المفتاح البرمجي (أحرف صغيرة وشرطة سفلية) *" : "System Key (Lowercase & underscores) *"}
                     </label>
                     <input
                       type="text"
                       required
                       value={key}
                       onChange={(e) => setKey(e.target.value)}
-                      placeholder="e.g. eur1_certificate"
+                      placeholder={isAr ? "مثال: eur1_certificate" : "e.g. eur1_certificate"}
                       className="mt-1 w-full rounded-xl border border-secondary-200 bg-white px-3 py-2 text-xs font-mono text-secondary-900 focus:border-primary-500 focus:outline-none dark:border-secondary-700 dark:bg-secondary-800 dark:text-white"
                     />
                   </div>
@@ -364,28 +390,28 @@ export function DocumentCategoriesManager() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-secondary-700 dark:text-secondary-300">
-                      English Name *
+                      {isAr ? "الاسم بالإنجليزية *" : "English Name *"}
                     </label>
                     <input
                       type="text"
                       required
                       value={nameEn}
                       onChange={(e) => setNameEn(e.target.value)}
-                      placeholder="EUR.1 Movement Certificate"
+                      placeholder={isAr ? "مثال: EUR.1 Movement Certificate" : "EUR.1 Movement Certificate"}
                       className="mt-1 w-full rounded-xl border border-secondary-200 bg-white px-3 py-2 text-xs font-medium text-secondary-900 focus:border-primary-500 focus:outline-none dark:border-secondary-700 dark:bg-secondary-800 dark:text-white"
                     />
                   </div>
 
                   <div>
                     <label className="text-xs font-bold text-secondary-700 dark:text-secondary-300">
-                      Arabic Name *
+                      {isAr ? "الاسم بالعربية *" : "Arabic Name *"}
                     </label>
                     <input
                       type="text"
                       required
                       value={nameAr}
                       onChange={(e) => setNameAr(e.target.value)}
-                      placeholder="شهادة حركة البضائع يورو 1"
+                      placeholder={isAr ? "مثال: شهادة حركة البضائع يورو 1" : "شهادة حركة البضائع يورو 1"}
                       className="mt-1 w-full rounded-xl border border-secondary-200 bg-white px-3 py-2 text-xs font-medium text-secondary-900 focus:border-primary-500 focus:outline-none dark:border-secondary-700 dark:bg-secondary-800 dark:text-white"
                     />
                   </div>
@@ -394,7 +420,7 @@ export function DocumentCategoriesManager() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-secondary-700 dark:text-secondary-300">
-                      Default Validity (Days) *
+                      {isAr ? "الصلاحية الافتراضية (بالأيام) *" : "Default Validity (Days) *"}
                     </label>
                     <input
                       type="number"
@@ -415,7 +441,7 @@ export function DocumentCategoriesManager() {
                         className="h-4 w-4 rounded text-primary-600 focus:ring-primary-500"
                       />
                       <span className="text-xs font-bold text-secondary-900 dark:text-white">
-                        Mandatory Compliance Doc
+                        {isAr ? "مستند امتثال إلزامي" : "Mandatory Compliance Doc"}
                       </span>
                     </label>
                   </div>
@@ -423,13 +449,17 @@ export function DocumentCategoriesManager() {
 
                 <div>
                   <label className="text-xs font-bold text-secondary-700 dark:text-secondary-300">
-                    Description & Regulatory Notes (Optional)
+                    {isAr ? "الوصف وملاحظات تنظيمية (اختياري)" : "Description & Regulatory Notes (Optional)"}
                   </label>
                   <textarea
                     rows={2}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Instructions shown to customer in upload zone..."
+                    placeholder={
+                      isAr
+                        ? "تعليمات تظهر للعميل في منطقة رفع الملفات..."
+                        : "Instructions shown to customer in upload zone..."
+                    }
                     className="mt-1 w-full rounded-xl border border-secondary-200 bg-white p-2.5 text-xs text-secondary-900 placeholder-secondary-400 focus:border-primary-500 focus:outline-none dark:border-secondary-700 dark:bg-secondary-800 dark:text-white"
                   />
                 </div>
@@ -441,7 +471,7 @@ export function DocumentCategoriesManager() {
                     onClick={() => setIsAddModalOpen(false)}
                     disabled={saving}
                   >
-                    Cancel
+                    {isAr ? "إلغاء" : "Cancel"}
                   </Button>
                   <Button
                     type="submit"
@@ -451,10 +481,18 @@ export function DocumentCategoriesManager() {
                     {saving ? (
                       <span className="flex items-center gap-1.5">
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        <span>Saving...</span>
+                        <span>{isAr ? "جاري الحفظ..." : "Saving..."}</span>
                       </span>
                     ) : (
-                      <span>{editingCategory ? "Save Changes" : "Create Document Type"}</span>
+                      <span>
+                        {editingCategory
+                          ? isAr
+                            ? "حفظ التعديلات"
+                            : "Save Changes"
+                          : isAr
+                          ? "إنشاء نوع المستند"
+                          : "Create Document Type"}
+                      </span>
                     )}
                   </Button>
                 </div>

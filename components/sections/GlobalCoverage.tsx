@@ -19,7 +19,7 @@ export function GlobalCoverage() {
   const t = useTranslations("globalCoverage")
 
   return (
-    <Section className="bg-secondary-50 dark:bg-secondary-900/50">
+    <Section className="bg-secondary-50 dark:bg-site-dark/50">
       <SectionTitle title={t("title")} subtitle={t("subtitle")} />
       <p className="mx-auto mb-12 max-w-2xl text-center text-lg text-secondary-600 dark:text-secondary-400">
         {t("description")}
@@ -27,7 +27,7 @@ export function GlobalCoverage() {
 
       <div className="relative mx-auto aspect-[2/1] max-w-4xl overflow-hidden rounded-2xl">
         <Image
-          src="/images/global-map.jpg"
+          src="/images/global-map.webp"
           alt="World map - global network"
           fill
           className="object-cover"

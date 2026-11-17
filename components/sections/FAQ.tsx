@@ -15,7 +15,7 @@ export function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   return (
-    <Section className="bg-secondary-50 dark:bg-secondary-900/50">
+    <Section className="bg-secondary-50 dark:bg-site-dark/50">
       <FAQSchema items={items} />
       <SectionTitle title={t("title")} subtitle={t("subtitle")} />
       <div className="mx-auto max-w-3xl">

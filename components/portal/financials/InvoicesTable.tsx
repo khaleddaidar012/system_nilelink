@@ -1,6 +1,7 @@
 "use client"
 
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
+import { formatInvoiceMoney } from "@/lib/shipments/money-display"
 import { InvoiceStatusBadge } from "./InvoiceStatusBadge"
 import { ChevronRight, FileText, Calendar, Inbox } from "lucide-react"
 import { format } from "date-fns"
@@ -14,6 +15,7 @@ interface InvoicesTableProps {
 
 export function InvoicesTable({ invoices, loading, onViewDetails }: InvoicesTableProps) {
   const t = useTranslations()
+  const locale=useLocale()==="ar"?"ar-EG":"en-GB"
 
   if (loading) {
     return (
@@ -70,9 +72,10 @@ export function InvoicesTable({ invoices, loading, onViewDetails }: InvoicesTabl
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-secondary-400" />
                     <span className="font-mono font-bold text-primary-600 dark:text-primary-400">
-                      {inv.invoiceNumber}
+                      {inv.referenceNumber || inv.invoiceNumber}
                     </span>
                   </div>
+                  {inv.shipmentRecordId && <p className="mt-1 text-xs text-secondary-500"><bdi>{inv.shipmentSnapshot?.trackingNumber} · v{inv.publishedVersion}</bdi></p>}
                 </td>
                 <td className="px-4 py-4 text-secondary-600 dark:text-secondary-400">
                   <div className="flex items-center gap-1.5 text-xs">
@@ -88,7 +91,7 @@ export function InvoicesTable({ invoices, loading, onViewDetails }: InvoicesTabl
                 </td>
                 <td className="px-4 py-4">
                   <span className="font-bold text-secondary-900 dark:text-white">
-                    ${total.toLocaleString()}
+                    <bdi>{formatInvoiceMoney(total,inv.currency,locale)}</bdi>
                   </span>
                 </td>
                 <td className="px-4 py-4">
@@ -96,7 +99,7 @@ export function InvoicesTable({ invoices, loading, onViewDetails }: InvoicesTabl
                     <div className="flex justify-between text-[10px] font-bold">
                       <span className="text-secondary-500">{percentage}% {t("portal.financials.metrics.paid") || "Paid"}</span>
                       <span className="text-secondary-700 dark:text-secondary-300">
-                        ${(inv.remainingAmount || 0).toLocaleString()} {t("portal.financials.metrics.remaining") || "Remaining"}
+                        <bdi>{formatInvoiceMoney(inv.remainingAmount,inv.currency,locale)}</bdi> {t("portal.financials.metrics.remaining") || "Remaining"}
                       </span>
                     </div>
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary-100 dark:bg-secondary-800">

@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { PricingRule } from "@/lib/models/PricingRule"
 import { connectDB } from "@/lib/mongodb"
@@ -5,6 +7,10 @@ import { connectDB } from "@/lib/mongodb"
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "pricing-update", request: req, id: id })
+    }
+
     await connectDB()
     const body = await req.json()
     const updatedRule = await PricingRule.findByIdAndUpdate(id, body, { new: true, runValidators: true })
@@ -21,6 +27,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "pricing-delete", request: req, id: id })
+    }
+
     await connectDB()
     const deletedRule = await PricingRule.findByIdAndDelete(id)
     if (!deletedRule) {

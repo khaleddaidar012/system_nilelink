@@ -1,5 +1,9 @@
 # Shipping & Customs Clearance Workflow — Implementation Roadmap
 
+## أحدث حزمة متطلبات — 8 نوفمبر 2026
+
+[خطة ربط الطلبات والخدمات والفواتير والإشعارات](request-invoice-workflow/README.md) تضم مهام مستقلة وحالة تنفيذ وسجل استئناف لكل مهمة. هذه الحزمة توثق متطلبات المستخدم الجديدة، وتوضح الموجود فعليًا وما لم يُنفذ بعد. عند استكمال هذه المتطلبات ابدأ بفهرسها؛ الملاحظات القديمة أدناه لا تعكس وحدها حالة نظام الحسابات الحالي.
+
 This directory contains the codebase analysis, requirement mappings, and step-by-step implementation plans for the end-to-end Shipping and Customs Clearance Workflow.
 
 ## Table of Contents

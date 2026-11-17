@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { Document as DocumentModel } from "@/lib/models"
@@ -12,6 +14,10 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const category = searchParams.get("category")
+
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "admin-documents-review", request: req })
+    }
 
     await connectDB()
 

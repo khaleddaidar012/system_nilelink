@@ -1,3 +1,5 @@
+import { getDatabaseProvider } from "@/lib/db/provider"
+import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { User } from "@/lib/models"
@@ -21,23 +23,23 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    if (getDatabaseProvider() === "d1") {
+      return handleD1AccountAction({ action: "send-otp", request: req, input: { channel } })
+    }
+
     await connectDB()
     const user = await User.findById(session.userId)
     if (!user) {
       return NextResponse.json({ error: "User account not found." }, { status: 404 })
     }
 
-    // Dispatch OTP using unified service for email, bypass for whatsapp (manual flow)
-    let dispatch: { success: boolean; error?: string; previewCode?: string } = { success: true, error: "", previewCode: "" }
-    
-    if (channel === "email") {
-      dispatch = await createAndSendUserOtp(user, channel, "account_verification")
-      if (!dispatch.success) {
-        return NextResponse.json(
-          { error: dispatch.error || "Failed to dispatch verification code." },
-          { status: 500 }
-        )
-      }
+    // Dispatch OTP using unified service
+    const dispatch = await createAndSendUserOtp(user, channel, "account_verification")
+    if (!dispatch.success) {
+      return NextResponse.json(
+        { error: dispatch.error || "Failed to dispatch verification code." },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({

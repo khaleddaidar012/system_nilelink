@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
 import {
   LayoutDashboard,
   FileText,
@@ -12,34 +12,45 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
   ShieldAlert,
   AlertTriangle,
-  XCircle,
   Lock,
   FileCheck,
+  Clock,
+  Radio,
+  MessageSquare,
 } from "lucide-react"
 import Image from "next/image"
 import logoImg from "@/public/images/logo.png"
 import { Link, usePathname } from "@/navigation"
 import { usePortal } from "./PortalContext"
 import { cn } from "@/lib/utils"
+import { CompanyStatusBadge } from "./CompanyStatusBadge"
 
 export function PortalSidebar() {
   const t = useTranslations()
+  const ar = useLocale() === "ar"
   const pathname = usePathname()
   const { user, customer, documentStats, unreadCount, logout } = usePortal()
   const [collapsed, setCollapsed] = useState(false)
   const isUnverified = Boolean(user && !user.emailVerified)
+  const isUnderReview = Boolean(customer && customer.accountStatus === "under_review")
+  const hasAnyVerifiedChannel = Boolean(user && (user.emailVerified || user.whatsappVerified))
+  const showChannelsAlert = Boolean(user && !hasAnyVerifiedChannel)
+  // Show a specific nudge when WhatsApp is not yet verified (regardless of email)
+  const showWhatsAppNudge = Boolean(user && !user.whatsappVerified)
 
   const navItems = [
+    { id:"chat",href:"/portal/chat",label:ar?"المحادثات":"Messages",icon:MessageSquare,badge:null },
     {
+      id: "dashboard",
       href: "/portal",
       label: t("portal.sidebar.dashboard") || "Dashboard",
       icon: LayoutDashboard,
       badge: null,
     },
     {
+      id: "documents",
       href: "/portal/documents",
       label: t("portal.sidebar.documents") || "Documents & Legal",
       icon: FileText,
@@ -50,24 +61,28 @@ export function PortalSidebar() {
       badgeColor: "bg-amber-500",
     },
     {
+      id: "requests",
       href: "/portal/requests",
       label: t("portal.sidebar.requests") || "Service Requests",
       icon: Send,
       badge: null,
     },
     {
+      id: "quotes",
       href: "/portal/quotes",
       label: t("portal.sidebar.quotes") || "Quotes",
       icon: FileCheck,
       badge: null,
     },
     {
+      id: "financials",
       href: "/portal/financials",
       label: t("portal.sidebar.financials") || "Financials & Invoices",
       icon: CreditCard,
       badge: null,
     },
     {
+      id: "notifications",
       href: "/portal/notifications",
       label: t("portal.sidebar.notifications") || "Notifications",
       icon: Bell,
@@ -75,6 +90,18 @@ export function PortalSidebar() {
       badgeColor: "bg-primary-500",
     },
     {
+      id: "channels",
+      href: "/portal/profile?tab=channels",
+      label: t("portal.sidebar.channels") || "Communication Channels",
+      icon: Radio,
+      badge: showChannelsAlert ? "!" : showWhatsAppNudge ? "واتساب" : null,
+      badgeColor: showChannelsAlert
+        ? "bg-rose-500 animate-pulse"
+        : "bg-amber-500 animate-pulse",
+      showPulse: showChannelsAlert || showWhatsAppNudge,
+    },
+    {
+      id: "profile",
       href: "/portal/profile",
       label: t("portal.sidebar.profile") || "Company Profile",
       icon: Building2,
@@ -82,31 +109,7 @@ export function PortalSidebar() {
     },
   ]
 
-  const getStatusBadge = () => {
-    if (!customer) return null
-    if (customer.accountStatus === "active") {
-      return (
-        <span className="flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-          <ShieldCheck className="h-3 w-3" />
-          <span>{t("portal.accountStatus.active") || "Active"}</span>
-        </span>
-      )
-    }
-    if (customer.accountStatus === "warning") {
-      return (
-        <span className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 animate-pulse">
-          <AlertTriangle className="h-3 w-3" />
-          <span>{t("portal.accountStatus.warning") || "Action Needed"}</span>
-        </span>
-      )
-    }
-    return (
-      <span className="flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400">
-        <XCircle className="h-3 w-3" />
-        <span>{t("portal.accountStatus.inactive") || "Restricted"}</span>
-      </span>
-    )
-  }
+  const getStatusBadge = () => customer ? <CompanyStatusBadge status={customer.accountStatus} /> : null
 
   return (
     <aside
@@ -172,6 +175,7 @@ export function PortalSidebar() {
             <span className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 text-start leading-tight dir-auto">
               {customer.companyName}
             </span>
+            {customer.customerCode && <bdi dir="ltr" className="block text-start font-mono text-xs text-primary-600 dark:text-primary-300">{customer.customerCode}</bdi>}
             <div className="flex items-start">
               {getStatusBadge()}
             </div>
@@ -194,6 +198,19 @@ export function PortalSidebar() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Under Review Warning Pill */}
+      {!collapsed && isUnderReview && (
+        <div className="mx-3 mt-3 rounded-xl border border-sky-500/30 bg-sky-500/10 p-3 text-xs text-sky-700 dark:border-sky-500/30 dark:bg-sky-950/40 dark:text-sky-300">
+          <div className="flex items-center gap-1.5 font-bold">
+            <Clock className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" />
+            <span>{t("portal.accountStatus.under_review") || "جاري المراجعة"}</span>
+          </div>
+          <p className="mt-1 text-[11px] leading-tight text-slate-600 dark:text-slate-300">
+            {t("portal.healthBanners.underReviewSidebarDesc") || "يرجى رفع مستندات الشركة. سيتم فتح المنصة بعد اعتماد الحساب."}
+          </p>
         </div>
       )}
 
@@ -238,16 +255,38 @@ export function PortalSidebar() {
         )}
 
         {navItems.map((item) => {
-          const isActive =
-            pathname === item.href ||
-            (pathname.startsWith(item.href) && item.href !== "/portal")
+          const isChannelsItem = item.id === "channels"
+          const isDocsItem = item.id === "documents"
+          const isDashboardItem = item.href === "/portal"
+          const isProfileItem = item.id === "profile"
+          const isNotificationsItem = item.id === "notifications"
 
-          if (isUnverified) {
+          // For items with query params (e.g. ?tab=channels), check pathname + search
+          const itemPath = item.href.split("?")[0]
+          const itemSearch = item.href.includes("?") ? item.href.split("?")[1] : null
+          const currentSearch = typeof window !== "undefined" ? window.location.search.replace("?", "") : ""
+
+          const isActive = itemSearch
+            ? pathname === itemPath && currentSearch.includes(itemSearch)
+            : item.href === "/portal"
+            ? pathname === "/portal"
+            : pathname === itemPath && !currentSearch.includes("tab=")
+
+          const isServiceRestricted =
+            !customer ||
+            customer.accountStatus === "unverified" ||
+            customer.accountStatus === "under_review" ||
+            customer.accountStatus === "inactive"
+
+          // Only lock operational service items (requests, quotes, financials)
+          const isLocked = isServiceRestricted && !isChannelsItem && !isDocsItem && !isDashboardItem && !isProfileItem && !isNotificationsItem
+
+          if (isLocked) {
             return (
               <div
-                key={item.href}
+                key={item.id || item.href}
                 className="group relative flex cursor-not-allowed items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-400 opacity-50 dark:text-slate-500 select-none"
-                title={t("portal.healthBanners.unverifiedTitle") || "Locked until email verified"}
+                title={t("portal.serviceLockout.title") || "الرجاء توثيق الحساب أولاً لاستخدام خدماتنا"}
               >
                 <item.icon className="h-5 w-5 shrink-0" />
                 {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
@@ -260,8 +299,9 @@ export function PortalSidebar() {
 
           return (
             <Link
-              key={item.href}
+              key={item.id || item.href}
               href={item.href}
+              data-tour={item.id}
               className={cn(
                 "group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all",
                 isActive
@@ -269,12 +309,23 @@ export function PortalSidebar() {
                   : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
               )}
             >
-              <item.icon
-                className={cn(
-                  "h-5 w-5 shrink-0 transition-transform group-hover:scale-110",
-                  isActive ? "text-white" : "text-slate-400 group-hover:text-slate-900 dark:text-slate-400 dark:group-hover:text-white"
+              <div className="relative shrink-0">
+                <item.icon
+                  className={cn(
+                    "h-5 w-5 transition-transform group-hover:scale-110",
+                    isActive ? "text-white" : "text-slate-400 group-hover:text-slate-900 dark:text-slate-400 dark:group-hover:text-white"
+                  )}
+                />
+                {collapsed && item.badge && (
+                  <span
+                    className={cn(
+                      "absolute -top-1 -right-1 flex h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900",
+                      item.badgeColor?.includes("bg-") ? item.badgeColor.split(" ")[0] : "bg-rose-500",
+                      item.showPulse ? "animate-ping" : ""
+                    )}
+                  />
                 )}
-              />
+              </div>
               {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
               {!collapsed && item.badge && (
                 <span

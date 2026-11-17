@@ -1,13 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { useLocale, useTranslations } from "next-intl"
+import { useLocale } from "next-intl"
 import { useTheme } from "@/components/layout/ThemeProvider"
-import { Moon, Sun, User, LogOut, Globe, ChevronDown } from "lucide-react"
+import { Moon, Sun, Globe, ChevronDown } from "lucide-react"
 import { Link, usePathname } from "@/navigation"
-import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react"
+import { CompanyStatusBadge } from "./CompanyStatusBadge"
 import { usePortal } from "./PortalContext"
 import { NotificationBellPopover } from "./NotificationBellPopover"
+import { AccountDropdown } from "./header/AccountDropdown"
+import { LiveIndicator } from "./header/LiveIndicator"
+import { ChatLink } from "@/components/chat/ChatLink"
 
 interface PortalHeaderProps {
   title?: string
@@ -20,10 +23,9 @@ const languages = [
 ]
 
 export function PortalHeader({ title, subtitle }: PortalHeaderProps) {
-  const t = useTranslations()
   const locale = useLocale()
   const pathname = usePathname()
-  const { user, customer, logout } = usePortal()
+  const { customer } = usePortal()
   const { theme, setTheme } = useTheme()
   const [langOpen, setLangOpen] = useState(false)
 
@@ -33,20 +35,7 @@ export function PortalHeader({ title, subtitle }: PortalHeaderProps) {
         <div>
           <h1 className="text-sm font-bold text-slate-900 dark:text-white sm:text-lg truncate flex items-center gap-2">
             {title || (customer ? customer.companyName : "Client Portal")}
-            {customer && (
-              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                customer.accountStatus === "active" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400" :
-                customer.accountStatus === "warning" ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400" :
-                "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400"
-              }`}>
-                {customer.accountStatus === "active" && <CheckCircle2 className="h-3 w-3" />}
-                {customer.accountStatus === "warning" && <AlertTriangle className="h-3 w-3" />}
-                {customer.accountStatus === "inactive" && <XCircle className="h-3 w-3" />}
-                {customer.accountStatus === "active" ? (locale === "ar" ? "شركة موثقة" : "Verified Company") :
-                 customer.accountStatus === "warning" ? (locale === "ar" ? "قيد المراجعة" : "Pending Review") :
-                 (locale === "ar" ? "غير موثق" : "Unverified")}
-              </span>
-            )}
+            {customer && <CompanyStatusBadge status={customer.accountStatus} />}
           </h1>
           {subtitle && (
             <p className="hidden sm:block text-xs text-secondary-500 dark:text-secondary-400 line-clamp-1">{subtitle}</p>
@@ -88,7 +77,9 @@ export function PortalHeader({ title, subtitle }: PortalHeaderProps) {
         </div>
 
         {/* Notifications Popover */}
+        <ChatLink portal />
         <NotificationBellPopover />
+        <LiveIndicator />
 
         {/* Theme Switcher */}
         <button
@@ -99,40 +90,7 @@ export function PortalHeader({ title, subtitle }: PortalHeaderProps) {
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
 
-        {/* User Pill */}
-        {user && (
-          <div className="flex items-center gap-2 rounded-xl border border-secondary-200/80 bg-secondary-50/80 py-1 pr-2.5 pl-1.5 shadow-sm dark:border-secondary-800 dark:bg-secondary-800/80 rtl:pr-1.5 rtl:pl-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-600 text-xs font-bold text-white shadow-sm">
-              {user.firstName ? user.firstName[0].toUpperCase() : <User className="h-4 w-4" />}
-            </div>
-            <div className="hidden text-left text-xs sm:block rtl:text-right">
-              <div className="flex items-center gap-1.5">
-                <p className="truncate max-w-[120px] font-bold text-secondary-900 dark:text-white leading-tight">
-                  {user.firstName} {user.lastName}
-                </p>
-                {(!user.emailVerified || !user.whatsappVerified) && (
-                  <Link
-                    href="/portal/verification"
-                    title="Account Pending Verification"
-                    className="shrink-0 rounded bg-secondary-100 px-1.5 py-0.5 text-[9px] font-bold text-secondary-600 dark:bg-secondary-800 dark:text-secondary-400 hover:bg-secondary-200"
-                  >
-                    {locale === "ar" ? "تأكيد الحساب" : "Verify Account"}
-                  </Link>
-                )}
-              </div>
-              <p className="text-[10px] text-secondary-500 capitalize dark:text-secondary-400">
-                {t(`portal.roles.${user.role}`) || user.role.replace("_", " ")}
-              </p>
-            </div>
-            <button
-              onClick={logout}
-              title="Sign Out"
-              className="ml-1.5 rounded-lg p-1 text-secondary-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 rtl:mr-1.5 rtl:ml-0 transition-colors"
-            >
-              <LogOut className="h-3.5 w-3.5 rtl:rotate-180" />
-            </button>
-          </div>
-        )}
+        <AccountDropdown />
       </div>
     </header>
   )

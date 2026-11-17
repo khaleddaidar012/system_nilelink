@@ -4,6 +4,8 @@ import { PortalProvider } from "@/components/portal/PortalContext"
 import { PortalSidebar } from "@/components/portal/PortalSidebar"
 import { MobileBottomNav } from "@/components/portal/MobileBottomNav"
 import { PortalGlobalLoader } from "@/components/portal/PortalGlobalLoader"
+import { ChatDeliveryObserver } from "@/components/chat/ChatDeliveryObserver"
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour"
 
 type Props = {
   children: React.ReactNode
@@ -18,6 +20,8 @@ export default async function PortalLayout({ children }: Props) {
 
   return (
     <PortalProvider initialSession={session}>
+      <ChatDeliveryObserver />
+      <OnboardingTour />
       <PortalGlobalLoader />
       <div className="relative flex min-h-screen bg-slate-50 font-sans text-secondary-900 dark:bg-[#0b0f19] dark:text-white">
         {/* Ambient Dark Mode Radial Lighting & Depth Effects */}

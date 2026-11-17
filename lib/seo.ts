@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 export const siteConfig = {
   name: "NileLink",
   description:
-    "NileLink is a leading freight forwarding company in Egypt, offering sea freight, air freight, road freight, customs clearance, and warehousing services worldwide.",
+    "NileLink is a leading freight forwarding company in Egypt, offering sea freight, air freight, land freight, customs clearance, and warehousing services worldwide.",
   url: "https://nilelink-eg.com",
   ogImage: "/images/og-image.jpg",
   locale: "en_US",

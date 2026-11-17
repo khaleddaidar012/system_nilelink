@@ -132,6 +132,12 @@ export function DocumentReviewModal({ document, onClose, onSuccess }: DocumentRe
 
   const handleVerify = async () => {
     setError(null)
+    const trimmedTitle = editableTitle.trim()
+    if (status === "approved" && !trimmedTitle) {
+      setError(t("admin.review.fileNameRequired") || "Internal file name is required for approval")
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const res = await fetch(`/api/admin/documents/${document.id}/verify`, {
@@ -139,7 +145,7 @@ export function DocumentReviewModal({ document, onClose, onSuccess }: DocumentRe
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status,
-          title: editableTitle.trim() || document.fileName,
+          title: trimmedTitle || document.fileName,
           category: editableCategory,
           startDate: status === "approved" ? startDate : undefined,
           expiryDate: status === "approved" ? expiryDate : undefined,
@@ -300,21 +306,35 @@ export function DocumentReviewModal({ document, onClose, onSuccess }: DocumentRe
                 </div>
               )}
 
-              {/* Title Input with Quick Edit Indicator */}
-              <div>
-                <label className="mb-1 flex items-center justify-between text-xs font-bold text-secondary-700 dark:text-secondary-300">
+              {/* Internal File Name (Staff Reference Name displayed to customer) */}
+              <div className="rounded-xl border border-primary-100 bg-primary-50/40 p-3.5 dark:border-primary-900/40 dark:bg-primary-950/20">
+                <label className="mb-1 flex items-center justify-between text-xs font-bold text-secondary-800 dark:text-secondary-200">
                   <span className="flex items-center gap-1.5">
                     <Edit3 className="h-3.5 w-3.5 text-primary-500" />
-                    <span>{t("admin.review.docTitle") || "Official Document Title"} *</span>
+                    <span>
+                      {t("admin.review.internalFileName") || "Internal File Name"}
+                      {status === "approved" && <span className="ml-1 text-rose-500">*</span>}
+                    </span>
+                  </span>
+                  <span className="text-[10px] font-medium text-primary-600 dark:text-primary-400">
+                    {t("admin.review.internalFileNameDesc") || "This name will be displayed to the customer"}
                   </span>
                 </label>
                 <input
                   type="text"
-                  required
+                  required={status === "approved"}
                   value={editableTitle}
-                  onChange={(e) => setEditableTitle(e.target.value)}
-                  placeholder="e.g. Commercial Register 2026"
-                  className="w-full rounded-xl border border-secondary-200 bg-white px-3.5 py-2 text-xs font-semibold text-secondary-900 focus:border-primary-500 focus:outline-none dark:border-secondary-700 dark:bg-secondary-800 dark:text-white"
+                  onChange={(e) => {
+                    setEditableTitle(e.target.value)
+                    if (error) setError(null)
+                  }}
+                  placeholder={t("admin.review.internalFileNamePlaceholder") || "e.g. Commercial Registration Certificate 2026"}
+                  className={cn(
+                    "w-full rounded-xl border bg-white px-3.5 py-2 text-xs font-semibold text-secondary-900 shadow-sm transition-all focus:outline-none focus:ring-2 dark:bg-secondary-800 dark:text-white",
+                    status === "approved" && !editableTitle.trim()
+                      ? "border-rose-400 focus:border-rose-500 focus:ring-rose-500/20 dark:border-rose-700"
+                      : "border-secondary-200 focus:border-primary-500 focus:ring-primary-500/20 dark:border-secondary-700"
+                  )}
                 />
               </div>
 

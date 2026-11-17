@@ -1,12 +1,18 @@
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare"
 import createNextIntlPlugin from "next-intl/plugin"
 
-initOpenNextCloudflareForDev()
+initOpenNextCloudflareForDev(process.env.DATABASE_PROVIDER === "d1"
+  ? { configPath: "wrangler.d1.local.jsonc", envFiles: [], remoteBindings: false }
+  : undefined)
 
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts")
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  webpack(config, { dev }) {
+    if (!dev) config.cache = false
+    return config
+  },
   async redirects() {
     return [
       {
@@ -29,6 +35,7 @@ const nextConfig = {
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
   experimental: {
+    cpus: 1,
     optimizePackageImports: ["lucide-react", "framer-motion"],
   },
 }

@@ -17,6 +17,7 @@ export interface ContactChannel {
   title: string
   description: string
   value: string
+  valueKey?: string
   href: string
   icon: IconType
   external?: boolean
@@ -30,7 +31,8 @@ export const CONTACT_CHANNELS: ContactChannel[] = [
     id: "phone",
     title: "contact.channels.phone.title",
     description: "contact.channels.phone.description",
-    value: "+20 10 00018549",
+    value: "Call Us",
+    valueKey: "contact.channels.phone.action",
     href: "tel:+20100018549",
     icon: FaPhone,
     secondaryValue: "0572222008",
@@ -48,7 +50,8 @@ export const CONTACT_CHANNELS: ContactChannel[] = [
     id: "whatsapp",
     title: "contact.channels.whatsapp.title",
     description: "contact.channels.whatsapp.description",
-    value: "+20 10 0001 8549",
+    value: "Chat on WhatsApp",
+    valueKey: "contact.channels.whatsapp.action",
     href: "https://wa.me/201000018549",
     icon: FaWhatsapp,
     external: true,

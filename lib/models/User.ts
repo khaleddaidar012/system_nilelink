@@ -7,6 +7,16 @@ export interface IStaffPermissions {
   canSendAlerts: boolean
   canReviewDocuments: boolean
   canManageCustomers: boolean
+  issueTaxInvoice?: boolean
+  createInvoice?: boolean
+  editInvoice?: boolean
+  viewCustomerStatements?: boolean
+  exportCustomerStatements?: boolean
+  sendFinancialDocuments?: boolean
+  canViewShipmentData?: boolean
+  canAccessAccounts?: boolean
+  canManageBackups?: boolean
+  canUseTieredPricing?: boolean
 }
 
 export interface IUser extends Document {
@@ -20,6 +30,8 @@ export interface IUser extends Document {
   jobTitle?: string
   phone?: string
   avatarUrl?: string
+    avatarKey?: string
+    hasCompletedOnboarding?: boolean
   status: UserStatus
   staffPermissions?: IStaffPermissions
   emailVerified: boolean
@@ -92,6 +104,8 @@ const UserSchema = new Schema<IUser>(
       type: String,
       trim: true,
     },
+    hasCompletedOnboarding: { type: Boolean, default: false },
+    avatarKey: { type: String, default: null },
     avatarUrl: {
       type: String,
       default: null,
@@ -106,6 +120,16 @@ const UserSchema = new Schema<IUser>(
       canSendAlerts: { type: Boolean, default: true },
       canReviewDocuments: { type: Boolean, default: true },
       canManageCustomers: { type: Boolean, default: false },
+      canUseTieredPricing: { type: Boolean, default: false },
+      issueTaxInvoice: { type: Boolean, default: false },
+      createInvoice: { type: Boolean, default: true },
+      editInvoice: { type: Boolean, default: true },
+      viewCustomerStatements: { type: Boolean, default: true },
+      exportCustomerStatements: { type: Boolean, default: true },
+      sendFinancialDocuments: { type: Boolean, default: false },
+      canViewShipmentData: Boolean,
+      canAccessAccounts: Boolean,
+      canManageBackups: { type: Boolean, default: false },
     },
     emailVerified: {
       type: Boolean,

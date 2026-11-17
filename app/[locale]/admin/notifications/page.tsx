@@ -5,10 +5,11 @@ import { useTranslations } from "next-intl"
 import { AdminHeader } from "@/components/admin/AdminHeader"
 import { ExpiryEscalationTable } from "@/components/admin/notifications/ExpiryEscalationTable"
 import { Bell, Radar, History, ShieldAlert } from "lucide-react"
+import { AdminNotificationFeed } from "@/components/admin/notifications/AdminNotificationFeed"
 
 export default function AdminNotificationsPage() {
   const t = useTranslations()
-  const [activeTab, setActiveTab] = useState<"radar" | "feed">("radar")
+  const [activeTab, setActiveTab] = useState<"radar" | "feed">("feed")
 
   return (
     <div className="flex flex-col">
@@ -23,6 +24,7 @@ export default function AdminNotificationsPage() {
       <div className="space-y-6 p-6 sm:p-8">
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 border-b border-secondary-200 dark:border-secondary-800 pb-3">
+          <button onClick={()=>setActiveTab("feed")} className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold ${activeTab==="feed"?"bg-primary-600 text-white":"bg-white text-secondary-600 dark:bg-secondary-900 dark:text-secondary-400"}`}><Bell className="h-4 w-4"/>{t("admin.sidebar.notifications")}</button>
           <button
             onClick={() => setActiveTab("radar")}
             className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
@@ -37,6 +39,7 @@ export default function AdminNotificationsPage() {
         </div>
 
         {/* Tab Content */}
+        {activeTab==="feed"&&<AdminNotificationFeed/>}
         {activeTab === "radar" && (
           <div className="space-y-4">
             <ExpiryEscalationTable />

@@ -125,6 +125,7 @@ export default function AdminGenerateQuotePage() {
   const [currency, setCurrency] = useState("EGP")
   const [validUntil, setValidUntil] = useState("")
   const [notes, setNotes] = useState("")
+  const [reusableAgreement,setReusableAgreement]=useState(false)
   const [quoteItems, setQuoteItems] = useState<Record<string, QuoteLineItem>>({})
   const [existingQuote, setExistingQuote] = useState<any>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
@@ -158,6 +159,7 @@ export default function AdminGenerateQuotePage() {
         if (reqData.quote) {
           setExistingQuote(reqData.quote)
           if (reqData.quote.currency) setCurrency(reqData.quote.currency)
+          setReusableAgreement(reqData.quote.reusableAgreement===true)
           if (reqData.quote.notes !== undefined) setNotes(reqData.quote.notes)
           if (reqData.quote.validUntil) {
             setValidUntil(new Date(reqData.quote.validUntil).toISOString().split("T")[0])
@@ -299,6 +301,7 @@ export default function AdminGenerateQuotePage() {
           notes,
           items: Object.values(quoteItems).map(item=>({...item,finalPrice:Number(item.finalPrice.toFixed(2))})),
           quoteId: existingQuote?._id,
+          reusableAgreement,
         }),
       })
       const data = await res.json()
@@ -567,6 +570,7 @@ export default function AdminGenerateQuotePage() {
                         </div>
                       </div>
 
+                      <label className="flex gap-2 rounded-xl bg-sky-50 p-3 text-sm sm:col-span-2 dark:bg-sky-950"><input type="checkbox" checked={reusableAgreement} onChange={event=>setReusableAgreement(event.target.checked)} />{isAr?"اتفاق قابل لإعادة الاستخدام لنفس الخدمات والمسار والكميات حتى نهاية الصلاحية؛ يجب أن يوافق العميل على الشروط.":"Reusable agreement for the same services, route and quantities until expiry; the customer must accept these terms."}</label>
                       {/* Notes */}
                       <div className="sm:col-span-2">
                         <label className="mb-1.5 block text-xs font-bold text-secondary-600 dark:text-secondary-400">

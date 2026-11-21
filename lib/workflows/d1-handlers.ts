@@ -1,3 +1,4 @@
+import {handleFinalDocuments} from "./final-documents"
 import type { D1Binding } from "../db/d1"
 import { WorkflowStore, WorkflowError, actorFor, response } from "./runtime"
 import type { WorkflowInput } from "./runtime"
@@ -30,6 +31,7 @@ export function createD1WorkflowHandler(db: D1Binding, options: { storage?: Work
       if (["portal-financials", "admin-invoice-pdf", "portal-invoice-pdf", "statement-view", "statement-pdf"].includes(args.action)) return await handleFinancialViews(store, actor, args)
       if (args.action === "payment-record") return await handleFinance(store, actor, args)
       if (args.action.startsWith("invoice")) return await handleInvoices(store, actor, args)
+      if(args.action==="admin-request-final-documents"||args.action==="request-final-documents")return await handleFinalDocuments(store,actor,args,options.storage??defaultStorage)
       if (documentActions.has(args.action)) return await handleDocuments(store, actor, args, options.storage ?? defaultStorage)
       if (args.action.startsWith("categor")) return await handleCategories(store, actor, args)
       if (args.action.includes("notification")) return await handleNotifications(store, actor, args)

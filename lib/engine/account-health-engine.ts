@@ -1,3 +1,5 @@
+import {accountHealth} from "../compliance/account-health"
+import {SystemSetting} from "@/lib/models"
 import mongoose from "mongoose"
 import { Customer, Document as DocumentModel } from "@/lib/models"
 import { logDocumentActivity } from "@/lib/services/activity-log-service"
@@ -21,71 +23,14 @@ export async function recalculateCustomerAccountStatus(
     entityType: { $ne: "CustomerRequest" },
   })
 
-  const now = new Date()
-  let hasExpired = false
-  let hasRejected = false
-  let hasExpiringSoon = false
-  let expiredDocTitle = ""
-  let expiringSoonDocTitle = ""
-  let daysUntilExpiryMin = 9999
-
-  for (const doc of activeDocuments) {
-    if (doc.status === "rejected") {
-      hasRejected = true
-      expiredDocTitle = doc.title
-    }
-
-    if (doc.status === "expired") {
-      hasExpired = true
-      expiredDocTitle = doc.title
-    }
-
-    if (doc.expiryDate) {
-      const diffTime = new Date(doc.expiryDate).getTime() - now.getTime()
-      const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-      if (daysLeft < 0) {
-        hasExpired = true
-        expiredDocTitle = doc.title
-      } else if (daysLeft <= 10) {
-        hasExpiringSoon = true
-        if (daysLeft < daysUntilExpiryMin) {
-          daysUntilExpiryMin = daysLeft
-          expiringSoonDocTitle = doc.title
-        }
-      }
-    }
-  }
-
-  let newStatus: "active" | "warning" | "inactive" | "under_review" | "unverified" = "active"
-  let newReason = "All company documents are verified and up to date."
-
-  if (activeDocuments.length === 0 && customer.accountStatus !== "active") {
-    newStatus = "unverified"
-    newReason = "Account is not verified yet. Please upload required documents to begin verification."
-  } else if (hasExpired || hasRejected) {
-    newStatus = "inactive"
-    newReason = hasExpired
-      ? `Mandatory document (${expiredDocTitle}) has expired.`
-      : `Mandatory document (${expiredDocTitle}) was rejected.`
-  } else if (hasExpiringSoon) {
-    newStatus = "warning"
-    newReason = `${expiringSoonDocTitle} will expire in ${daysUntilExpiryMin} days.`
-  } else {
-    const hasPending = activeDocuments.some((d) => d.status === "pending_review" || !d.status)
-    if (hasPending && customer.accountStatus !== "active") {
-      newStatus = "under_review"
-      newReason = "Documents submitted and currently under review by compliance team."
-    } else {
-      newStatus = "active"
-      newReason = "All company documents are verified and up to date."
-    }
-  }
-
+  const settings=await SystemSetting.findOne({settingKey:"global_system_settings"}).lean() as any
+  const health=accountHealth(activeDocuments.map(doc=>doc.toObject()),customer.toObject(),Date.now(),settings?.documentCategories?.filter((c:any)=>c.isMandatory&&c.isActive!==false).map((c:any)=>c.key))
+  const newStatus=health.status,newReason=health.reason
   const previousStatus = customer.accountStatus
   if (previousStatus !== newStatus || customer.statusReason !== newReason) {
     customer.accountStatus = newStatus
     customer.statusReason = newReason
+    customer.set("accountStatusSource",health.source)
     await customer.save()
 
     try {

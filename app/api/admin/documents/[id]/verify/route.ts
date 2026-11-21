@@ -66,6 +66,10 @@ export async function POST(req: NextRequest, { params }: Props) {
     const { status, title, category, startDate, expiryDate, rejectionReason, reviewNotes } =
       parsed.data
 
+    if (getDatabaseProvider() === "d1") {
+      return handleD1Workflow({ action: "admin-document-verify", request: req, input: parsed.data, id: id })
+    }
+
     let parsedStartDate: Date | undefined
     let parsedExpiryDate: Date | undefined
 
@@ -85,12 +89,7 @@ export async function POST(req: NextRequest, { params }: Props) {
       parsedExpiryDate = d
     }
 
-    if (status === "approved" && !parsedExpiryDate) {
-      return NextResponse.json(
-        { error: "Expiration date is required to approve a document" },
-        { status: 400 }
-      )
-    }
+
 
     const sanitizedRejectionReason = rejectionReason?.trim() || undefined
     if (status === "rejected" && !sanitizedRejectionReason) {
@@ -100,9 +99,7 @@ export async function POST(req: NextRequest, { params }: Props) {
       )
     }
 
-    if (getDatabaseProvider() === "d1") {
-      return handleD1Workflow({ action: "admin-document-verify", request: req, input: parsed.data, id: id })
-    }
+
 
     await connectDB()
     const document = await DocumentModel.findById(id)
@@ -110,6 +107,8 @@ export async function POST(req: NextRequest, { params }: Props) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 })
     }
 
+    if(status==="approved"&&!parsedExpiryDate&&document.entityType!=="CustomerRequest")return NextResponse.json({error:"Expiration date is required for company documents"},{status:400})
+    if(document.entityType==="CustomerRequest")parsedExpiryDate=undefined
     // Defensive fallback: resolve customerId from uploadedBy user if detached
     if (!document.customerId && document.uploadedBy) {
       const u = await User.findById(document.uploadedBy)

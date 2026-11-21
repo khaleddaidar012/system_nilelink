@@ -1,4 +1,6 @@
 "use client"
+import {FinalShipmentDocuments} from "@/components/portal/requests/FinalShipmentDocuments"
+import {RequestTimeline} from "@/components/portal/requests/RequestTimeline"
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
@@ -169,7 +171,7 @@ export default function AdminRequestDetailPage() {
 
   const handleSubmitReview = async () => {
     if (!reviewDoc || !reviewAction) return
-    if (reviewAction === "approve" && !reviewExpiryDate) {
+    if (reviewAction === "approve" && reviewDoc.entityType!=="CustomerRequest" && !reviewExpiryDate) {
       toast.error(isAr ? "يرجى إدخال تاريخ انتهاء الصلاحية" : "Please enter an expiry date")
       return
     }
@@ -184,7 +186,7 @@ export default function AdminRequestDetailPage() {
         title: reviewTitle.trim() || reviewDoc.title || reviewDoc.fileName,
         category: reviewCategory || reviewDoc.category,
       }
-      if (reviewAction === "approve") body.expiryDate = reviewExpiryDate
+      if (reviewAction === "approve" && reviewDoc.entityType!=="CustomerRequest") body.expiryDate = reviewExpiryDate
       if (reviewAction === "reject") body.rejectionReason = reviewRejectionReason
 
       const res = await fetch(`/api/admin/documents/${reviewDoc.id}/verify`, {
@@ -241,6 +243,9 @@ export default function AdminRequestDetailPage() {
       />
 
       <div className="p-6 sm:p-8 max-w-7xl mx-auto w-full space-y-6">
+        <RequestWorkflowSettings request={request} onUpdated={fetchRequestAndPrices} />
+        {request.details?.containerCount!==undefined&&<p className="rounded-xl border p-4 font-semibold">{isAr?"عدد الحاويات: ":"Container count: "}{request.details.containerCount}</p>}
+        <UCRSection requestId={String(id)} admin onUpdated={fetchRequestAndPrices} />
         {/* Actions & Meta */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
@@ -336,6 +341,8 @@ export default function AdminRequestDetailPage() {
             </div>
 
             <StageManager requestId={request._id} onUpdated={fetchRequestAndPrices} />
+            <FinalShipmentDocuments requestId={request._id} updatedAt={request.updatedAt} admin onUpdated={fetchRequestAndPrices} />
+            <RequestTimeline events={request.timeline||[]} admin />
 
             {quote && (
               <div className="mt-8 rounded-2xl border-2 border-indigo-500/30 bg-gradient-to-br from-indigo-50/50 via-white to-white dark:from-indigo-950/20 dark:via-secondary-900 dark:to-secondary-900 p-6 shadow-sm overflow-hidden">
@@ -529,7 +536,7 @@ export default function AdminRequestDetailPage() {
           <div className="space-y-6">
             
             {/* Customs Compliance Input */}
-            <UCRSection requestId={String(id)} admin onUpdated={fetchRequestAndPrices} />
+
             {quote?.status==="partially_accepted" && <p className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">{isAr ? "الخدمات المقبولة: " : "Accepted services: "}{quote.acceptedServices?.join(" + ")} · {isAr ? "القيمة المقبولة: " : "Accepted value: "}{quote.acceptedAmount} {quote.currency}</p>}
 
             {/* Client Info */}
@@ -556,89 +563,7 @@ export default function AdminRequestDetailPage() {
               </div>
             </div>
 
-            {/* Action Block based on Status */}
-            <RequestWorkflowSettings request={request} onUpdated={fetchRequestAndPrices} />
-            {request.quoteRequired === false ? (
-              <section className="space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100">
-                <h3 className="font-bold">{isAr ? "تنفيذ مباشر دون عرض سعر" : "Direct processing without a quotation"}</h3>
-                <p className="text-xs">{isAr ? "سجّل رقم UCR أو ACID المناسب للعملية عند الحاجة، ثم ابدأ تنفيذ الخدمات. الفاتورة تظل مسودة حتى نشرها." : "Record the applicable UCR or ACID when needed, then begin service processing. The invoice remains a draft until published."}</p>
-                {!["processing", "completed", "cancelled"].includes(request.status) && <Button disabled={!request.canOperate || confirmingOrder || Boolean(request.services?.some((service:any)=>service.serviceKey==="customs_clearance"&&service.status!=="cancelled") && !request.complianceNumber)} onClick={handleConfirmOrder}>{isAr ? "بدء التنفيذ دون عرض سعر" : "Begin processing without quotation"}</Button>}
-                {request.services?.some((service:any)=>service.serviceKey==="customs_clearance"&&service.status!=="cancelled") && !request.complianceNumber && <p className="text-xs">{isAr ? "أدخل المرجع الجمركي لخدمة التخليص أولًا." : "Provide the customs clearance reference first."}</p>}
-              </section>
-            ) : request.status === "quote_accepted" ? (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-900/10 text-center">
-                <h3 className="text-sm font-bold text-emerald-900 dark:text-emerald-100 mb-2">
-                  {t("admin.requests.detail.orderReadyTitle") || (isAr ? "الطلب جاهز للتنفيذ" : "Order Ready to Process")}
-                </h3>
-                <p className="text-xs text-emerald-700 dark:text-emerald-300 mb-4">
-                  {t("admin.requests.detail.orderReadyDesc") || (isAr ? "لقد وافق العميل على عرض السعر. قم بتأكيد الطلب لبدء عمليات التشغيل واللوجستيات." : "Client accepted the quote. Confirm the order to begin operational processing.")}
-                </p>
-                <Button 
-                  className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
-                  onClick={handleConfirmOrder}
-                  disabled={confirmingOrder}
-                >
-                  {confirmingOrder
-                    ? (t("admin.requests.detail.confirmingBtn") || (isAr ? "جاري التأكيد..." : "Confirming..."))
-                    : (t("admin.requests.detail.confirmOrderBtn") || (isAr ? "تأكيد الطلب وبدء التنفيذ" : "Confirm Order & Begin Processing"))}
-                </Button>
-              </div>
-            ) : request.status === "processing" ? (
-              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 shadow-sm dark:border-blue-900/50 dark:bg-blue-900/10 text-center">
-                <h3 className="text-sm font-bold text-blue-900 dark:text-blue-100 mb-2">
-                  {t("admin.requests.detail.orderProcessingTitle") || (isAr ? "الطلب قيد التنفيذ" : "Order in Processing")}
-                </h3>
-                <p className="text-xs text-blue-700 dark:text-blue-300">
-                  {t("admin.requests.detail.orderProcessingDesc") || (isAr ? "هذا الطلب نشط حالياً وقيد التنفيذ من قبل فريق العمليات." : "This request is actively being processed by operations.")}
-                </p>
-              </div>
-            ) : request.status === "quote_provided" ? (
-              <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-6 shadow-sm dark:border-indigo-900/50 dark:bg-indigo-900/10 text-center">
-                <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-100 mb-2">
-                  {t("admin.requests.detail.quoteProvidedTitle") || (isAr ? "عرض السعر مُقدَّم" : "Quote Provided")}
-                </h3>
-                <p className="text-xs text-indigo-700 dark:text-indigo-300 mb-3">
-                  {t("admin.requests.detail.quoteProvidedDesc") || (isAr ? "تم إرسال عرض السعر للعميل وهو حالياً في انتظار الموافقة." : "Quote has been sent to client and is waiting for acceptance.")}
-                </p>
 
-                {quote && (
-                  <div className="bg-white/90 dark:bg-secondary-900/90 border border-indigo-100 dark:border-indigo-800/60 rounded-xl p-3 mb-4 text-start shadow-xs">
-                    <div className="flex justify-between items-center text-xs mb-1.5">
-                      <span className="text-secondary-500">{isAr ? "رقم العرض:" : "Quote No:"}</span>
-                      <span className="font-mono font-bold text-indigo-700 dark:text-indigo-400">{quote.quoteNumber}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs mb-1.5">
-                      <span className="text-secondary-500">{isAr ? "إجمالي العرض:" : "Total Amount:"}</span>
-                      <span className="font-black text-emerald-600 dark:text-emerald-400">{quote.totalAmount?.toLocaleString()} {quote.currency}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-secondary-500">{isAr ? "الحالة:" : "Status:"}</span>
-                      <span className="font-semibold text-secondary-800 dark:text-secondary-200">
-                        {["accepted","partially_accepted"].includes(quote.status) ? (isAr ? "تمت الموافقة" : "Accepted") :
-                         quote.status === "rejected" ? (isAr ? "مرفوض" : "Rejected") :
-                         (isAr ? "في انتظار الموافقة" : "Pending Acceptance")}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                <Link href={`/admin/requests/${id}/quote`}>
-                  <Button variant="outline" className="w-full text-indigo-700 border-indigo-300 hover:bg-indigo-100 dark:border-indigo-700 dark:text-indigo-300 dark:hover:bg-indigo-900/30">
-                    {t("admin.requests.detail.viewUpdateQuote") || (isAr ? "عرض / تحديث عرض السعر" : "View / Update Quote")}
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-primary-200 bg-primary-50 p-6 shadow-sm dark:border-primary-900/50 dark:bg-primary-900/10 text-center">
-                <h3 className="text-sm font-bold text-primary-900 dark:text-primary-100 mb-2">
-                  {t("admin.requests.detail.readyToQuote") || (isAr ? "جاهز لإرسال عرض السعر؟" : "Ready to Quote?")}
-                </h3>
-                <p className="text-xs text-primary-700 dark:text-primary-300 mb-4">
-                  {t("admin.requests.detail.readyToQuoteDesc") || (isAr ? "يمكنك مراجعة الأسعار المقترحة وإنشاء عرض سعر رسمي في الخطوة التالية." : "Review the suggested rates and proceed to generate the official quotation.")}
-                </p>
-                <Link href={`/admin/requests/${id}/quote`}><Button className="w-full">{isAr ? "إنشاء عرض سعر" : "Generate quote"}</Button></Link>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -754,7 +679,7 @@ export default function AdminRequestDetailPage() {
               </div>
 
               {/* Conditional fields */}
-              {reviewAction === "approve" && (
+              {reviewAction === "approve" && reviewDoc.entityType!=="CustomerRequest" && (
                 <div>
                   <label className="block text-xs font-bold text-secondary-700 dark:text-secondary-300 mb-1 uppercase tracking-wider">
                     {isAr ? "تاريخ انتهاء الصلاحية *" : "Expiry Date *"}

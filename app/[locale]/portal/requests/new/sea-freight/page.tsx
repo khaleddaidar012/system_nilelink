@@ -1,5 +1,6 @@
 "use client"
 
+import {ContainerCountPicker} from "@/components/portal/requests/ContainerCountPicker"
 import { useState } from "react"
 import { useRouter } from "@/navigation"
 import { useTranslations } from "next-intl"
@@ -20,7 +21,7 @@ export default function SeaFreightPage() {
   // Form State
   const [operationType, setOperationType] = useState("export")
   const [containerType, setContainerType] = useState("FCL")
-  const [containerCount, setContainerCount] = useState(1)
+  const [containerCount, setContainerCount] = useState<number|undefined>(undefined)
   const [containerSize, setContainerSize] = useState("40HC")
   const [pol, setPol] = useState("")
   const [pod, setPod] = useState("")
@@ -36,6 +37,7 @@ export default function SeaFreightPage() {
       return
     }
 
+    if(containerType==="FCL"&&!containerCount){setError("Choose a valid container count / اختر عدد الحاويات");return}
     setIsSubmitting(true)
     setError("")
 
@@ -215,7 +217,7 @@ export default function SeaFreightPage() {
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-bold text-secondary-700 dark:text-secondary-300 uppercase tracking-wider">{t("portal.requests.new.sea_freight_form.container_count") || "Number of Containers"}</label>
-                      <input type="number" min={1} required value={containerCount} onChange={(e) => setContainerCount(Number(e.target.value))} className="w-full rounded-xl border border-secondary-200 bg-secondary-50/50 p-3 text-sm font-medium dark:border-secondary-700 dark:bg-secondary-800 dark:text-white focus:border-primary-500 focus:outline-none" />
+                      <ContainerCountPicker value={containerCount} onChange={setContainerCount} />
                     </div>
                   </>
                 )}

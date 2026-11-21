@@ -1,3 +1,5 @@
+import {assessD1Customer} from "../../compliance/d1"
+import {accountDocumentStats,effectiveAccountDocuments,isAccountDocument,complianceState} from "../../compliance/account-health"
 import type { D1Binding, D1Statement, D1Value } from "../d1"
 import type { StoredUser, VersionedUser } from "./users"
 import type { AccountStatus } from "../../models/Customer"
@@ -201,20 +203,14 @@ export class D1AccountsRepository {
     const rows = await this.db.prepare(`SELECT data FROM documents WHERE customerId = ? AND isArchived = 0
       ${expiryOnly ? "AND expiryDate IS NOT NULL ORDER BY expiryDate ASC, json_extract(data, '$.title') ASC" : "ORDER BY createdAt DESC"}`)
       .bind(id).all<Row>()
-    return rows.results.map(row => JSON.parse(row.data))
+    const docs=rows.results.map(row => JSON.parse(row.data)).filter(isAccountDocument)
+    return (expiryOnly?effectiveAccountDocuments(docs).filter(doc=>!!doc.expiryDate):docs).map(doc=>({...doc,status:complianceState(doc)}))
   }
 
   async documentStats(id: string, now = new Date()): Promise<Record<string, number>> {
-    const row = await this.db.prepare(`SELECT count(*) AS totalDocs,
-      coalesce(sum(status = 'approved'), 0) AS approvedDocs,
-      coalesce(sum(status = 'pending_review'), 0) AS pendingDocs,
-      coalesce(sum(status = 'rejected'), 0) AS rejectedDocs,
-      coalesce(sum(status = 'expired' OR (status = 'approved' AND expiryDate < ?)), 0) AS expiredDocs,
-      coalesce(sum(status = 'expiring_soon' OR (status = 'approved' AND expiryDate >= ? AND expiryDate <= ?)), 0) AS expiringDocs
-      FROM documents WHERE customerId = ? AND isArchived = 0`)
-      .bind(now.toISOString(), now.toISOString(), new Date(now.getTime() + 10 * 86400000).toISOString(), id).first<Record<string, number>>()
-    return row!
+    return accountDocumentStats(await this.customerDocuments(id), now.getTime())
   }
+  async complianceCustomer(value:AccountCustomer){return (await assessD1Customer(this.db,value)).customer as AccountCustomer}
 
   async unreadCount(user: StoredUser): Promise<number> {
     const isStaff = user.role === "staff" || user.role === "super_admin"

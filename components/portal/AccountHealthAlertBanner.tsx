@@ -241,7 +241,7 @@ export function AccountHealthAlertBanner() {
   }
 
   // 3. ACTIVE & FULLY COMPLIANT STATE
-  if (customer.accountStatus === "active" && documentStats.expiringDocs === 0 && documentStats.expiredDocs === 0) {
+  if (customer.accountStatus === "active") {
     return (
       <div className="flex items-center justify-between rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-5 text-emerald-950 shadow-sm dark:text-emerald-200">
         <div className="flex items-center gap-3.5">
@@ -262,7 +262,7 @@ export function AccountHealthAlertBanner() {
   }
 
   // 4. WARNING STATE (Document Expirations Soon)
-  if (documentStats.expiringDocs > 0) {
+  if (customer.accountStatus === "warning") {
     return (
       <div className="flex flex-col gap-3 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent p-5 text-amber-950 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:text-amber-200">
         <div className="flex items-center gap-3.5">
@@ -290,7 +290,7 @@ export function AccountHealthAlertBanner() {
   }
 
   // 5. CRITICAL RESTRICTED STATE (Expired Documents)
-  if (isDismissed) return null;
+  if (isDismissed || customer.accountStatus !== "inactive") return null;
 
   return (
     <div className="relative flex flex-col gap-3 rounded-2xl border border-rose-500/40 bg-gradient-to-r from-rose-500/15 via-rose-500/5 to-transparent p-5 pr-8 text-rose-950 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:text-rose-200">
@@ -307,7 +307,7 @@ export function AccountHealthAlertBanner() {
         </div>
         <div>
           <h2 className="text-sm font-bold text-rose-950 dark:text-rose-200">
-            {t("portal.healthBanners.critical") || "تنبيه: تم رفض مستند أو انتهت صلاحيته"}
+            {isEn ? "Account restricted — action required" : "الحساب مقيّد — يتطلب متابعة"}
           </h2>
           <p className="mt-0.5 text-xs text-rose-800/90 dark:text-rose-300/90 max-w-xl">
             {translatedReason ||
@@ -318,7 +318,7 @@ export function AccountHealthAlertBanner() {
       <Link href="/portal/documents" className="rtl:ml-10 ltr:mr-10 mt-2 sm:mt-0">
         <Button size="sm" className="shrink-0 rounded-xl bg-rose-600 font-semibold text-white shadow hover:bg-rose-700">
           <RefreshCw className="mr-1.5 h-4 w-4 rtl:mr-0 rtl:ml-1.5" />
-          <span>{t("portal.healthBanners.renewBtn") || "تجديد المستند المنتهي"}</span>
+          <span>{isEn ? "Review account documents" : "مراجعة مستندات الحساب"}</span>
         </Button>
       </Link>
     </div>

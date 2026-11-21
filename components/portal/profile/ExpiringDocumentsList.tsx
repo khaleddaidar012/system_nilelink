@@ -1,4 +1,5 @@
 "use client"
+import {effectiveAccountDocuments,expiryInstant,complianceState} from "@/lib/compliance/account-health"
 
 import { useTranslations, useLocale } from "next-intl"
 import { motion } from "framer-motion"
@@ -40,13 +41,13 @@ export function ExpiringDocumentsList({ documents, loading }: ExpiringDocumentsL
 
   // Calculate days remaining and sort strictly by ASCENDING order (closest expiry first)
   const calculateDaysRemaining = (expiryDateStr?: string | null) => {
-    if (!expiryDateStr) return 9999
-    const expiry = new Date(expiryDateStr).getTime()
+    if (!expiryDateStr) return Number.POSITIVE_INFINITY
+    const expiry = expiryInstant({expiryDate:expiryDateStr})!
     const now = new Date().getTime()
     return Math.ceil((expiry - now) / (1000 * 60 * 60 * 24))
   }
 
-  const sortedDocuments = [...documents].sort((a, b) => {
+  const sortedDocuments = effectiveAccountDocuments(documents).sort((a, b) => {
     const daysA = calculateDaysRemaining(a.expiryDate)
     const daysB = calculateDaysRemaining(b.expiryDate)
     return daysA - daysB // Ascending: 1 day left before 2 days left!

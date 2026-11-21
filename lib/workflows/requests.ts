@@ -1,3 +1,6 @@
+import {requestContainerCount} from "../requests/container-count"
+import {executionServices,executionCompleted} from "../requests/execution"
+import {agreementMatches} from "../requests/agreements"
 import { z } from "zod"
 import { usableAccountDocument } from "@/lib/account-documents"
 import { canOperateRequest } from "../requests/access"
@@ -35,7 +38,9 @@ export async function requestServices(store: WorkflowStore, request: Snapshot): 
   return records
 }
 export async function populatedRequest(store: WorkflowStore, request: Snapshot, admin = false) {
-  const services = (await requestServices(store, request)).map(service => service.data)
+  const rawServices = (await requestServices(store, request)).map(service => service.data)
+  const ordered = executionServices(rawServices as any[],request.data.acceptedServiceIds)
+  const services = admin?[...ordered,...rawServices.filter(s=>!ordered.some(row=>row._id===s._id))]:ordered
   if (!admin) {
     const safe={...request.data}
     delete safe.invoiceLinkUpdatedAt;delete safe.workflowDecidedBy
@@ -78,6 +83,8 @@ export async function handleRequests(store: WorkflowStore, actor: Actor, args: W
     if (["inactive", "unverified", "under_review"].includes(customer.data.accountStatus) || !actor.user.emailVerified) reject(403, "Account verification is required before requesting services")
     const input = await body(args)
     if (!input.services && input.serviceType) input.services = [{ serviceKey: input.serviceType, details: input.details || {} }]
+    let containerCount:number|undefined
+    try{containerCount=requestContainerCount(input)}catch(error){reject(400,(error as Error).message)}
     const parsed = createSchema.safeParse(input)
     if (!parsed.success) return response({ error: parsed.error.issues[0]?.message || "Invalid request" }, 400)
     const configs = await store.list("service_configs")
@@ -88,9 +95,9 @@ export async function handleRequests(store: WorkflowStore, actor: Actor, args: W
     const numbering = await newRequestNumber(store.db, customer)
     const trackingNumber = numbering.trackingNumber
     const record = timestamped({ customerId: customer.id, requestedBy: actor.user._id, ...numbering,
-      ...fields(parsed.data, ["operationType", "subject", "description", "priority"]), status, services: [], details: {}, attachments: [], assignedStaffId: null, complianceType: null, complianceNumber: "",ucrStatus:parsed.data.services.some(service=>service.serviceKey==="customs_clearance")?"pending":"not_required",
+      ...fields(parsed.data, ["operationType", "subject", "description", "priority"]), status, services: [], details: {...(containerCount!==undefined?{containerCount}:{})}, attachments: [], assignedStaffId: null, complianceType: null, complianceNumber: "",ucrStatus:parsed.data.services.some(service=>service.serviceKey==="customs_clearance")?"pending":"not_required",
       timeline: [timeline(actor, "submitted", "Request Submitted by Client", "Initial order inquiry received."), ...(status === "document_required" ? [timeline(actor, status, "Document Required", "Please upload the required documents (UCR/ACID) to proceed.")] : [])] })
-    const services = parsed.data.services.map(service => timestamped({ requestId: record._id, serviceKey: service.serviceKey, details: service.details || {}, status: "pending", timeline: [timeline(actor, "pending", "Service Added", "Service selected during request creation.")] }))
+    const services = parsed.data.services.map(service => timestamped({ requestId: record._id, serviceKey: service.serviceKey, details: {...(service.details||{}),...(containerCount!==undefined?{containerCount}:{})}, status: "pending", timeline: [timeline(actor, "pending", "Service Added", "Service selected during request creation.")] }))
     record.services = services.map(service => service._id)
     await store.commit({ checks: [actor.snapshot, customer, ...configs], inserts: [
       { table: "customer_requests", data: record }, ...services.map(data => ({ table: "request_services" as const, data })),
@@ -169,7 +176,7 @@ export async function handleRequests(store: WorkflowStore, actor: Actor, args: W
 
   if (action === "admin-quote-save") {
     const input = await body(args)
-    const schema = z.object({ requestId: z.string().min(1), customerId: z.string().min(1), quoteId: z.string().optional(), validUntil: z.string().optional(), currency: z.string().trim().length(3).optional(), notes: z.string().optional(),
+    const schema = z.object({ requestId: z.string().min(1), customerId: z.string().min(1), quoteId: z.string().optional(), reusableAgreement:z.boolean().default(false), validUntil: z.string().optional(), currency: z.string().trim().length(3).optional(), notes: z.string().optional(),
       items: z.array(z.object({ _id: z.string().optional(), id: z.string().optional(), requestServiceId: z.string().optional(), serviceKey: z.string().min(1), basePrice: z.coerce.number().finite().nonnegative().default(0), additionalCharges: z.coerce.number().finite().nonnegative().default(0), discount: z.coerce.number().finite().nonnegative().default(0), finalPrice: z.coerce.number().finite().nonnegative().refine(value=>/^(0|[1-9]\d{0,9})(\.\d{1,2})?$/.test(String(value)), "Use a price with at most two decimal places"), note: z.string().optional(), breakdown: z.array(z.object({ description: z.string(), basePrice: z.coerce.number().finite(), additionalCharges: z.coerce.number().finite().default(0), progressivePricing:progressivePricingSchema.optional() })).default([]) })).min(1).max(20) })
     const parsed = schema.safeParse(input)
     if (!parsed.success) return response({ error: "Invalid quotation", details: parsed.error.flatten() }, 400)
@@ -193,6 +200,7 @@ export async function handleRequests(store: WorkflowStore, actor: Actor, args: W
     if (!Number.isFinite(totalAmount)) reject(400, "Invalid quotation total")
     const record = quote ? { ...quote.data, totalAmount, currency: data.currency, validUntil, status: "sent", ...(data.notes !== undefined ? { notes: data.notes } : {}) }
       : timestamped({ requestId: parent.id, customerId: parent.data.customerId, quoteNumber: await store.nextNumber("quote"), totalAmount, currency: data.currency, validUntil, notes: data.notes || "", status: "sent", createdBy: actor.user._id })
+    record.reusableAgreement=data.reusableAgreement
     record.complianceReference = parent.data.complianceNumber ? { type: parent.data.complianceType, number: parent.data.complianceNumber } : null
     const existing = quote ? await quoteItems(store, quote) : []
     const used = new Set<string>()
@@ -242,19 +250,23 @@ export async function handleRequests(store: WorkflowStore, actor: Actor, args: W
     if(input.revision!==service.revision) reject(409,"Service changed. Reload before saving")
     if(input.status===previous) return response({success:true,service:service.data})
     if(parent.data.status==="cancelled") reject(409,"Cancelled requests cannot be changed")
-    if(input.status==="completed"&&Array.isArray(service.data.trackingStages)&&service.data.trackingStages.some((stage:any)=>stage.status!=="completed"))reject(409,"Complete all execution stages first")
+    if(input.status==="completed"&&serviceStages(service.data as any).some(stage=>stage.status!=="completed"))reject(409,"Complete all execution stages first")
     if(!serviceTransitions[previous]?.includes(input.status)) reject(409,"Invalid service status transition")
     if(["completed","cancelled"].includes(previous) && (actor.user.role!=="super_admin" || !input.comment)) reject(403,"An administrator and a correction reason are required to reopen a service")
     if(["active","completed"].includes(input.status) && !["processing","completed"].includes(parent.data.status)) reject(409,"Begin request processing before updating service progress")
     const services=await requestServices(store,parent)
+    const order=executionServices(services.map(row=>row.data) as any[],parent.data.acceptedServiceIds),position=order.findIndex(row=>row._id===service.id)
+    if(["active","completed"].includes(input.status)&&order[position]?.executionLocked)reject(409,"Complete the preceding service first")
+    if(previous==="completed"&&order.slice(position+1).some(row=>serviceStages(row as any).some(stage=>stage.status!=="not_started")))reject(409,"Later execution history must be reviewed before reopening")
     const statuses=services.map(row=>row.id===service.id?input.status:canonicalServiceStatus(row.data.status))
     const finished=statuses.every(status=>["completed","cancelled"].includes(status)) && statuses.includes("completed")
     const status=finished?"completed":parent.data.status==="completed"?"processing":parent.data.status
     const names=serviceLabels[service.data.serviceKey]??[service.data.serviceKey,service.data.serviceKey]
     const state=serviceStatusLabels[input.status]
     const title=`${names[0]}: ${state[0]} / ${names[1]}: ${state[1]}`
-    const patch = { status: input.status, timeline: [...(service.data.timeline || []), timeline(actor, input.status, title, input.comment)] }
-    const parentPatch={status,timeline:[...(parent.data.timeline||[]),timeline(actor,status,title,input.comment)]}
+    const event={...timeline(actor,status,title,input.comment),eventId:crypto.randomUUID(),eventType:"service_status_changed",serviceId:service.id,serviceKey:service.data.serviceKey}
+    const patch = { status: input.status, timeline: [...(service.data.timeline || []), event] }
+    const parentPatch={status,timeline:[...(parent.data.timeline||[]),event,...(finished&&parent.data.status!=="completed"?[{...timeline(actor,"completed","تم الانتهاء من الطلب / Request completed",""),eventId:crypto.randomUUID(),eventType:"request_completed"}]:[])]}
     await store.commit({ checks: [actor.snapshot,...services.filter(row=>row.id!==service.id)], updates: [{ before: service, patch },{before:parent,patch:parentPatch}],
       inserts:[{table:"notifications",data:notifyRequest(parent,title,`${parent.data.trackingNumber}: ${title}${input.comment?` — ${input.comment}`:""}`,{actionUrl:`/portal/requests/${parent.id}`})}] })
     return response({ success: true, service: { ...service.data, ...patch } })
@@ -279,39 +291,84 @@ export async function handleRequests(store: WorkflowStore, actor: Actor, args: W
   const parent = id ? await store.read("customer_requests", id) : null
   if (!parent) return reject(404, "Request not found")
   if (!staffAction) own(actor, parent)
+  if(action==="admin-request-agreements"||action==="admin-request-use-agreement"){
+    if(!canOperateRequest(actor,parent.data))reject(403,"Request access required")
+    const services=await requestServices(store,parent)
+    const candidates=await store.list("quotes","customerId = ?",[parent.data.customerId],"json_extract(data, '$.createdAt') DESC")
+    const eligible=[]
+    for(const quote of candidates){
+      if(quote.data.requestId===parent.id||quote.data.reusableAgreement!==true)continue
+      const source=await store.read("customer_requests",quote.data.requestId)
+      if(source&&agreementMatches(source.data,parent.data,(await requestServices(store,source)).map(s=>s.data),services.map(s=>s.data),quote.data))eligible.push(quote)
+    }
+    if(http.method==="GET")return response({agreements:await Promise.all(eligible.map(async quote=>({...fields(quote.data,["_id","quoteNumber","currency","validUntil","acceptedServices","notes"]),items:(await quoteItems(store,quote)).filter(item=>(quote.data.acceptedServices||[]).includes(item.data.serviceKey)).map(item=>fields(item.data,["serviceKey","finalPrice","breakdown"]))}))),revision:parent.revision})
+    if(http.headers.get("origin")!==url.origin)reject(403,"Invalid origin")
+    if(closed(parent))reject(409,"Request workflow is locked")
+    const input=z.object({quoteId:z.string(),revision:z.number().int().nonnegative()}).strict().safeParse(await body(args))
+    if(!input.success)reject(400,"Choose an eligible agreement")
+    if(input.data.revision!==parent.revision)reject(409,"Request changed. Reload first")
+    const quote=eligible.find(row=>row.id===input.data.quoteId)
+    if(!quote)reject(409,"Agreement is not eligible for this customer, route, quantities or validity")
+    const items=(await quoteItems(store,quote)).filter(item=>services.some(service=>service.data.serviceKey===item.data.serviceKey)&&(quote.data.acceptedServices||[]).includes(item.data.serviceKey))
+    if(!services.every(service=>items.some(item=>item.data.serviceKey===service.data.serviceKey)))reject(409,"Agreement does not cover all requested services")
+    const amount=Number(decimal(items.reduce((sum,row)=>sum+minor(String(row.data.finalPrice)),BigInt(0))))
+    const record=timestamped({requestId:parent.id,customerId:parent.data.customerId,quoteNumber:await store.nextNumber("quote"),status:"accepted",acceptedViaAgreement:true,reusableAgreement:false,sourceQuoteId:quote.id,sourceQuoteNumber:quote.data.quoteNumber,currency:quote.data.currency,validUntil:quote.data.validUntil,notes:quote.data.notes||"",acceptedServices:services.map(s=>s.data.serviceKey),rejectedServices:[],totalAmount:amount,acceptedAmount:amount,createdBy:actor.user._id,complianceReference:null})
+    await store.commit({checks:[actor.snapshot,quote,...items],updates:[{before:parent,patch:{quoteRequired:true,acceptedQuoteId:record._id,acceptedServiceIds:services.map(s=>s.id),status:"quote_accepted",pricingAgreement:{sourceQuoteId:quote.id,sourceQuoteNumber:quote.data.quoteNumber,appliedBy:actor.user._id,appliedAt:now()},timeline:[...(parent.data.timeline||[]),timeline(actor,"quote_accepted","Existing agreement applied",quote.data.quoteNumber)]}},...services.map(service=>({before:service,patch:{status:"active",trackingStages:serviceStages({...service.data,status:"active"} as any)}}))],inserts:[{table:"quotes",data:record},...items.map(item=>({table:"quote_items" as const,data:timestamped({...fields(item.data,["serviceKey","basePrice","additionalCharges","discount","finalPrice","breakdown","note","currency","isTiered","tiers"]),quoteId:record._id,sourceQuoteItemId:item.id,requestServiceId:services.find(s=>s.data.serviceKey===item.data.serviceKey)!.id})})),{table:"notifications",data:notifyRequest(parent,"تم تطبيق الاتفاق السابق / Existing agreement applied",quote.data.quoteNumber,{actionUrl:`/portal/requests/${parent.id}`})}]})
+    return response({success:true,quote:record})
+  }
+  if(action==="admin-request-reconcile"){
+    if(actor.user.role!=="super_admin")reject(403,"An administrator must review historical completion")
+    if(http.headers.get("origin")!==url.origin)reject(403,"Invalid origin")
+    const input=z.object({revision:z.number().int().nonnegative(),reason:z.string().trim().min(3).max(500)}).strict().safeParse(await body(args))
+    if(!input.success)reject(400,"A review reason is required")
+    if(input.data.revision!==parent.revision)reject(409,"Request changed. Reload first")
+    const services=await requestServices(store,parent),ordered=executionServices(services.map(s=>s.data) as any[],parent.data.acceptedServiceIds)
+    if(parent.data.status==="cancelled"||!ordered.length||!ordered.every(s=>s.executionCompleted))reject(409,"All required services must already be complete")
+    if(parent.data.status==="completed")return response({success:true,changed:false})
+    const event={...timeline(actor,"completed","تمت مراجعة اكتمال الطلب / Historical completion reviewed",input.data.reason),eventId:crypto.randomUUID(),eventType:"request_completed",reconciled:true}
+    await store.commit({checks:[actor.snapshot,...services],updates:[{before:parent,patch:{status:"completed",completedAt:parent.data.completedAt||now(),completionReconciledAt:now(),timeline:[...(parent.data.timeline||[]),event]}}]})
+    return response({success:true})
+  }
   if(action==="request-tracking"||action==="admin-request-tracking"){
-    const services=(await requestServices(store,parent)).filter(service=>service.data.status!=="cancelled"&&(!Array.isArray(parent.data.acceptedServiceIds)||parent.data.acceptedServiceIds.includes(service.id)))
-    if(http.method==="GET")return response({canManage:staffAction&&canOperateRequest(actor,parent.data),serviceTracking:services.map(service=>{const stages=serviceStages(service.data as any);return {serviceId:service.id,serviceKey:service.data.serviceKey,revision:service.revision,stages,currentStageIndex:stages.findIndex(stage=>stage.status!=="completed"),isCompleted:stages.every(stage=>stage.status==="completed")}})})
-    if(!staffAction||!canOperateRequest(actor,parent.data))reject(403,"Only the responsible employee may update service stages")
+    const all=await requestServices(store,parent),ordered=executionServices(all.map(row=>row.data) as any[],parent.data.acceptedServiceIds)
+    const services=ordered.map(row=>all.find(service=>service.id===row._id)!)
+    if(http.method==="GET")return response({canManage:staffAction&&canOperateRequest(actor,parent.data),canReconcile:staffAction&&actor.user.role==="super_admin",requestRevision:parent.revision,processing:parent.data.status==="processing",completed:parent.data.status==="completed",needsReconciliation:parent.data.status!=="completed"&&ordered.length>0&&ordered.every(s=>s.executionCompleted),serviceTracking:services.map((service,index)=>{const stages=serviceStages(service.data as any);return {...fields(ordered[index],["executionOrder","executionLocked","waitingForService"]),serviceId:service.id,serviceKey:service.data.serviceKey,revision:service.revision,stages,currentStageIndex:stages.findIndex(stage=>stage.status!=="completed"),isCompleted:ordered[index].executionCompleted}})})
+    if(!staffAction||!canOperateRequest(actor,parent.data))reject(403,"Only an authorized employee may update service stages")
     if(http.headers.get("origin")!==url.origin)reject(403,"Invalid origin")
     if(!["processing","completed"].includes(parent.data.status))reject(409,"Begin processing before updating service stages")
     const parsed=z.object({serviceId:z.string(),stageKey:z.string(),status:z.enum(["not_started","in_progress","completed"]),revision:z.number().int().nonnegative(),staffNote:z.string().trim().max(1000).default("")}).strict().safeParse(await body(args))
     if(!parsed.success)reject(400,"Invalid stage update")
-    const input=parsed.data,service=services.find(service=>service.id===input.serviceId)
+    const input=parsed.data,service=services.find(row=>row.id===input.serviceId),position=services.findIndex(row=>row.id===input.serviceId)
     if(!service)reject(404,"Service not found")
     if(service.revision!==input.revision)reject(409,"Service changed. Reload first")
+    if(ordered[position].executionLocked)reject(409,"Complete the preceding service before starting this one")
     const stages=serviceStages(service.data as any),index=stages.findIndex(stage=>stage.stageKey===input.stageKey)
     if(index<0)reject(400,"Invalid service stage")
-    if(stages[index].status==="completed"&&input.status!=="completed"&&(actor.user.role!=="super_admin"||!input.staffNote))reject(403,"An administrator and correction note are required to reopen a completed stage")
+    const previous=stages[index],reopening=previous.status==="completed"&&input.status!=="completed"
+    if(reopening&&(actor.user.role!=="super_admin"||!input.staffNote))reject(403,"An administrator and correction note are required to reopen a completed stage")
+    if(reopening&&(stages.slice(index+1).some(stage=>stage.status!=="not_started")||services.slice(position+1).some(row=>serviceStages(row.data as any).some(stage=>stage.status!=="not_started"))))reject(409,"Later stages have execution history. Review the correction without erasing their work")
     if(input.status!=="not_started"&&stages.slice(0,index).some(stage=>stage.status!=="completed"))reject(409,"Complete earlier stages first")
     if(service.data.serviceKey==="customs_clearance"&&index===0&&input.status==="completed"&&!parent.data.complianceNumber)reject(409,"Provide UCR before completing this stage")
-    const reopening=stages[index].status==="completed"&&input.status!=="completed"
-    const next=stages.map((stage,i)=>i===index?{...stage,status:input.status,completedAt:input.status==="completed"?now():null,staffNote:input.staffNote,staffNoteAt:now(),staffName:`${actor.user.firstName} ${actor.user.lastName}`,updatedBy:actor.user._id}:reopening&&i>index?{...stage,status:"not_started" as const,completedAt:null}:stage)
-    const done=next.every(stage=>stage.status==="completed"),nextStatus=done?"completed":"active"
-    const all=await requestServices(store,parent),finished=all.every(row=>row.id===service.id?done:["completed","cancelled"].includes(row.data.status))
-    const status=finished?"completed":"processing",label=stages[index].labelAr
-    const title=`${input.status==="completed"?"تم إنجاز":"تحديث مرحلة"}: ${label}`
-    await store.commit({checks:[actor.snapshot,...all.filter(row=>row.id!==service.id)],updates:[{before:service,patch:{status:nextStatus,trackingStages:next,timeline:[...(service.data.timeline||[]),timeline(actor,nextStatus,title,input.staffNote)]}},{before:parent,patch:{status,timeline:[...(parent.data.timeline||[]),timeline(actor,status,title,input.staffNote)]}}],inserts:[{table:"notifications",data:notifyRequest(parent,title,`${parent.data.trackingNumber}${input.staffNote?` — ${input.staffNote}`:""}`,{actionUrl:`/portal/requests/${parent.id}`})}]})
-    return response({success:true})
+    if(previous.status===input.status&&(previous.staffNote||"")===input.staffNote)return response({success:true,changed:false})
+    const next=stages.map((stage,i)=>i===index?{...stage,status:input.status,completedAt:input.status==="completed"?(stage.completedAt||now()):null,staffNote:input.staffNote,staffNoteAt:now(),staffName:`${actor.user.firstName} ${actor.user.lastName}`,updatedBy:actor.user._id}:stage)
+    const done=next.every(stage=>stage.status==="completed"),nextStatus=done?"completed":input.status==="not_started"&&next.every(stage=>stage.status==="not_started")?"pending":"active"
+    const finished=ordered.length>0&&services.every(row=>row.id===service.id?done:executionCompleted(row.data as any))
+    const status=finished?"completed":"processing",eventId=crypto.randomUUID(),title=`${serviceLabels[service.data.serviceKey]?.[0]||service.data.serviceKey} — ${previous.labelAr}: ${input.status}`
+    const event={...timeline(actor,status,title,input.staffNote),eventId,eventType:"service_stage_changed",serviceId:service.id,serviceKey:service.data.serviceKey,stageKey:input.stageKey,stageLabelAr:previous.labelAr,stageLabelEn:previous.labelEn,previousStageStatus:previous.status,stageStatus:input.status,actorName:`${actor.user.firstName} ${actor.user.lastName}`}
+    const events=[event]
+    if(done&&service.data.status!=="completed")events.push({...timeline(actor,status,"Service completed",""),eventId:crypto.randomUUID(),eventType:"service_completed",serviceId:service.id,serviceKey:service.data.serviceKey} as any)
+    if(finished&&parent.data.status!=="completed")events.push({...timeline(actor,"completed","تم الانتهاء من الطلب / Request completed",""),eventId:crypto.randomUUID(),eventType:"request_completed"} as any)
+    await store.commit({checks:[actor.snapshot,...all.filter(row=>row.id!==service.id)],updates:[{before:service,patch:{status:nextStatus,trackingStages:next,timeline:[...(service.data.timeline||[]),event]}},{before:parent,patch:{status,...(finished?{completedAt:parent.data.completedAt||now()}:reopening?{completedAt:null}:{}),timeline:[...(parent.data.timeline||[]),...events]}}],inserts:[{table:"notifications",data:notifyRequest(parent,finished?"تم الانتهاء من الطلب / Request completed":title,`${parent.data.trackingNumber}${input.staffNote?` — ${input.staffNote}`:""}`,{actionUrl:`/portal/requests/${parent.id}`})}]})
+    return response({success:true,changed:true})
   }
   if(action==="admin-request-ucr"||action==="request-ucr"){
     const services=await requestServices(store,parent)
     const acceptedQuote=parent.data.acceptedQuoteId?await store.read("quotes",parent.data.acceptedQuoteId):await latestQuote(store,parent.id)
-    const eligible=!!acceptedQuote&&acceptedQuote.data.requestId===parent.id&&["accepted","partially_accepted"].includes(acceptedQuote.data.status)
+    const eligible=parent.data.quoteRequired===false||!!acceptedQuote&&acceptedQuote.data.requestId===parent.id&&["accepted","partially_accepted"].includes(acceptedQuote.data.status)
     const customs=services.some(service=>service.data.serviceKey==="customs_clearance"&&service.data.status!=="cancelled"&&(!Array.isArray(parent.data.acceptedServiceIds)||parent.data.acceptedServiceIds.includes(service.id)))
     const status=parent.data.ucrStatus&&parent.data.ucrStatus!=="not_required"?parent.data.ucrStatus:"pending"
     const required=eligible&&(staffAction||customs||["requested_from_customer","submitted_by_customer"].includes(status))
-    const state={required,status:required?status:"not_required",value:eligible?(parent.data.ucrValue||parent.data.complianceNumber||""):"",source:parent.data.ucrSource||null,revision:parent.revision,canManage:staffAction&&eligible&&canOperateRequest(actor,parent.data),canProvide:eligible&&customs,canRequest:eligible&&!customs}
+    const state={required,status:required?status:"not_required",value:eligible?(parent.data.ucrValue||parent.data.complianceNumber||""):"",source:parent.data.ucrSource||null,revision:parent.revision,canManage:staffAction&&eligible&&!["completed","cancelled"].includes(parent.data.status)&&canOperateRequest(actor,parent.data),canProvide:eligible&&customs,canRequest:eligible&&!customs}
     if(http.method==="GET")return response(state)
     if(http.headers.get("origin")!==url.origin)reject(403,"Invalid origin")
     if(!eligible)reject(409,"Accept the quotation before managing UCR")
@@ -400,7 +457,7 @@ export async function handleRequests(store: WorkflowStore, actor: Actor, args: W
     if(!canOperateRequest(actor,parent.data)) reject(403,"Only an administrator or the assigned employee can update the request")
     if (!requestStatuses.includes(input.status)) reject(400, "Invalid status")
     if(input.status!==parent.data.status&&["processing","quote_accepted","quote_provided"].includes(input.status)) reject(409,"Use the dedicated processing or quotation workflow for this transition")
-    if(input.status==="completed"&&(await requestServices(store,parent)).some(row=>!["completed","cancelled"].includes(canonicalServiceStatus(row.data.status)))) reject(409,"Complete the requested services first")
+    if(input.status==="completed"&&((await requestServices(store,parent)).filter(row=>row.data.status!=="cancelled").length===0||(await requestServices(store,parent)).some(row=>row.data.status!=="cancelled"&&!executionCompleted(row.data as any)))) reject(409,"Complete the requested services first")
     patch.status = input.status
     title = String(input.status).replace(/_/g, " ")
     message = input.comment || `Your request "${parent.data.subject}" is now ${title}.`
@@ -415,8 +472,7 @@ export async function handleRequests(store: WorkflowStore, actor: Actor, args: W
     if (parent.data.quoteRequired === false) {
       if (!canOperateRequest(actor, parent.data)) reject(403, "Only an administrator or the assigned employee can begin direct processing")
       if (["processing", "completed", "cancelled"].includes(parent.data.status)) reject(409, "Request is already processing or closed")
-      const customs=(await requestServices(store,parent)).some(service=>service.data.serviceKey==="customs_clearance"&&service.data.status!=="cancelled")
-      if(customs&&(!parent.data.complianceNumber?.trim()||(parent.data.operationType==="export"&&parent.data.complianceType!=="UCR")))reject(409,"Enter the applicable customs reference before direct processing")
+
     } else {
       const quote = await latestQuote(store, parent.id)
       if (parent.data.status !== "quote_accepted" || !quote || !["accepted","partially_accepted"].includes(quote.data.status) || quote.data.customerId !== parent.data.customerId) reject(409, "Request has no accepted quotation ready for confirmation")

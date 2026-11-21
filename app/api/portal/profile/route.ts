@@ -1,3 +1,4 @@
+import {accountHealth,effectiveAccountDocuments} from "@/lib/compliance/account-health"
 import { getDatabaseProvider } from "@/lib/db/provider"
 import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
@@ -94,7 +95,8 @@ export async function GET(req: NextRequest) {
         .sort({ expiryDate: 1, title: 1 })
         .lean()
 
-      expiringDocuments = rawExpiring.map((doc) => ({
+      if(customer){const all=await DocumentModel.find({customerId:user.customerId,isArchived:false}).lean();const health=accountHealth(all,customer);Object.assign(customer,{accountStatus:health.status,statusReason:health.reason})}
+      expiringDocuments = effectiveAccountDocuments(rawExpiring).map((doc) => ({
         id: doc._id.toString(),
         title: doc.title,
         category: doc.category,

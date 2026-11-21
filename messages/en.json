@@ -941,7 +941,8 @@
         "clearance_requirements": "Customs Clearance Requirements ({type})",
         "clearance_desc": "To complete your request and begin execution, please apply for {type} number.",
         "clearance_btn": "Apply for {type} to complete request",
-        "compliance_issued": "{type} Number :"
+        "compliance_issued": "{type} Number :",
+        "select_container_count": "Choose the container count, or enter a whole number above 10."
       },
       "milestone_documents_under_review_title": "{type} Documents Under Review",
       "milestone_documents_under_review_comment": "The uploaded documents are being reviewed by our team to issue the {type} number."

@@ -1,3 +1,4 @@
+import {assessD1Customer} from "../compliance/d1"
 import { NextResponse } from "next/server"
 import type { D1Binding, D1Statement, D1Value } from "../db/d1"
 import { getSessionFromRequest } from "../auth/token-service"
@@ -147,6 +148,7 @@ export async function actorFor(store: WorkflowStore, request: Request): Promise<
   if (!user || !["active", "pending_verification"].includes(user.user.status)) return reject(401, "User account unavailable")
   const customer = user.user.customerId ? await store.read("customers", user.user.customerId) : null
   if (user.user.customerId && !customer) return reject(409, "Customer relationship requires migration review")
+  if(customer)customer.data=(await assessD1Customer(store.db,customer.data)).customer
   return { user: user.user, snapshot: { table: "users", id: user.user._id, revision: user.revision, data: user.user }, customer }
 }
 export function own(actor: Actor, record: Snapshot): void {

@@ -1,4 +1,6 @@
 "use client"
+import {FinalShipmentDocuments} from "@/components/portal/requests/FinalShipmentDocuments"
+import {RequestTimeline} from "@/components/portal/requests/RequestTimeline"
 
 import { serviceStatusLabels } from "@/lib/requests/progress"
 import { visibleRequestServices } from "@/lib/requests/visible-services"
@@ -137,8 +139,10 @@ export default function RequestDetailsAndDocumentsPage() {
 
 
 
+        {request.details?.containerCount!==undefined&&<p className="rounded-xl border p-4 font-semibold">{isAr?"عدد الحاويات: ":"Container count: "}{request.details.containerCount}</p>}
         <UCRSection requestId={String(params.id)} />
         <ServiceProgress services={visibleServices} />
+        <FinalShipmentDocuments requestId={String(params.id)} updatedAt={request.updatedAt} />
         <PublishedInvoiceLink invoice={request.publishedInvoice} />
         {/* Quotation & Offer */}
         {quote && !["accepted","partially_accepted"].includes(quote.status) && (
@@ -160,6 +164,7 @@ export default function RequestDetailsAndDocumentsPage() {
             </div>
 
             <div className="space-y-4 mb-8">
+              {quote.reusableAgreement&&<p className="mb-3 rounded-xl bg-sky-50 p-3 text-sm text-sky-900">{isAr?"قبول هذا الاتفاق يسمح باستخدام نفس الأسعار للطلبات المطابقة في الخدمات والمسار والكميات حتى انتهاء صلاحيته.":"Accepting this agreement authorizes reuse for matching services, route and quantities until expiry."}</p>}
               <QuoteServiceSelector items={quoteItems} currency={quote.currency || "EGP"} ar={isAr} selected={quote.acceptedServices || selectedServices} onChange={keys=>setSelection({quoteId:quote._id,keys})} editable={request.quoteRequired!==false&&request.status==="quote_provided"} />
 
             </div>
@@ -198,27 +203,7 @@ export default function RequestDetailsAndDocumentsPage() {
           </div>
         </div>
 
-        {/* Timeline */}
-        {request.timeline && request.timeline.length > 0 && (
-          <div className="bg-white dark:bg-secondary-900 rounded-xl border border-gray-200 dark:border-secondary-800 p-6 shadow-sm">
-            <h2 className="text-xl font-bold mb-6">{t("portal.requests.modalMilestonesTitle") || "Request Timeline & Status"}</h2>
-            
-            <div className="relative pl-6 space-y-6 before:absolute before:top-2 before:bottom-2 before:left-2 before:w-0.5 before:bg-secondary-200 dark:before:bg-secondary-800">
-              {request.timeline.map((item: any, i: number) => (
-                <div key={i} className="relative">
-                  <div className="absolute -left-6 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary-600 ring-4 ring-white dark:ring-secondary-900"></div>
-                  <p className="text-sm font-bold text-secondary-900 dark:text-white">
-                    {item.status ? (t(`portal.requests.milestone_${item.status}_title`, { type: request.operationType === "export" ? "UCR" : "ACID" }) !== `portal.requests.milestone_${item.status}_title` ? t(`portal.requests.milestone_${item.status}_title`, { type: request.operationType === "export" ? "UCR" : "ACID" }) : item.title) : item.title}
-                  </p>
-                  <p className="text-xs text-secondary-500 mt-1">
-                    {item.status ? (t(`portal.requests.milestone_${item.status}_comment`, { type: request.operationType === "export" ? "UCR" : "ACID" }) !== `portal.requests.milestone_${item.status}_comment` ? t(`portal.requests.milestone_${item.status}_comment`, { type: request.operationType === "export" ? "UCR" : "ACID" }) : item.comment) : item.comment}
-                  </p>
-                  <span suppressHydrationWarning className="text-[11px] text-secondary-400 mt-2 block">{new Date(item.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <RequestTimeline events={request.timeline||[]} />
 
         <div className="flex flex-col items-center mt-8 space-y-4">
           <Link

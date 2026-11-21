@@ -1,3 +1,4 @@
+import {requestContainerCount} from "@/lib/requests/container-count"
 import { getDatabaseProvider } from "@/lib/db/provider"
 import { validShippingOperation } from "@/lib/requests/operation-type"
 import { handleD1Workflow } from "@/lib/workflows/d1-handlers"
@@ -92,6 +93,8 @@ export async function POST(req: NextRequest) {
       ]
     }
 
+    let containerCount:number|undefined
+    try{containerCount=requestContainerCount(body)}catch(error){return NextResponse.json({error:(error as Error).message},{status:400})}
     const parsed = createRequestSchema.safeParse(body)
 
     if (!parsed.success) {
@@ -119,6 +122,7 @@ export async function POST(req: NextRequest) {
       description: parsed.data.description,
       priority: parsed.data.priority,
       status: initialStatus,
+      details:{...(containerCount!==undefined?{containerCount}:{})},
       services: [], // Populated below
       timeline: [
         {
@@ -144,7 +148,7 @@ export async function POST(req: NextRequest) {
         requestId: newRequest._id,
         serviceKey: srv.serviceKey,
         status: "pending",
-        details: srv.details || {},
+        details: {...(srv.details||{}),...(containerCount!==undefined?{containerCount}:{})},
         timeline: [
           {
             status: "pending",

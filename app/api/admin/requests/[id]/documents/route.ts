@@ -40,6 +40,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       success: true,
       documents: documents.map((doc: any) => ({
         id: doc._id.toString(),
+        entityType:doc.entityType,
         title: doc.title,
         category: doc.category,
         fileName: doc.fileName,

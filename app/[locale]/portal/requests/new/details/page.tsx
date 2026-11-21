@@ -1,5 +1,6 @@
 "use client"
 
+import {ContainerCountPicker} from "@/components/portal/requests/ContainerCountPicker"
 import React, { useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { useRouter } from "@/navigation"
@@ -15,6 +16,7 @@ export default function RequestDetailsPage() {
   const t = useTranslations()
 
   const services = searchParams.getAll("services")
+  const [containerCount,setContainerCount]=useState<number|undefined>(undefined)
   const [loading, setLoading] = useState(false)
   const [shipmentInvoice, setShipmentInvoice] = useState<File | null>(null)
 
@@ -54,16 +56,20 @@ export default function RequestDetailsPage() {
     }))
   }
 
+  const hasContainers=services.includes("sea_freight")||!!formData.containerType
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if(hasContainers&&!containerCount){toast.error(t.has("portal.requests.details.select_container_count")?t("portal.requests.details.select_container_count"):"Choose a valid container count");return}
     setLoading(true)
 
     try {
       const payload = {
         ...formData,
+        ...(hasContainers?{containerCount}:{}),
         services: services.map((s) => ({
           serviceKey: s,
-          details: { ...serviceDetails[s], origin: formData.origin, destination: formData.destination, weight: formData.weight, containerType: formData.containerType, containerSize: formData.containerSize },
+          details: { ...serviceDetails[s], origin: formData.origin, destination: formData.destination, weight: formData.weight, containerType: formData.containerType, containerSize: formData.containerSize,...(hasContainers?{containerCount}:{}) },
         })),
       }
 
@@ -220,6 +226,7 @@ export default function RequestDetailsPage() {
           </div>
         </div>
 
+        {hasContainers&&<div className="rounded-xl border bg-white p-6 dark:border-slate-700 dark:bg-slate-900"><ContainerCountPicker value={containerCount} onChange={setContainerCount}/></div>}
         {/* Dynamic Details per selected service */}
         {services.map((serviceId) => (
           serviceId === "general_inquiry" ? null : (

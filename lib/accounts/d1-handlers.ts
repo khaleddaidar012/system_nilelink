@@ -380,7 +380,8 @@ export function createD1AccountsHandler(db: D1Binding, options: { sendOtp?: (inp
         const params = new URL(request.url).searchParams
         const pattern = params.get(action === "customers-search" ? "q" : "search") || ""
         const search = pattern ? regexSearch(pattern) : null
-        let customers = await repository.listCustomers(action === "customers-list" ? params.get("status") || "all" : undefined)
+        let customers = await Promise.all((await repository.listCustomers()).map(customer=>repository.complianceCustomer(customer)))
+        if(action==="customers-list"&&params.get("status")&&params.get("status")!=="all")customers=customers.filter(c=>c.accountStatus===params.get("status"))
         if (search) customers = customers.filter(customer => [String(customer.customerCode || ""), String(customer.legacyCustomerCode || ""), customer.taxCardNumber, customer.companyName, customer.commercialRegisterNumber, customer.contactEmail, ...(action === "customers-list" ? [customer.contactPhone] : [])].some(value => search.test(value || "")))
         if (action === "customers-search") {
           customers.sort((a, b) => a.companyName < b.companyName ? -1 : a.companyName > b.companyName ? 1 : 0)
@@ -406,10 +407,11 @@ export function createD1AccountsHandler(db: D1Binding, options: { sendOtp?: (inp
           targetAudience: "customer", actionUrl: "/portal", isRead: false, readBy: [], readAt: null,
           emailStatus: "not_applicable", whatsappStatus: "not_applicable", createdAt: now, updatedAt: now, __v: 0,
         }))
-        await repository.updateCustomerStatus(customer, { accountStatus: input.accountStatus, statusReason: input.statusReason }, notifications)
+        await repository.updateCustomerStatus(customer, { accountStatus: input.accountStatus, statusReason: input.statusReason, administrativeHold:input.accountStatus==="inactive",accountStatusSource:input.accountStatus==="inactive"?"administrative":"documents" }, notifications)
         return json({ success: true, message: `Customer status updated from ${customer.value.accountStatus} to ${input.accountStatus}.`, customer: { id: customer.value._id, companyName: customer.value.companyName, accountStatus: input.accountStatus, statusReason: input.statusReason } })
       }
       if (action === "customer-get") {
+        customer.value=await repository.complianceCustomer(customer.value)
         const [contacts, documents, invoices] = await Promise.all([repository.customerUsers(customer.value._id), repository.customerDocuments(customer.value._id), repository.recentInvoices(customer.value._id)])
         const stats = { totalDocs: documents.length, approvedDocs: 0, expiringDocs: 0, expiredDocs: 0, pendingDocs: 0, rejectedDocs: 0, maxAllowed: customer.value.maxAllowedDocuments || 20 }
         const statKeys = { approved: "approvedDocs", expiring_soon: "expiringDocs", expired: "expiredDocs", pending_review: "pendingDocs", rejected: "rejectedDocs" } as const

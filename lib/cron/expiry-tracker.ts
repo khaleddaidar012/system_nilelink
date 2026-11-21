@@ -1,3 +1,5 @@
+import {isAccountDocument,effectiveAccountDocuments,expiryInstant} from "../compliance/account-health"
+import {recalculateCustomerAccountStatus} from "../engine/account-health-engine"
 import mongoose from "mongoose"
 import { connectDB } from "@/lib/mongodb"
 import { Document as DocumentModel, Customer, Notification } from "@/lib/models"
@@ -13,7 +15,9 @@ export async function runExpiryEvaluation(): Promise<ExpiryCheckResult> {
   const result: ExpiryCheckResult = { totalEvaluated: 0, tier30Alerts: 0, tier20Alerts: 0, tier10Alerts: 0, tier5Alerts: 0, expiredCount: 0, notificationsCreated: 0 }
   const documents = await DocumentModel.find({ isArchived: false, expiryDate: { $ne: null }, status: { $in: ["approved", "expiring_soon", "expired"] } })
   result.totalEvaluated = documents.length
-  for (const original of documents) {
+  const effectiveIds=new Set<string>()
+  for(const id of new Set(documents.map(doc=>String(doc.customerId))))for(const doc of effectiveAccountDocuments(documents.filter(d=>String(d.customerId)===id).map(d=>d.toObject())))effectiveIds.add(String(doc._id))
+  for (const original of documents.filter(doc=>effectiveIds.has(String(doc._id))&&isAccountDocument(doc.toObject()))) {
     const session = await mongoose.startSession()
     let sentTier: number | null = null
     try {
@@ -21,8 +25,8 @@ export async function runExpiryEvaluation(): Promise<ExpiryCheckResult> {
         sentTier = null
         const doc = await DocumentModel.findById(original._id).session(session)
         if (!doc || doc.isArchived || !["approved", "expiring_soon", "expired"].includes(doc.status) || !doc.expiryDate) return
-        const expiry = new Date(doc.expiryDate).getTime()
-        if (!Number.isFinite(expiry)) return
+        const expiry = expiryInstant(doc.toObject())!
+        if (!Number.isFinite(expiry)||new Date(expiry).getUTCFullYear()>now.getUTCFullYear()+100) return
         const left = Math.ceil((expiry - now.getTime()) / day)
         const tier = left <= 0 ? 0 : left <= 5 ? 5 : left <= 10 ? 10 : left <= 20 ? 20 : left <= 30 ? 30 : null
         if (doc.status === "expired" && tier !== 0) return
@@ -52,5 +56,6 @@ export async function runExpiryEvaluation(): Promise<ExpiryCheckResult> {
       }
     } finally { await session.endSession() }
   }
+  for(const customerId of new Set(documents.map(doc=>String(doc.customerId))))await recalculateCustomerAccountStatus(customerId)
   return result
 }

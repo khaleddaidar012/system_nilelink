@@ -60,6 +60,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     const oldStatus = customer.accountStatus
     customer.accountStatus = accountStatus
     customer.statusReason = statusReason
+    customer.set("administrativeHold",accountStatus==="inactive")
+    customer.set("accountStatusSource",accountStatus==="inactive"?"administrative":"documents")
     await customer.save()
 
     // Send in-app notification to all users belonging to this customer

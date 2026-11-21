@@ -1,4 +1,6 @@
 "use client"
+import {executionServices,serviceTheme} from "@/lib/requests/execution"
+import {serviceStages} from "@/lib/requests/tracking"
 import { useLocale } from "next-intl"
 import { canonicalServiceStatus, serviceLabels, serviceStatusLabels } from "@/lib/requests/progress"
 import { ServiceTracker } from "./ServiceTracker"
@@ -10,12 +12,6 @@ export function PublishedInvoiceLink({invoice}:{invoice?:{token:string;invoiceNu
   return <Link href={`/invoice/${invoice.token}`} className="inline-flex rounded-xl border border-primary-200 bg-primary-50 px-3 py-2 text-xs font-bold text-primary-700 dark:bg-primary-950 dark:text-primary-200">{ar?"معاينة الفاتورة":"Preview invoice"} · <bdi>{invoice.referenceNumber || invoice.invoiceNumber}</bdi></Link>
 }
 export function ServiceProgress({services,compact=false}:{services:{_id:string;serviceKey:string;status:string;trackingStages?:ServiceStage[]}[];compact?:boolean}) {
-  const ar=useLocale()==="ar",lang=ar?0:1
-  const active=services.filter(service=>canonicalServiceStatus(service.status)==="active")
-  const allDone=services.length>0&&services.every(service=>["completed","cancelled"].includes(canonicalServiceStatus(service.status)))
-  if(!compact && services.some(service=>["active","completed"].includes(service.status)))return <div className="space-y-3">{services.filter(service=>["active","completed"].includes(service.status)).map(service=><ServiceTracker key={service._id} service={service} />)}</div>
-  return <div className={compact?"mt-2 space-y-2 text-xs":"space-y-3 rounded-2xl border border-primary-100 bg-primary-50 p-5 dark:border-primary-900 dark:bg-primary-950/30"}>
-    <p className="font-bold">{ar?"المرحلة الحالية: ":"Current stage: "}{active.length?active.map(service=>serviceLabels[service.serviceKey]?.[lang]??service.serviceKey).join(" + "):allDone?(ar?"انتهى تنفيذ الخدمات":"Service processing finished"):(ar?"تجهيز / انتظار بدء الخدمة":"Preparation / awaiting service start")}</p>
-    <div className="flex flex-wrap gap-2">{services.map(service=><span key={service._id} className="rounded-lg border border-slate-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-900">{serviceLabels[service.serviceKey]?.[lang]??service.serviceKey} · {serviceStatusLabels[service.status]?.[lang]??service.status}</span>)}</div>
-  </div>
+  const ar=useLocale()==="ar",lang=ar?0:1,ordered=executionServices(services)
+  return <section className="space-y-3">{ordered.length>0&&ordered.every(s=>s.executionCompleted)&&<p className="rounded-xl bg-emerald-50 p-4 font-bold text-emerald-700">{ar?"تم الانتهاء من الطلب":"Request completed"}</p>}{ordered.map(service=>{const stages=serviceStages(service),completed=stages.filter(s=>s.status==="completed").length;return <div key={service._id} className={"rounded-2xl border p-3 "+serviceTheme(service.serviceKey)}><h3 className="font-bold">{service.executionOrder}. {serviceLabels[service.serviceKey]?.[lang]||service.serviceKey}</h3><p className="my-2 text-xs">{service.executionLocked?(ar?"في انتظار اكتمال ":"Awaiting ")+(serviceLabels[service.waitingForService!]?.[lang]||service.waitingForService):service.executionCompleted?(ar?"مكتملة":"Completed"):stages.some(s=>s.status==="in_progress")?(ar?"قيد التنفيذ":"In progress"):(ar?"لم تبدأ / جاهزة للبدء":"Not started / ready")}{" · "}{completed}/{stages.length}</p>{!compact&&<ServiceTracker service={service}/>}</div>})}</section>
 }

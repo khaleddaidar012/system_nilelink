@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils"
 import { LiveDocumentViewerModal } from "@/components/shared/LiveDocumentViewerModal"
 
 export interface ReviewDocumentItem {
+  entityType?:string
   id: string
   title: string
   category: string
@@ -148,7 +149,7 @@ export function DocumentReviewModal({ document, onClose, onSuccess }: DocumentRe
           title: trimmedTitle || document.fileName,
           category: editableCategory,
           startDate: status === "approved" ? startDate : undefined,
-          expiryDate: status === "approved" ? expiryDate : undefined,
+          expiryDate: status === "approved" && document.entityType!=="CustomerRequest" ? expiryDate : undefined,
           rejectionReason: status === "rejected" ? (rejectionReason?.trim() || "Illegible or Low Quality Copy") : undefined,
           reviewNotes: reviewNotes?.trim() || undefined,
         }),
@@ -411,7 +412,7 @@ export function DocumentReviewModal({ document, onClose, onSuccess }: DocumentRe
               </div>
 
               {/* If Approved: Date Pickers with In-Modal Adjustments */}
-              {status === "approved" && (
+              {status === "approved" && document.entityType!=="CustomerRequest" && (
                 <div className="space-y-3 rounded-xl border border-emerald-500/25 bg-emerald-50/50 p-3.5 dark:bg-emerald-950/15">
                   <div className="flex items-center justify-between border-b border-emerald-500/15 pb-2">
                     <span className="flex items-center gap-1 text-xs font-bold text-emerald-900 dark:text-emerald-300">

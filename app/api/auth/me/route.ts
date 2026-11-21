@@ -1,3 +1,4 @@
+import {accountHealth,accountDocumentStats} from "@/lib/compliance/account-health"
 import { getDatabaseProvider } from "@/lib/db/provider"
 import { handleD1AccountAction } from "@/lib/accounts/d1-handlers"
 import { NextRequest, NextResponse } from "next/server"
@@ -51,59 +52,10 @@ export async function GET(req: NextRequest) {
     if (customerId) {
       customer = await Customer.findById(customerId).lean()
 
-      const now = new Date()
-      const tenDaysFromNow = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
-
-      const totalDocs = await DocumentModel.countDocuments({
-        customerId,
-        isArchived: false,
-      })
-
-      const approvedDocs = await DocumentModel.countDocuments({
-        customerId,
-        status: "approved",
-        isArchived: false,
-      })
-
-      const pendingDocs = await DocumentModel.countDocuments({
-        customerId,
-        status: "pending_review",
-        isArchived: false,
-      })
-
-      const expiredDocs = await DocumentModel.countDocuments({
-        customerId,
-        isArchived: false,
-        $or: [
-          { status: "expired" },
-          { status: "approved", expiryDate: { $lt: now } },
-        ],
-      })
-
-      const expiringDocs = await DocumentModel.countDocuments({
-        customerId,
-        isArchived: false,
-        $or: [
-          { status: "expiring_soon" },
-          { status: "approved", expiryDate: { $gte: now, $lte: tenDaysFromNow } },
-        ],
-      })
-
-      const rejectedDocs = await DocumentModel.countDocuments({
-        customerId,
-        status: "rejected",
-        isArchived: false,
-      })
-
-      documentStats = {
-        totalDocs,
-        approvedDocs,
-        expiringDocs,
-        expiredDocs,
-        pendingDocs,
-        rejectedDocs,
-        maxAllowed: customer?.maxAllowedDocuments || 20,
-      }
+      const docs=await DocumentModel.find({customerId,isArchived:false}).lean()
+      const health=accountHealth(docs,customer||{})
+      if(customer)Object.assign(customer,{accountStatus:health.status,statusReason:health.reason})
+      documentStats={...accountDocumentStats(docs),maxAllowed:customer?.maxAllowedDocuments||20}
     }
 
     const unreadNotificationsCount = await Notification.countDocuments({

@@ -12,6 +12,8 @@ export interface ICustomer extends Document {
   address?: string
   contactPhone: string
   contactEmail: string
+  administrativeHold?: boolean
+  accountStatusSource?: "documents" | "administrative"
   accountStatus: AccountStatus
   statusReason?: string
   assignedStaffId?: mongoose.Types.ObjectId
@@ -68,6 +70,8 @@ const CustomerSchema = new Schema<ICustomer>(
       lowercase: true,
       trim: true,
     },
+    administrativeHold:{type:Boolean,default:false},
+    accountStatusSource:{type:String,enum:["documents","administrative"],default:undefined},
     accountStatus: {
       type: String,
       enum: ["active", "warning", "inactive", "under_review", "unverified"],

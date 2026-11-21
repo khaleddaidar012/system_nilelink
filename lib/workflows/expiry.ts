@@ -1,3 +1,5 @@
+import {accountHealth,effectiveAccountDocuments,isAccountDocument,expiryInstant,complianceState} from "../compliance/account-health"
+import {d1MandatoryKeys} from "../compliance/d1"
 import { timingSafeEqual } from "node:crypto"
 import { WorkflowStore, WorkflowError, actorFor, now, notification, requireStaff, response, timestamped } from "./runtime"
 import type { Actor, Change, Data, WorkflowInput } from "./runtime"
@@ -21,14 +23,15 @@ export async function evaluateExpiry(store: WorkflowStore, actor: Actor | null, 
   const day = 86400000, timestamp = new Date(currentTime).toISOString()
   for (const customer of customers) {
     const documents = await store.list("documents", "customerId = ? AND isArchived = 0", [customer.id])
-    const eligible = documents.filter(row => ["approved", "expiring_soon", "expired"].includes(row.data.status) && row.data.expiryDate)
+    const effectiveIds=new Set(effectiveAccountDocuments(documents.map(row=>row.data),currentTime).map(d=>d._id))
+    const eligible = documents.filter(row => effectiveIds.has(row.id)&&isAccountDocument(row.data)&& ["approved", "expiring_soon", "expired"].includes(row.data.status) && row.data.expiryDate)
     result.totalEvaluated += eligible.length
     if (documents.some(row => row.data.expiryDate && !Number.isFinite(Date.parse(row.data.expiryDate)))) { result.requiresReview++; continue }
     const updates: Change[] = [], inserts: { table: "notifications" | "document_activity_logs"; data: Data }[] = []
     const deltas = { tier30Alerts: 0, tier20Alerts: 0, tier10Alerts: 0, tier5Alerts: 0, expiredCount: 0, notificationsCreated: 0 }
     const finalDocuments = documents.map(row => ({ ...row.data }))
     for (const doc of eligible) {
-      const left = Math.ceil((Date.parse(doc.data.expiryDate) - currentTime) / day)
+      const left = Math.ceil((expiryInstant(doc.data)! - currentTime) / day)
       const tier = left <= 0 ? 0 : left <= 5 ? 5 : left <= 10 ? 10 : left <= 20 ? 20 : left <= 30 ? 30 : null
       const escalation = tier === 0 ? "expired" : tier === 5 || tier === 10 ? "critical" : tier === 20 ? "urgent" : tier === 30 ? "warning" : "none"
       const status = tier === 0 ? "expired" : tier !== null ? "expiring_soon" : "approved"
@@ -57,13 +60,11 @@ export async function evaluateExpiry(store: WorkflowStore, actor: Actor | null, 
       }
     }
     if (!eligible.length) continue
-    const health = documentHealth(finalDocuments, currentTime, customer.data.accountStatus)
+    const health = accountHealth(finalDocuments, customer.data, currentTime, await d1MandatoryKeys(store.db))
     // Preserve an inactive account until a staff review; cron cannot undo a manual hold.
     // The scheduler monitors expiry; it must never revoke approval because a new
     // file is awaiting review, nor activate an account that needs staff approval.
-    const patch = ["warning", "inactive"].includes(health.status) &&
-      !(customer.data.accountStatus === "inactive" && health.status !== "inactive")
-      ? { accountStatus: health.status, statusReason: health.reason } : {}
+    const patch = health.source==="documents" ? { accountStatus: health.status, statusReason: health.reason,accountStatusSource:"documents" } : {}
     if (!updates.length && (!Object.keys(patch).length || (customer.data.accountStatus === health.status && customer.data.statusReason === health.reason))) continue
     updates.push({ before: customer, patch })
     try {

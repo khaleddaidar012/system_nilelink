@@ -428,7 +428,7 @@ test('all submitted request documents must be reviewed before quotation and heal
 })
 
 test('concurrent uploads cannot exceed quota; only uncommitted objects are cleaned up', async () => {
-  await store.commit({ updates: [{ before: await store.read('customers', a.data.customerId), patch: { maxAllowedDocuments: 3 } }] })
+  await store.commit({ updates: [{ before: await store.read('customers', a.data.customerId), patch: { maxAllowedDocuments: (await store.list("documents","customerId = ? AND isArchived = 0",[a.data.customerId])).filter(row=>row.data.entityType!=="CustomerRequest").length+1 } }] })
   const before = objects.size
   const results = await Promise.all([uploadRoute(uploadHttp([pdf('race1.pdf')])), uploadRoute(uploadHttp([pdf('race2.pdf')]))])
   assert.equal(results.filter(result => result.status === 201).length, 1)
@@ -562,6 +562,11 @@ test('legacy stored filename downloads retain the exact source document and reje
   assert.equal(getCount, calls)
 })
 
+test('verified company renewal supersedes extra pending company copies before subsequent requests',async()=>{
+ for(const category of ['commercial_register','tax_card'])await insert('documents',timestamped({customerId:a.data.customerId,entityType:'Customer',entityId:a.data.customerId,title:category,category,status:'approved',expiryDate:new Date(Date.now()+365*86400000).toISOString(),isArchived:false}));
+ const me=await new D1AccountsRepository(db).complianceCustomer((await data('customers',a.data.customerId)));assert.equal(me.accountStatus,'active');
+})
+
 test('request attachments include only shipment invoices and exclude linked account documents', async()=>{
  const parent=await createRequest();
  const invoice=timestamped({customerId:a.data.customerId,entityId:parent._id,entityType:'CustomerRequest',title:'Shipment invoice',category:'other',fileName:'invoice.pdf',fileUrl:'https://example.test/invoice.pdf',status:'approved',isArchived:false});
@@ -590,4 +595,49 @@ test('customer quotation list immediately reflects full and partial acceptance',
   assert.equal((await run('quote-action',a,{action:'accept',acceptedServices:partial?['sea_freight']:['sea_freight','air_freight']},quote._id)).status,200);
   const list=await run('quotes-list',a);assert.equal(list.status,200);assert.equal((await list.json()).quotes.find(q=>q._id===quote._id).status,partial?'partially_accepted':'accepted');
  }
+})
+
+test('direct customs processing and reusable customer agreements provide concrete next steps',async()=>{
+ const post=async(action,id,input)=>{const req=request('/api/admin/requests/'+id,manager.cookie,input,'POST');req.headers.set('origin','http://localhost');return dispatch({action,id,request:req})};
+ const source=await createRequest(),sourceQuote=await createQuote(source,{reusableAgreement:true});await run('quote-accept',a,undefined,sourceQuote._id);
+ const target=await createRequest();const options=await run('admin-request-agreements',manager,undefined,target._id);assert.equal(options.status,200);const available=await options.json();assert.ok(available.agreements.some(q=>q._id===sourceQuote._id));
+ const applied=await post('admin-request-use-agreement',target._id,{quoteId:sourceQuote._id,revision:available.revision});assert.equal(applied.status,200,JSON.stringify(await applied.clone().json()));const quote=(await applied.json()).quote;assert.equal(quote.acceptedViaAgreement,true);assert.equal(quote.totalAmount,sourceQuote.totalAmount);assert.equal((await data('quotes',sourceQuote._id)).requestId,source._id);assert.equal((await post('admin-request-use-agreement',target._id,{quoteId:sourceQuote._id,revision:available.revision})).status,409);
+ const foreignResponse=await createRequestRoute(request('/api/portal/requests',b.cookie,requestInput()));assert.equal(foreignResponse.status,201);const foreign=(await foreignResponse.json()).request;assert.equal((await (await run('admin-request-agreements',manager,undefined,foreign._id)).json()).agreements.some(q=>q._id===sourceQuote._id),false);
+ const customs=await createRequest(requestInput({services:[{serviceKey:'customs_clearance'}]}));const workflow=await(await run('admin-request-workflow',manager,undefined,customs._id)).json();assert.equal((await post('admin-request-workflow',customs._id,{quoteRequired:false,revision:workflow.revision})).status,200);
+ let state=await(await run('admin-request-ucr',manager,undefined,customs._id)).json();assert.equal(state.canProvide,true);assert.equal((await post('admin-request-ucr',customs._id,{revision:state.revision,mode:'provide',value:'DIRECT-UCR'})).status,200);assert.equal((await post('admin-request-confirm',customs._id,{})).status,200);
+})
+
+test('services execute transport then customs then freight with detailed idempotent stage history',async()=>{
+ const parent=await createRequest(requestInput({services:[{serviceKey:'sea_freight'},{serviceKey:'customs_clearance'},{serviceKey:'inland_transportation'}]}));
+ const post=async(action,input,id=parent._id)=>{const req=request('/api/admin/requests/'+parent._id,manager.cookie,input,'POST');req.headers.set('origin','http://localhost');return dispatch({action,id,request:req})};
+ const workflow=await(await run('admin-request-workflow',manager,undefined,parent._id)).json();assert.equal((await post('admin-request-workflow',{quoteRequired:false,revision:workflow.revision})).status,200);assert.equal((await post('admin-request-confirm',{})).status,200);
+ const get=async()=>{const r=await run('admin-request-tracking',manager,undefined,parent._id);assert.equal(r.status,200);return r.json()};let state=await get();assert.deepEqual(state.serviceTracking.map(row=>row.serviceKey),['inland_transportation','customs_clearance','sea_freight']);
+ const freight=state.serviceTracking[2];assert.equal((await post('admin-request-tracking',{serviceId:freight.serviceId,stageKey:freight.stages[0].stageKey,status:'completed',revision:freight.revision})).status,409);
+ const ucr=await(await run('admin-request-ucr',manager,undefined,parent._id)).json();assert.equal((await post('admin-request-ucr',{revision:ucr.revision,mode:'provide',value:'ORDERED-UCR'})).status,200);
+ for(let serviceIndex=0;serviceIndex<3;serviceIndex++){state=await get();const count=state.serviceTracking[serviceIndex].stages.length;for(let stageIndex=0;stageIndex<count;stageIndex++){state=await get();const row=state.serviceTracking[serviceIndex];assert.equal(row.executionLocked,false);const input={serviceId:row.serviceId,stageKey:row.stages[stageIndex].stageKey,status:'completed',revision:row.revision,staffNote:'Stage checked'};assert.equal((await post('admin-request-tracking',input)).status,200);state=await get();if(stageIndex+1<count)assert.equal(state.serviceTracking[serviceIndex].stages[stageIndex+1].status,'not_started');const before=(await data('customer_requests',parent._id)).timeline.length;const repeat=await post('admin-request-tracking',{...input,revision:state.serviceTracking[serviceIndex].revision});assert.equal(repeat.status,200);assert.equal((await repeat.json()).changed,false);assert.equal((await data('customer_requests',parent._id)).timeline.length,before)}}
+ const done=await data('customer_requests',parent._id);assert.equal(done.status,'completed');assert.equal(done.timeline.filter(event=>event.eventType==='request_completed').length,1);assert.ok(done.timeline.some(event=>event.serviceKey==='customs_clearance'&&event.stageKey==='ucr'&&event.stageStatus==='completed'));
+})
+
+test('container count persists once for a multi-service shipment and invalid counts are rejected',async()=>{
+ const invalid=await createRequestRoute(request('/api/portal/requests',a.cookie,requestInput({containerCount:0})));assert.equal(invalid.status,400);
+ const parent=await createRequest(requestInput({containerCount:'٢٥',services:[{serviceKey:'sea_freight'},{serviceKey:'inland_transportation'}]}));assert.equal(parent.details.containerCount,25);for(const id of parent.services)assert.equal((await data('request_services',id)).details.containerCount,25);
+})
+
+test('final shipment documents require completion, remain private, replay safely and archive without deleting objects',async()=>{
+ const parent=await createRequest();const upload=async(batch,revision,file=pdf('final.pdf'),actor=manager)=>{const form=new FormData();form.append('files',file);form.append('titles','Final release');form.append('batchId',batch);form.append('revision',String(revision));const req=new Request('http://localhost/api/admin/requests/'+parent._id+'/final-documents',{method:'POST',headers:{cookie:actor.cookie,origin:'http://localhost'},body:form});return dispatch({action:'admin-request-final-documents',id:parent._id,request:req})};
+ assert.equal((await upload(crypto.randomUUID(),(await store.read('customer_requests',parent._id)).revision)).status,409);
+ await store.commit({updates:[{before:await store.read('customer_requests',parent._id),patch:{status:'completed'}},...await Promise.all(parent.services.map(async id=>({before:await store.read('request_services',id),patch:{status:'completed'}})))]});
+ const batch=crypto.randomUUID(),revision=(await store.read('customer_requests',parent._id)).revision;assert.equal((await upload(crypto.randomUUID(),revision,new File(['bad'], 'bad.pdf',{type:'application/pdf'}))).status,400);
+ const saved=await upload(batch,revision);assert.equal(saved.status,201,JSON.stringify(await saved.clone().json()));const file=(await saved.json()).files[0],stored=await data('documents',file.id),countBefore=(await store.list('notifications',"type = 'final_documents_uploaded'")).length;assert.equal(stored.documentPurpose,'final_shipment');assert.equal(stored.expiryDate,null);
+ const replay=await upload(batch,revision);assert.equal(replay.status,200);assert.equal((await replay.json()).replayed,true);assert.equal((await store.list('notifications',"type = 'final_documents_uploaded'")).length,countBefore);
+ assert.equal((await run('request-final-documents',b,undefined,parent._id)).status,404);const visible=await run('request-final-documents',a,undefined,parent._id);assert.equal((await visible.json()).files[0].id,file.id);assert.equal((await run('document-download',b,undefined,file.id)).status,404);assert.equal((await run('document-download',a,undefined,file.id)).status,200);
+ const stats=await new D1AccountsRepository(db).documentStats(a.data.customerId);assert.equal(stats.expiredDocs,0);
+ const req=request('/api/admin/requests/'+parent._id+'/final-documents',manager.cookie,{id:file.id,revision:file.revision,reason:'Incorrect delivered version'},'DELETE');req.headers.set('origin','http://localhost');assert.equal((await dispatch({action:'admin-request-final-documents',id:parent._id,request:req})).status,200);assert.ok(objects.has(stored.storageKey));assert.equal((await run('document-download',a,undefined,file.id)).status,404);
+})
+
+test('historical completion reconciliation requires administrator, reason and current revision',async()=>{
+ const parent=await createRequest();await store.commit({updates:[{before:await store.read('customer_requests',parent._id),patch:{status:'processing'}},...await Promise.all(parent.services.map(async id=>({before:await store.read('request_services',id),patch:{status:'completed'}})))]});
+ const state=await(await run('admin-request-tracking',manager,undefined,parent._id)).json();assert.equal(state.needsReconciliation,true);
+ const reconcile=async(actor,input)=>{const req=request('/api/admin/requests/'+parent._id+'/reconcile',actor.cookie,input,'POST');req.headers.set('origin','http://localhost');return dispatch({action:'admin-request-reconcile',id:parent._id,request:req})};
+ assert.equal((await reconcile(restricted,{revision:state.requestRevision,reason:'Reviewed actual completion'})).status,403);assert.equal((await reconcile(manager,{revision:state.requestRevision,reason:''})).status,400);assert.equal((await reconcile(manager,{revision:state.requestRevision,reason:'Reviewed actual completion'})).status,200);assert.equal((await data('customer_requests',parent._id)).status,'completed');assert.equal((await reconcile(manager,{revision:state.requestRevision,reason:'Replay'})).status,409);
 })

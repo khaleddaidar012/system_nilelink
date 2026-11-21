@@ -941,7 +941,8 @@
         "clearance_requirements": "متطلبات التخليص الجمركي ({type})",
         "clearance_desc": "لإتمام الطلب وبدء التنفيذ، يرجى تقديم طلب استخراج رقم الـ {type}.",
         "clearance_btn": "طلب الحصول على {type} لإتمام الطلب",
-        "compliance_issued": "رقم الـ {type} :"
+        "compliance_issued": "رقم الـ {type} :",
+        "select_container_count": "اختر عدد الحاويات، أو اكتب عددًا أكبر من 10."
       },
       "milestone_documents_under_review_title": "المستندات الخاصة بالـ {type} قيد المراجعة",
       "milestone_documents_under_review_comment": "جاري مراجعة المستندات المرفوعة من قبل فريقنا لإصدار رقم الـ {type}."

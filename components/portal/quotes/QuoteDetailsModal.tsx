@@ -232,6 +232,7 @@ export function QuoteDetailsModal({ isOpen, onClose, quote, onQuoteUpdated }: Qu
                             <p className="text-sm text-slate-500">{isAr ? "راجع ملاحظات العرض أو تواصل مع فريقنا لتفاصيل الخدمات." : "Review the quotation notes or contact our team for service details."}</p>
                           )}
 
+                          {quote.reusableAgreement&&<p className="rounded-xl bg-sky-50 p-3 text-sm text-sky-900">{isAr?"هذا اتفاق متكرر لنفس الخدمات والمسار والكميات حتى نهاية صلاحيته. قبولك يسمح بتطبيقه على طلباتك المطابقة دون عرض جديد.":"This agreement may be reused for your requests with the same services, route and quantities until expiry. Acceptance authorizes that reuse."}</p>}
                           {quote.notes && (
                             <div className="mt-4 rounded-xl bg-secondary-50 p-3 text-xs text-secondary-600 dark:bg-secondary-800/40 dark:text-secondary-400 border border-secondary-200/60 dark:border-secondary-700/50">
                               <span className="font-bold text-secondary-900 dark:text-white">{isAr ? "شروط وملاحظات: " : "Notes & Terms: "}</span>

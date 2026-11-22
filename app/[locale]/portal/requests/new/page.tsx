@@ -1,5 +1,6 @@
 "use client"
 
+import {serviceStyle} from "@/lib/requests/service-colors"
 import React, { useState } from "react"
 import { useTranslations } from "next-intl"
 import { PortalHeader } from "@/components/portal/PortalHeader"
@@ -16,10 +17,6 @@ const servicesList = [
     defaultTitle: "Sea Freight",
     descKey: "portal.requests.new.sea_freight_desc",
     defaultDesc: "FCL and LCL shipping solutions across the globe.",
-    color: "text-blue-600 dark:text-blue-400",
-    bg: "bg-blue-50 dark:bg-blue-900/20",
-    border: "border-blue-100 dark:border-blue-800/50",
-    ring: "ring-blue-600 dark:ring-blue-400",
   },
   {
     id: "air_freight",
@@ -28,10 +25,6 @@ const servicesList = [
     defaultTitle: "Air Freight",
     descKey: "portal.requests.new.air_freight_desc",
     defaultDesc: "Fast and reliable air cargo transportation.",
-    color: "text-sky-600 dark:text-sky-400",
-    bg: "bg-sky-50 dark:bg-sky-900/20",
-    border: "border-sky-100 dark:border-sky-800/50",
-    ring: "ring-sky-600 dark:ring-sky-400",
   },
   {
     id: "land_freight",
@@ -40,10 +33,6 @@ const servicesList = [
     defaultTitle: "Land Freight",
     descKey: "portal.requests.new.land_freight_desc",
     defaultDesc: "Seamless overland transportation.",
-    color: "text-emerald-600 dark:text-emerald-400",
-    bg: "bg-emerald-50 dark:bg-emerald-900/20",
-    border: "border-emerald-100 dark:border-emerald-800/50",
-    ring: "ring-emerald-600 dark:ring-emerald-400",
   },
   {
     id: "customs_clearance",
@@ -52,10 +41,6 @@ const servicesList = [
     defaultTitle: "Customs Clearance",
     descKey: "portal.requests.new.customs_desc",
     defaultDesc: "Expert handling of customs procedures & ACID.",
-    color: "text-purple-600 dark:text-purple-400",
-    bg: "bg-purple-50 dark:bg-purple-900/20",
-    border: "border-purple-100 dark:border-purple-800/50",
-    ring: "ring-purple-600 dark:ring-purple-400",
   },
   {
     id: "warehousing",
@@ -64,10 +49,6 @@ const servicesList = [
     defaultTitle: "Warehousing",
     descKey: "portal.requests.new.warehousing_desc",
     defaultDesc: "Secure and efficient storage solutions.",
-    color: "text-amber-600 dark:text-amber-400",
-    bg: "bg-amber-50 dark:bg-amber-900/20",
-    border: "border-amber-100 dark:border-amber-800/50",
-    ring: "ring-amber-600 dark:ring-amber-400",
   },
   {
     id: "inland_transportation",
@@ -76,10 +57,6 @@ const servicesList = [
     defaultTitle: "Inland Transportation",
     descKey: "portal.requests.new.inland_desc",
     defaultDesc: "Local and regional cargo transport.",
-    color: "text-indigo-600 dark:text-indigo-400",
-    bg: "bg-indigo-50 dark:bg-indigo-900/20",
-    border: "border-indigo-100 dark:border-indigo-800/50",
-    ring: "ring-indigo-600 dark:ring-indigo-400",
   },
   {
     id: "general_inquiry",
@@ -88,10 +65,6 @@ const servicesList = [
     defaultTitle: "General Logistics Inquiry",
     descKey: "portal.requests.new.general_desc",
     defaultDesc: "Ask us anything about shipping or complex operations.",
-    color: "text-secondary-600 dark:text-secondary-400",
-    bg: "bg-secondary-50 dark:bg-secondary-800/50",
-    border: "border-secondary-200 dark:border-secondary-700",
-    ring: "ring-secondary-600 dark:ring-secondary-400",
   },
 ]
 
@@ -148,27 +121,27 @@ export default function NewRequestCardsPage() {
             return (
               <button
                 key={service.id}
+                style={serviceStyle(service.id)}
+                aria-pressed={isSelected}
                 onClick={() => toggleService(service.id)}
                 className={cn(
-                  "group relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-white p-6 shadow-sm transition-all text-left",
-                  isSelected ? `ring-2 ${service.ring} shadow-md` : "hover:shadow-md hover:-translate-y-1",
-                  "dark:bg-secondary-900",
-                  service.border
+                  "service-skin service-panel service-choice group relative flex flex-col justify-between overflow-hidden rounded-2xl border p-6 shadow-sm transition-all text-start",
+                  isSelected ? "shadow-md" : "hover:shadow-md hover:-translate-y-1",
                 )}
               >
                 {isSelected && (
-                  <div className={cn("absolute top-4 right-4 rtl:left-4 rtl:right-auto rounded-full p-1", service.bg, service.color)}>
+                  <div className={cn("absolute top-4 right-4 rtl:left-4 rtl:right-auto rounded-full p-1")}>
                     <Check size={16} strokeWidth={3} />
                   </div>
                 )}
                 <div>
-                  <div className={cn("mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl", service.bg, service.color)}>
+                  <div className={cn("mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl")}>
                     <service.icon className="h-6 w-6" />
                   </div>
-                  <h3 className="mb-2 text-lg font-bold text-secondary-900 dark:text-white">
+                  <h3 className="mb-2 text-lg font-bold">
                     {t(service.titleKey) !== service.titleKey ? t(service.titleKey) : service.defaultTitle}
                   </h3>
-                  <p className="text-sm text-secondary-500 dark:text-secondary-400">
+                  <p className="text-sm opacity-80">
                     {t(service.descKey) !== service.descKey ? t(service.descKey) : service.defaultDesc}
                   </p>
                 </div>

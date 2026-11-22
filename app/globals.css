@@ -257,3 +257,23 @@
     animation: none !important;
   }
 }
+
+/* Service identity only: Corten brand palette, scoped away from global UI. */
+.service-skin { min-width: 0; max-width: 100%; --service-color: var(--service-ink); --service-surface: color-mix(in srgb, var(--service-tone) 7%, #F2EEE6); --service-border: color-mix(in srgb, var(--service-tone) 40%, #E5DFD3); }
+.dark .service-skin { min-width: 0; max-width: 100%; --service-color: var(--service-light); --service-surface: color-mix(in srgb, var(--service-ink) 18%, #161616); --service-border: color-mix(in srgb, var(--service-light) 35%, #161616); }
+.service-panel { color: var(--service-color); background: var(--service-surface); border-color: var(--service-border); border-inline-start: 3px solid var(--service-tone); }
+.service-accent { color: var(--service-color); }
+.service-fill, .service-dot-completed { background: var(--service-color); }
+.service-dot-completed { border-color: var(--service-color); color: #F2EEE6; }
+.dark .service-dot-completed { color: #161616; }
+.service-dot-active { border-color: var(--service-color); background: var(--service-surface); color: var(--service-color); }
+.service-track { background: var(--service-border); }
+.service-events { border-color: var(--service-border); }
+.service-event + .service-event { border-top: 1px solid var(--service-border); }
+.service-event::before { content: ""; position: absolute; inset-inline-start: -1.4rem; top: 1.3rem; width: .65rem; height: .65rem; border-radius: 50%; background: var(--service-color); border: 2px solid var(--service-surface); }
+.service-event:first-child::before { top: .25rem; }
+.service-choice[aria-pressed="true"] { outline: 2px solid var(--service-color); outline-offset: 2px; }
+.service-choice:focus-visible { outline: 2px solid var(--service-color); outline-offset: 3px; }
+
+.ucr-waiting { color: #923F24; background: #FBE9DE; border-color: #DF7B4F; }
+.dark .ucr-waiting { color: #F3B89A; background: #3B2A22; border-color: #DF7B4F; }

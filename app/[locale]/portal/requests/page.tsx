@@ -4,10 +4,8 @@ import { usePortalLiveRefresh } from "@/hooks/useLiveUpdates"
 import { useState, useEffect } from "react"
 import { useTranslations } from "next-intl"
 import { PortalHeader } from "@/components/portal/PortalHeader"
-import { Send, Plus, Search, Clock, CheckCircle2, AlertCircle, RefreshCw, X, Ship, FileText, ChevronRight } from "lucide-react"
-import { Button } from "@/components/ui/Button"
+import { Send, Plus, Clock, RefreshCw, ChevronRight } from "lucide-react"
 import { Link } from "@/navigation"
-import { cn } from "@/lib/utils"
 import { PublishedInvoiceLink, ServiceProgress } from "@/components/portal/requests/ServiceProgress"
 
 export default function PortalRequestsPage() {
@@ -65,7 +63,8 @@ export default function PortalRequestsPage() {
         {/* Requests Master Table */}
         <div className="overflow-hidden rounded-2xl border border-secondary-200/80 bg-white shadow-sm dark:border-secondary-800 dark:bg-secondary-900">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs rtl:text-right">
+            <table className="w-full min-w-[720px] table-fixed text-left text-xs rtl:text-right">
+              <colgroup><col className="w-[15%]"/><col className="w-[34%]"/><col className="w-[21%]"/><col className="w-[14%]"/><col className="w-[16%]"/></colgroup>
               <thead className="border-b border-secondary-100 bg-secondary-50/75 text-[11px] font-bold text-secondary-600 uppercase tracking-wider dark:border-secondary-800 dark:bg-secondary-800/50 dark:text-secondary-400">
                 <tr>
                   <th className="px-5 py-3.5">{t("portal.requests.colTracking")}</th>
@@ -103,14 +102,11 @@ export default function PortalRequestsPage() {
                           <bdi dir="ltr">{req.trackingNumber}</bdi>
                         </Link>
                       </td>
-                      <td className="px-4 py-4 capitalize font-medium text-secondary-700 dark:text-secondary-300">
-                        {req.services && req.services.length > 0
-                          ? req.services.map((s: any) => t(`portal.requests.new.${s.serviceKey}`) || s.serviceKey.replace(/_/g, " ")).join(" + ")
-                          : (req.serviceType ? (t(`portal.requests.serviceType_${req.serviceType}`) || req.serviceType.replace(/_/g, " ")) : t("common.details"))}
+                      <td className="px-4 py-4">
+                        {req.services?.length ? <ServiceProgress services={req.services} compact /> : <span className="text-secondary-500">{req.serviceType?.replace(/_/g," ") || t("common.details")}</span>}
                       </td>
-                      <td className="px-4 py-4 font-bold text-secondary-900 dark:text-white">
-                        {req.subject}
-                        <ServiceProgress services={req.services||[]} compact />
+                      <td className="px-4 py-4 font-semibold text-secondary-900 dark:text-white">
+                        <Link href={`/portal/requests/${req._id}`} className="line-clamp-2 break-words hover:underline" title={req.subject}>{req.subject}</Link>
                       </td>
                       <td className="px-4 py-4">
                         <span className="inline-flex items-center gap-1 rounded-full border border-primary-500/20 bg-primary-50 px-2.5 py-0.5 text-xs font-bold text-primary-700 dark:bg-primary-950/60 dark:text-primary-300">
@@ -126,7 +122,7 @@ export default function PortalRequestsPage() {
                           <span>{t("portal.requests.viewMilestones") || "View Details"}</span>
                           <ChevronRight className="ml-1 h-3.5 w-3.5 rtl:mr-1 rtl:ml-0 rtl:rotate-180" />
                         </Link>
-                        <div className="mt-2"><PublishedInvoiceLink invoice={req.publishedInvoice}/></div>
+                        {req.publishedInvoice&&<div className="mt-2"><PublishedInvoiceLink invoice={req.publishedInvoice}/></div>}
                       </td>
                     </tr>
                   ))

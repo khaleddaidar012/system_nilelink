@@ -1,4 +1,5 @@
 "use client"
+import {serviceStyle} from "@/lib/requests/service-colors"
 import {FinalShipmentDocuments} from "@/components/portal/requests/FinalShipmentDocuments"
 import {RequestTimeline} from "@/components/portal/requests/RequestTimeline"
 
@@ -187,7 +188,7 @@ export default function RequestDetailsAndDocumentsPage() {
           <h2 className="text-xl font-bold mb-4">{t("portal.requests.details.requested_services") || "Requested Services"}</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {visibleServices.map((service: any) => (
-              <div key={service._id} className="p-4 rounded-lg border border-primary-100 bg-primary-50/50 dark:border-secondary-700 dark:bg-secondary-800/50">
+              <div key={service._id} style={serviceStyle(service.serviceKey)} className="service-skin service-panel rounded-xl border p-4">
                 <h3 className="font-bold text-lg capitalize mb-2">
                   {t(`portal.requests.new.${service.serviceKey}`) === `portal.requests.new.${service.serviceKey}` ? service.serviceKey.replace(/_/g, " ") : t(`portal.requests.new.${service.serviceKey}`)}
                 </h3>

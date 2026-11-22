@@ -141,7 +141,7 @@ export default function NewRequestCardsPage() {
                   <h3 className="mb-2 text-lg font-bold">
                     {t(service.titleKey) !== service.titleKey ? t(service.titleKey) : service.defaultTitle}
                   </h3>
-                  <p className="text-sm opacity-80">
+                  <p className="text-sm">
                     {t(service.descKey) !== service.descKey ? t(service.descKey) : service.defaultDesc}
                   </p>
                 </div>

@@ -5,11 +5,11 @@ import type { CSSProperties } from "react"
 export const brandPalette = { corten: "#A4492A", steel: "#161616", chalk: "#F2EEE6", patina: "#3B2A22", ember: "#DF7B4F", quay: "#E5DFD3" } as const
 const colors = {
   sea: [brandPalette.corten, "#ECA98E", brandPalette.corten],
-  air: ["#9A4825", brandPalette.ember, brandPalette.ember],
+  air: ["#9A4825", brandPalette.ember, "#C3623A"],
   land: [brandPalette.patina, "#C5A18C", brandPalette.patina],
   inland: ["#77513A", "#D5B18B", "#A87850"],
   customs: ["#494540", "#C4C0B8", "#494540"],
-  storage: ["#6C634B", "#C9BF9A", "#9C916D"],
+  storage: ["#6C634B", "#C9BF9A", "#8A7C58"],
   general: ["#55514B", brandPalette.quay, "#77736C"],
 } as const
 export function serviceColorKey(key: string): keyof typeof colors {

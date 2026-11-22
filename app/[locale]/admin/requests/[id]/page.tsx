@@ -342,7 +342,7 @@ export default function AdminRequestDetailPage() {
 
             <StageManager requestId={request._id} onUpdated={fetchRequestAndPrices} />
             <FinalShipmentDocuments requestId={request._id} updatedAt={request.updatedAt} admin onUpdated={fetchRequestAndPrices} />
-            <RequestTimeline events={request.timeline||[]} admin />
+            <RequestTimeline services={request.services||[]} events={request.timeline||[]} admin />
 
             {quote && (
               <div className="mt-8 rounded-2xl border-2 border-indigo-500/30 bg-gradient-to-br from-indigo-50/50 via-white to-white dark:from-indigo-950/20 dark:via-secondary-900 dark:to-secondary-900 p-6 shadow-sm overflow-hidden">

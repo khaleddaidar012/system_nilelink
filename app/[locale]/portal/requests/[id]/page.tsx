@@ -204,7 +204,7 @@ export default function RequestDetailsAndDocumentsPage() {
           </div>
         </div>
 
-        <RequestTimeline events={request.timeline||[]} />
+        <RequestTimeline services={request.services||[]} events={request.timeline||[]} />
 
         <div className="flex flex-col items-center mt-8 space-y-4">
           <Link

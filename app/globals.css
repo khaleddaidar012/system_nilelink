@@ -270,6 +270,8 @@
 .service-dot-idle { border-color: var(--service-color); background: var(--service-surface); }
 .service-track { background: color-mix(in srgb, var(--service-color) 25%, var(--service-surface)); }
 .service-events { border-color: var(--service-color); }
+.service-history-group { border-block-start: 3px solid var(--service-color); }
+.service-history-group > summary { padding-block-end: .75rem; border-block-end: 1px solid var(--service-border); }
 .service-event + .service-event { border-top: 1px solid var(--service-border); }
 .service-event::before { content: ""; position: absolute; inset-inline-start: -1.4rem; top: 1.3rem; width: .65rem; height: .65rem; border-radius: 50%; background: var(--service-color); border: 2px solid var(--service-surface); }
 .service-event:first-child::before { top: .25rem; }

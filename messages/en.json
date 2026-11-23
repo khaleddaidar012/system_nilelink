@@ -1439,5 +1439,21 @@
       "title": "Cargo insurance",
       "description": "Ask us about insurance for your shipment."
     }
+  },
+  "publicHowItWorks": {
+    "title": "THREE STEPS. NO SURPRISES.",
+    "imageAlt": "Overhead view of warehouse aisles and stored goods.",
+    "details": {
+      "title": "Send your shipment details",
+      "description": "From where to where, the type of goods and the quantity."
+    },
+    "quote": {
+      "title": "Get a quote with every item",
+      "description": "What is included and excluded, with each item on its own line."
+    },
+    "tracking": {
+      "title": "Track it until it arrives",
+      "description": "One reference number connects your shipment updates."
+    }
   }
 }

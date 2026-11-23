@@ -6,6 +6,7 @@ import { GlobalCoverage } from "@/components/sections/GlobalCoverage"
 import { FAQ } from "@/components/sections/FAQ"
 import { CTASection } from "@/components/sections/CTASection"
 import {getLocale} from "next-intl/server"
+import {PublicHowItWorks} from "@/components/sections/PublicHowItWorks"
 
 export default async function HomePage() {
   const locale = await getLocale()
@@ -15,6 +16,7 @@ export default async function HomePage() {
       <HeroSection />
       {!branded && <AboutPreview />}
       <ServicesPreview />
+      {branded && <PublicHowItWorks locale={locale}/>}
       {branded && <AboutPreview />}
       <WhyChooseUs />
       <GlobalCoverage />

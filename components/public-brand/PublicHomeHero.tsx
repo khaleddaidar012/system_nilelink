@@ -18,7 +18,7 @@ function PublicHeader({locale}:{locale:"ar"|"en"}) {
     <Link href="/" className={styles.logo} aria-label={t("homeLabel")} dir="ltr"><Image src="/brand/nilelink/logos/lockup-en-on-dark.svg" alt="NILELINK" width={335} height={64} className={styles.logoImage}/></Link>
     <nav className={styles.navigation} aria-label={t("navigationLabel")}>
       <Link href="/services" className={styles.navLink}>{t("services")}</Link>
-      <Link href="/about" className={styles.navLink}>{t("howWeWork")}</Link>
+      <Link href="/#how-we-work" className={styles.navLink}>{t("howWeWork")}</Link>
       <Link href="/request-quote" className={styles.navLink}>{t("quote")}</Link>
       <label className={styles.language}><span className={styles.srOnly}>{t("language")}</span><select value={locale} onChange={event=>{const value=event.target.value as typeof routing.locales[number];if(routing.locales.includes(value))router.replace("/",{locale:value})}} aria-label={t("language")}>{routing.locales.map(code=><option key={code} value={code}>{languageNames[code]}</option>)}</select></label>
     </nav>

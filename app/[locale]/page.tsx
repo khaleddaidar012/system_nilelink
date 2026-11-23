@@ -5,13 +5,17 @@ import { WhyChooseUs } from "@/components/sections/WhyChooseUs"
 import { GlobalCoverage } from "@/components/sections/GlobalCoverage"
 import { FAQ } from "@/components/sections/FAQ"
 import { CTASection } from "@/components/sections/CTASection"
+import {getLocale} from "next-intl/server"
 
-export default function HomePage() {
+export default async function HomePage() {
+  const locale = await getLocale()
+  const branded = locale === "ar" || locale === "en"
   return (
     <>
       <HeroSection />
-      <AboutPreview />
+      {!branded && <AboutPreview />}
       <ServicesPreview />
+      {branded && <AboutPreview />}
       <WhyChooseUs />
       <GlobalCoverage />
       <FAQ />

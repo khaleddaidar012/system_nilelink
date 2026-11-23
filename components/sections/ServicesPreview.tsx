@@ -1,15 +1,14 @@
 "use client"
 
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
+import { PublicServices } from "@/components/public-brand/PublicServices"
 import { motion } from "framer-motion"
 import Image from "next/image"
 import { ArrowRight, Ship, Plane, Truck, FileCheck, Warehouse, Settings2 } from "lucide-react"
-import { Container } from "@/components/ui/Container"
 import { Section } from "@/components/ui/Section"
 import { SectionTitle } from "@/components/ui/SectionTitle"
 import { Button } from "@/components/ui/Button"
 import { Link } from "@/navigation"
-import { cn } from "@/lib/utils"
 
 const services = [
   {
@@ -50,7 +49,7 @@ const services = [
   },
 ]
 
-export function ServicesPreview() {
+function LegacyServicesPreview() {
   const t = useTranslations("services")
 
   return (
@@ -121,4 +120,9 @@ export function ServicesPreview() {
       </motion.div>
     </Section>
   )
+}
+
+export function ServicesPreview() {
+  const locale = useLocale()
+  return locale === "ar" || locale === "en" ? <PublicServices locale={locale}/> : <LegacyServicesPreview/>
 }

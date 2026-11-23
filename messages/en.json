@@ -1412,5 +1412,32 @@
     "whatsappCta": "WhatsApp us",
     "photoCredit": "Photo:",
     "imageAlt": "Cargo ship at sea — illustrative photograph"
+  },
+  "publicServices": {
+    "title": "EVERY WAY TO MOVE IT",
+    "sea": {
+      "title": "Sea freight",
+      "description": "Full containers (FCL) and shared loads (LCL) from Damietta."
+    },
+    "air": {
+      "title": "Air freight",
+      "description": "For urgent shipments and samples."
+    },
+    "land": {
+      "title": "Land transport",
+      "description": "Factory to port, and port to warehouse."
+    },
+    "customs": {
+      "title": "Customs clearance",
+      "description": "Export and import. Documents ready first."
+    },
+    "warehouse": {
+      "title": "Warehousing",
+      "description": "Short- and long-term storage options for your goods."
+    },
+    "insurance": {
+      "title": "Cargo insurance",
+      "description": "Ask us about insurance for your shipment."
+    }
   }
 }

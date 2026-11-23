@@ -1,5 +1,6 @@
 .hero { position: relative; isolation: isolate; display: flex; flex-direction: column; min-block-size: max(760px, 100svh); padding: 0; overflow: clip; }
 .photograph, .scrim { position: absolute; inset: 0; z-index: -1; }
+.photograph picture { position: absolute; inset: 0; }
 .heroImage { object-fit: cover; object-position: center 55%; }
 .scrim { background: linear-gradient(180deg, rgb(22 22 22 / 65%) 0%, rgb(22 22 22 / 55%) 38%, rgb(22 22 22 / 94%) 100%); }
 .header { padding-block: 28px; }

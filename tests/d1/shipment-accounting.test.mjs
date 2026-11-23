@@ -18,6 +18,7 @@ import { GET as requestOptions } from '../../app/api/admin/shipment-invoices/req
 import { shipmentOptionLabel } from '../../lib/shipments/accounting-options.ts'
 import { PATCH as staffUpdate } from '../../app/api/admin/staff/[id]/route.ts'
 import { NextRequest } from 'next/server'
+import {serviceStages} from '../../lib/requests/tracking.ts'
 
 let simulator, db, store, dispatch, invoice, admin, staff, customer, other, restricted
 const id = n => n.toString(16).padStart(24, '0')
@@ -406,7 +407,7 @@ test('direct non-customs processing is optional for assigned staff while histori
   assert.equal((await dispatch({action:'admin-request-confirm',id:id(41),request:request(admin,{})})).status,409)
 })
 
-test('service progress is scoped to the responsible employee and has validated, audited independent transitions', async () => {
+test('service progress requires completed execution stages and preserves scoped, audited corrections', async () => {
   for(const n of [50,51])await insert('request_services',timestamped({_id:id(n),requestId:id(40),serviceKey:n===50?'inland_transportation':'customs_clearance',status:'pending',details:{},timeline:[]}))
   const parent=await store.read('customer_requests',id(40))
   await store.commit({updates:[{before:parent,patch:{services:[id(50),id(51)]}}]})
@@ -419,10 +420,20 @@ test('service progress is scoped to the responsible employee and has validated, 
   assert.equal((await update(50,'arbitrary-status')).status,400)
   assert.equal((await update(50,'completed')).status,409)
   await value(await update(50,'active'))
+  async function completeStages(n) {
+    const initial=await store.read('request_services',id(n))
+    for(const stage of serviceStages(initial.data)) {
+      const current=await store.read('request_services',id(n))
+      await value(await dispatch({action:'admin-request-tracking',id:id(40),request:request(staff,{serviceId:id(n),stageKey:stage.stageKey,status:'completed',revision:current.revision,staffNote:'Completed fixture stage'})}))
+    }
+  }
+  await completeStages(50)
   await value(await update(50,'completed'))
   assert.equal((await store.read('customer_requests',id(40))).data.status,'processing')
   await value(await update(51,'active'))
   const stale=(await store.read('request_services',id(51))).revision
+  await value(await dispatch({action:'admin-request-compliance',id:id(40),request:request(admin,{complianceType:'UCR',complianceNumber:'TEST-UCR-STAGES'})}))
+  await completeStages(51)
   await value(await update(51,'completed'))
   assert.equal((await store.read('customer_requests',id(40))).data.status,'completed')
   assert.equal((await update(51,'active',staff,'Please reopen')).status,403)
@@ -477,19 +488,26 @@ test('accounts reading markers preserve concurrent arrivals and isolate readers 
   assert.ok(!notices.notifications.some(row=>row.requiredPermission==='accounts'))
 })
 
-test('export processing requires UCR and the administrator can reassign operational responsibility independently of accounts',async()=>{
+test('export confirmation permits pending UCR while the customs stage requires it and responsibility remains scoped',async()=>{
   await insert('customer_requests',timestamped({_id:id(43),customerId:id(1),trackingNumber:'EXPORT-DIRECT',services:[id(143)],status:'submitted',operationType:'export',quoteRequired:false,assignedStaffId:id(4),complianceNumber:''}))
   await insert('request_services',timestamped({_id:id(143),requestId:id(43),serviceKey:'customs_clearance',status:'pending'}))
   const confirm=cookie=>dispatch({action:'admin-request-confirm',id:id(43),request:request(cookie,{})})
-  assert.equal((await confirm(staff)).status,409)
+  await value(await confirm(staff))
+  const finishUcr=async()=>{
+    const service=await store.read('request_services',id(143))
+    return dispatch({action:'admin-request-tracking',id:id(43),request:request(staff,{serviceId:service.id,stageKey:serviceStages(service.data)[0].stageKey,status:'completed',revision:service.revision,staffNote:'UCR stage fixture'})})
+  }
+  assert.equal((await finishUcr()).status,409)
   await value(await dispatch({action:'admin-request-compliance',id:id(43),request:request(admin,{complianceType:'ACID',complianceNumber:'TEST-ONLY'})}))
-  assert.equal((await confirm(staff)).status,409)
+  assert.equal((await confirm(staff)).status,409) // It is already processing; confirmation is not repeated.
   await value(await dispatch({action:'admin-request-compliance',id:id(43),request:request(admin,{complianceType:'UCR',complianceNumber:'TEST-UCR-ONLY'})}))
+  await value(await finishUcr())
   const row=await store.read('customer_requests',id(43))
   assert.equal((await dispatch({action:'admin-request-workflow',id:id(43),request:request(staff,{assignedStaffId:id(5),revision:row.revision})})).status,403)
   await value(await dispatch({action:'admin-request-workflow',id:id(43),request:request(admin,{assignedStaffId:id(5),revision:row.revision})}))
   assert.equal((await confirm(staff)).status,403)
-  await value(await confirm(restricted))
+  const nextService=await store.read('request_services',id(143))
+  await value(await dispatch({action:'admin-request-tracking',id:id(43),request:request(restricted,{serviceId:nextService.id,stageKey:serviceStages(nextService.data)[1].stageKey,status:'in_progress',revision:nextService.revision,staffNote:'New responsible employee starts the next stage'})}))
   assert.equal((await store.read('users',id(5))).data.staffPermissions.canAccessAccounts,undefined)
 })
 

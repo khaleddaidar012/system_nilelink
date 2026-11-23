@@ -32,7 +32,7 @@ export function PublicSiteHeader({locale}:{locale:"ar"|"en"}) {
 export function PublicHomeHero({locale}:{locale:"ar"|"en"}) {
   const t=useTranslations("publicHome")
   return <BrandScope locale={locale}><BrandSection tone="photo" className={styles.hero} aria-labelledby="public-home-title">
-    <div className={styles.photograph}><Image src="/brand/nilelink/images/hero-source.webp" alt={t("imageAlt")} fill sizes="100vw" priority className={styles.heroImage}/></div><div className={styles.scrim} aria-hidden="true"/>
+    <div className={styles.photograph}><picture><source srcSet="/brand/responsive/hero-720.webp 720w, /brand/responsive/hero-1280.webp 1280w, /brand/responsive/hero-1920.webp 1920w" sizes="100vw"/><Image src="/brand/responsive/hero-1920.webp" alt={t("imageAlt")} fill sizes="100vw" loading="eager" fetchPriority="high" className={styles.heroImage}/></picture></div><div className={styles.scrim} aria-hidden="true"/>
     <PublicHeader locale={locale}/>
     <BrandContainer className={styles.content}><div className={styles.copy}>
       <p className={styles.eyebrow}><bdi dir="ltr">DAM → WORLD · SEA · AIR · LAND · CUSTOMS</bdi></p>

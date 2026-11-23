@@ -11,7 +11,7 @@ export function PublicHowItWorks({locale}: {locale: "ar" | "en"}) {
     <BrandSection id="how-we-work" tone="quay" aria-labelledby="how-we-work-title" className={styles.section}>
       <BrandContainer className={styles.layout}>
         <div className={styles.photograph}>
-          <Image src="/brand/nilelink/images/warehouse-desktop-1200.webp" alt={t("imageAlt")} fill sizes="(max-width: 800px) calc(100vw - 40px), 50vw" className={styles.image}/>
+          <picture><source srcSet="/brand/nilelink/images/warehouse-small-640.webp 640w, /brand/nilelink/images/warehouse-desktop-1200.webp 1200w" sizes="(max-width: 800px) calc(100vw - 40px), (min-width: 1408px) 624px, calc(50vw - 48px)"/><Image src="/brand/nilelink/images/warehouse-desktop-1200.webp" alt={t("imageAlt")} fill sizes="(max-width: 800px) calc(100vw - 40px), 50vw" className={styles.image}/></picture>
         </div>
         <div className={styles.content}>
           <BrandHeading id="how-we-work-title" className={styles.title}>{t("title")}</BrandHeading>

@@ -1,6 +1,7 @@
 .section { scroll-margin-block-start: 24px; }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 32px; }
 .photograph { position: relative; min-inline-size: 0; aspect-ratio: 3 / 2; overflow: hidden; border-radius: 2px; }
+.photograph picture { position: absolute; inset: 0; }
 .image { object-fit: cover; object-position: center; }
 .content { min-inline-size: 0; }
 .title { margin-block-end: 24px; }

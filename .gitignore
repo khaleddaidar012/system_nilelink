@@ -86,3 +86,6 @@ next-env.d.ts
 
 # Local personal archive
 /WhatsApp_15min_khale.zip
+
+# Generated caches for brand asset preparation scripts
+/scripts/brand/__pycache__/

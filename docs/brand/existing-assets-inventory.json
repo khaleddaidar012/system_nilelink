@@ -1,0 +1,144 @@
+{
+  "capturedOn": "2026-11-22",
+  "scope": "Legacy public/images and public/fonts; none replaced by task 21",
+  "files": [
+    {
+      "path": "public/images/air-freight.jpg",
+      "bytes": 108269,
+      "sha256": "ebd85b98374f3fbfca1a0edab1d0f579479519e3142c37c907abdfcd55fbad49",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/air-freight.webp",
+      "bytes": 53728,
+      "sha256": "610dc28270dbc5915481c195e444bbc229ade4b4dee58c9ae5c143703bfaecb3",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/container-ship.jpg",
+      "bytes": 513442,
+      "sha256": "44d89394dec2987cda4dfdfdc1e3a63f9d8ff5a480e9d6f3453766e018246655",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/container-ship.webp",
+      "bytes": 420198,
+      "sha256": "d9c1dc4d8eaaad758b8d4239de5e2b129109905b9fac987b230aba687de49ef8",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/customs-clearance.jpg",
+      "bytes": 448953,
+      "sha256": "13618c24a35a4614bd272039d83aba346fec56610a40275738c51ce98b647a6e",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/customs-clearance.webp",
+      "bytes": 358218,
+      "sha256": "cf82c91697b1a3b18c8fa485ea8e5079e8af8664c72c218ffc2e4593474fc1a8",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/global-map.jpg",
+      "bytes": 160171,
+      "sha256": "b195769bbf83b90e2b71763ab367ccce25d5835a219a444242fc8a960050ab20",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/global-map.webp",
+      "bytes": 99354,
+      "sha256": "0eb85e8e6f0602f2ee8afc6f47f60d2e8b8d11376caf14efaf35fbeb241d1a7c",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/hero-bg.jpg",
+      "bytes": 112915,
+      "sha256": "155c567358876ba17e1f2f013d7244859816802323d1c70e6b616586d58582f3",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/hero-bg.webp",
+      "bytes": 79006,
+      "sha256": "6350fe3040ce73cd29d9184d17b6384d83ae0b42b3b710a27317ac54aeccc6d1",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/hero-ship-bg.jpg",
+      "bytes": 112915,
+      "sha256": "155c567358876ba17e1f2f013d7244859816802323d1c70e6b616586d58582f3",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/hero-ship-bg.webp",
+      "bytes": 79006,
+      "sha256": "6350fe3040ce73cd29d9184d17b6384d83ae0b42b3b710a27317ac54aeccc6d1",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/logo.png",
+      "bytes": 42387,
+      "sha256": "450f7dd0786fe6086b830b77b7502067bdfa1d9f58c35afc0ab16f460d4baf54",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/pexels-yankrukov-7693158.jpg",
+      "bytes": 122393,
+      "sha256": "b9fa6655e2451aedb93ed8e1b2f3b3bb4dd12bebac50d9f2599715f1a6fc72a8",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/pexels-yankrukov-7693158.webp",
+      "bytes": 66254,
+      "sha256": "b3dd9231e08cd1ff2042f457fff2aeb5c1f4334c67e19b7a8eaf2c19c0ba2026",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/road-freight.jpg",
+      "bytes": 246213,
+      "sha256": "234a02a71696e3c1cc07d704212660e31c2fca9f07d79344215b175b9d41d8ac",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/road-freight.webp",
+      "bytes": 188160,
+      "sha256": "fde39252383cfd3e2f39fcb36970a91d31cf3ff35f8fbe3c2471fa25a61977ab",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/specialized-cargo.jpg",
+      "bytes": 185689,
+      "sha256": "450583f28673fe99d3995473938acc3fbae16af1f15d55d1232226ee329b714e",
+      "unchanged": true
+    },
+    {
+      "path": "public/images/specialized-cargo.webp",
+      "bytes": 99996,
+      "sha256": "125e1f93eb34f218d057b77a6bdd62ee1cc50525d5f46e9014de05474bdd376f",
+      "unchanged": true
+    },
+    {
+      "path": "public/fonts/Amiri-Bold.ttf",
+      "bytes": 413480,
+      "sha256": "cfccb794268e7d573d857e6d6a67f89cf8a053e8ffd85dfa0c8ec1bb36fc4827",
+      "unchanged": true
+    },
+    {
+      "path": "public/fonts/Amiri-Regular.ttf",
+      "bytes": 431116,
+      "sha256": "ab391c4147d054c48976e98322ad0eefe1427aa0e0502a12a4c75d80a70cfcd7",
+      "unchanged": true
+    },
+    {
+      "path": "public/fonts/Arial-Bold.ttf",
+      "bytes": 980756,
+      "sha256": "766f06ac8761f82f25d032a220e89438f6064591af9915061f20b949efdedf69",
+      "unchanged": true
+    },
+    {
+      "path": "public/fonts/Arial.ttf",
+      "bytes": 1036584,
+      "sha256": "c9b76220a5be42ead4733611e417cd65c5fd8aeaa33eb56576ac378a37d130a1",
+      "unchanged": true
+    }
+  ]
+}

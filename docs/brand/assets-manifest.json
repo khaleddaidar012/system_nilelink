@@ -1,0 +1,447 @@
+{
+  "schemaVersion": 1,
+  "brand": "NileLink",
+  "task": 21,
+  "preparedOn": "2026-11-22",
+  "branch": "codex/public-brand-redesign-2026-11-22",
+  "source": {
+    "name": "1.pdf",
+    "sha256": "35f31952aa981327bfcdc1a81756112622cbf81654ce7fa5f1bdddbecc05a951",
+    "pages": {
+      "logo": 13,
+      "typography": 14,
+      "colors": 15,
+      "pattern": 16,
+      "icons": 17,
+      "photography": 18,
+      "desktop": 29,
+      "mobile": 30
+    }
+  },
+  "readiness": "prepared_with_pending_webfont",
+  "activatedOnLiveSite": false,
+  "colors": {
+    "corten": "#A4492A",
+    "steel": "#161616",
+    "chalk": "#F2EEE6",
+    "patina": "#3B2A22",
+    "ember": "#DF7B4F",
+    "quay": "#E5DFD3",
+    "ribShadow": "#8E3E23"
+  },
+  "logo": {
+    "method": "Threshold-mask outlines of supplied flattened artwork, not a replacement font or a designer-original SVG master",
+    "smallestMarkSize": 16,
+    "markTileRadius": "tile / phi^3",
+    "lockupCapHeight": "tile / phi",
+    "lockupGap": "tile / phi^2",
+    "arabicMarkPosition": "right",
+    "verification": {
+      "markForegroundIoU": 1,
+      "markSilhouetteIoU": 0.9999727246381753,
+      "enWordmarkIoU": 1,
+      "arWordmarkIoU": 1
+    }
+  },
+  "icons": {
+    "method": "Project-authored code-native SVGs following supplied page 17 and card chips from page 29",
+    "grid": 24,
+    "strokeWidth": 2,
+    "linecap": "square",
+    "linejoin": "miter",
+    "cardChipColor": "#A4492A",
+    "services": [
+      "sea-freight",
+      "air-freight",
+      "land-transport",
+      "customs-clearance",
+      "warehousing",
+      "cargo-insurance"
+    ]
+  },
+  "photography": [
+    {
+      "key": "hero",
+      "photoId": 3277769,
+      "author": "Alexander Bobrov",
+      "source": "https://www.pexels.com/photo/brown-and-white-cargo-ship-3277769/",
+      "license": "https://www.pexels.com/license/",
+      "credit": "Photo: Alexander Bobrov / Pexels",
+      "illustrative": true,
+      "notCompanyProperty": true
+    },
+    {
+      "key": "warehouse",
+      "photoId": 4481329,
+      "author": "Tiger Lily",
+      "source": "https://www.pexels.com/photo/men-working-in-a-warehouse-4481329/",
+      "license": "https://www.pexels.com/license/",
+      "credit": "Photo: Tiger Lily / Pexels",
+      "illustrative": true,
+      "notCompanyProperty": true
+    }
+  ],
+  "imageVariants": [
+    {
+      "path": "images/hero-source.webp",
+      "width": 2560,
+      "height": 1706,
+      "transform": "resize only; no baked overlay or text"
+    },
+    {
+      "path": "images/hero-desktop-1920.webp",
+      "width": 1920,
+      "height": 1080,
+      "cropCenter": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "path": "images/hero-desktop-1280.webp",
+      "width": 1280,
+      "height": 720,
+      "cropCenter": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "path": "images/hero-mobile-720.webp",
+      "width": 720,
+      "height": 1280,
+      "cropCenter": [
+        0.72,
+        0.5
+      ]
+    },
+    {
+      "path": "images/warehouse-source.webp",
+      "width": 2560,
+      "height": 1707,
+      "transform": "resize only; no baked overlay or text"
+    },
+    {
+      "path": "images/warehouse-desktop-1200.webp",
+      "width": 1200,
+      "height": 900,
+      "cropCenter": [
+        0.45,
+        0.55
+      ]
+    },
+    {
+      "path": "images/warehouse-mobile-800.webp",
+      "width": 800,
+      "height": 800,
+      "cropCenter": [
+        0.4,
+        0.55
+      ]
+    },
+    {
+      "path": "images/warehouse-small-640.webp",
+      "width": 640,
+      "height": 480,
+      "cropCenter": [
+        0.45,
+        0.55
+      ]
+    }
+  ],
+  "fonts": [
+    {
+      "family": "Noto Kufi Arabic",
+      "status": "ready_as_temporary_arabic_font_specified_by_guide",
+      "weightRange": [
+        100,
+        900
+      ],
+      "format": "woff2",
+      "source": "https://github.com/google/fonts/tree/main/ofl/notokufiarabic",
+      "stylesheet": "fonts/noto-kufi-arabic.css",
+      "licenseFile": "fonts/OFL.txt",
+      "license": "SIL Open Font License 1.1"
+    },
+    {
+      "family": "Safiro Medium",
+      "status": "pending_user_webfont_and_web_license",
+      "requiredFor": "Final English body typography match",
+      "officialSource": "https://www.atipofoundry.com/fonts/safiro",
+      "licenseSource": "https://www.atipofoundry.com/license",
+      "note": "Desktop font or a foundry demo is not treated as a licensed webfont; no replacement is presented as Safiro."
+    },
+    {
+      "family": "DX Neuegrid Semibold",
+      "status": "font_binary_not_embedded",
+      "use": "Wordmark only; ready-to-render outlined wordmark assets are supplied.",
+      "officialSource": "https://dirtylinestudio.com/products/dx-neuegrid"
+    }
+  ],
+  "pendingInputs": [
+    {
+      "id": "safiro-webfont",
+      "requiredForFinalTypography": true,
+      "request": "Supply the licensed Safiro Medium WOFF/WOFF2 files and web-use license information."
+    }
+  ],
+  "browserVerification": {
+    "reports": [
+      {
+        "width": 1280,
+        "imagesLoaded": true,
+        "arabicFontLoaded": true,
+        "overflow": false
+      },
+      {
+        "width": 390,
+        "imagesLoaded": true,
+        "arabicFontLoaded": true,
+        "overflow": false
+      }
+    ],
+    "pageErrors": []
+  },
+  "files": [
+    {
+      "path": "favicons/favicon.ico",
+      "bytes": 3337,
+      "sha256": "823f76bc2b168b3909831ee2088a6f6b9741b74194dad6b885d077a219fb9418"
+    },
+    {
+      "path": "favicons/favicon.svg",
+      "bytes": 2469,
+      "sha256": "3b64cd03395514249808e9ba1954b991d7d60a3bbbd3fd4274ae31b5fcf63b21"
+    },
+    {
+      "path": "favicons/mark-16.png",
+      "bytes": 575,
+      "sha256": "c01e630590d509e9c0be134a5f75380c41b08b13a0935649c9dfc663d0e7fb9e"
+    },
+    {
+      "path": "favicons/mark-180.png",
+      "bytes": 6192,
+      "sha256": "d2540369e14af62f2110a0d7acbb10330617221f85859cdbf123ebb6ea79254c"
+    },
+    {
+      "path": "favicons/mark-192.png",
+      "bytes": 6588,
+      "sha256": "214c42e965eb6c9a35ea710a6d52ebcc5f628b0f9ef8cb9fbf6e847751cd60fc"
+    },
+    {
+      "path": "favicons/mark-32.png",
+      "bytes": 1130,
+      "sha256": "d6ed6a3e8037d2d499b1406496b56bfa5d69169edf03da1de11328efef1d7412"
+    },
+    {
+      "path": "favicons/mark-48.png",
+      "bytes": 1622,
+      "sha256": "d512a9d32d8a21bdc4d0ddc190bc29a6e0c70eab8e27338ea3317f25c4c5c067"
+    },
+    {
+      "path": "favicons/mark-512.png",
+      "bytes": 19164,
+      "sha256": "34ed145b37c30faa0ca7813501aa0ada06417e9f35b1ca28e39146a78715a932"
+    },
+    {
+      "path": "fonts/OFL.txt",
+      "bytes": 4382,
+      "sha256": "07fc70bfeb985cc1a87a8587d0a0c80bab11c86c9dc3fd95b6f0cb332f983e96"
+    },
+    {
+      "path": "fonts/noto-kufi-arabic-arabic.woff2",
+      "bytes": 123688,
+      "sha256": "01290c72f7179c551d8eef0b5e190615b082a5876e3abacca88e341e0e1fafe9"
+    },
+    {
+      "path": "fonts/noto-kufi-arabic-latin-ext.woff2",
+      "bytes": 16500,
+      "sha256": "290361339bf74188c75e6600e28e5164cb3623522139ce7c56c5a18bcc3dcb0f"
+    },
+    {
+      "path": "fonts/noto-kufi-arabic-latin.woff2",
+      "bytes": 30724,
+      "sha256": "61b046636e1d155cb7b48d924fad2299e0099efaca67a50b4d3cc3b7a07e9b86"
+    },
+    {
+      "path": "fonts/noto-kufi-arabic-math.woff2",
+      "bytes": 22228,
+      "sha256": "712697b4a73aaba66cfd52e2d4aaec4cc5ebc03b21884774903e6fa9c9241e65"
+    },
+    {
+      "path": "fonts/noto-kufi-arabic-symbols.woff2",
+      "bytes": 14132,
+      "sha256": "aaba41c93b7f907b43e786a36b0e629e756b1f67632e358cee2b6e5c99cbaf58"
+    },
+    {
+      "path": "fonts/noto-kufi-arabic.css",
+      "bytes": 4432,
+      "sha256": "e4a7cfebc62401a23f5f70742f0b2c035a67d16dd7e9ea57f0f37138b39eb8dc"
+    },
+    {
+      "path": "icons/air-freight.svg",
+      "bytes": 278,
+      "sha256": "37926094e39a97d2dab73af7c8758ea562c31bf66a2526af25e9091395fe0302"
+    },
+    {
+      "path": "icons/cards/air-freight.svg",
+      "bytes": 376,
+      "sha256": "8fff08273c1271d40c65b2da66a7b6bb3c01099aea3720dc7058b03285db5f36"
+    },
+    {
+      "path": "icons/cards/cargo-insurance.svg",
+      "bytes": 402,
+      "sha256": "b6a9380cf3aacd6b5eb71c7a27de81b7d2cc74fff5313624d852036dbdb5190b"
+    },
+    {
+      "path": "icons/cards/customs-clearance.svg",
+      "bytes": 388,
+      "sha256": "4b0b13c2df1384cdd6784aed3c31c7158c4138bfc14371c0356c9e1d55b9a3ef"
+    },
+    {
+      "path": "icons/cards/land-transport.svg",
+      "bytes": 437,
+      "sha256": "2a1b3925ae6cd6762eb884cf508654e7116cc07c092820987e5134267fc02c48"
+    },
+    {
+      "path": "icons/cards/sea-freight.svg",
+      "bytes": 382,
+      "sha256": "f93938266bcf2ec3f1efdfd4d55362a0feb34c2fa1cf36fde2c2676b2a56cdde"
+    },
+    {
+      "path": "icons/cards/warehousing.svg",
+      "bytes": 377,
+      "sha256": "01561bdfec84bead6eaae03e64467679f226d1eb91e38b3d667de6e7109e7191"
+    },
+    {
+      "path": "icons/cargo-insurance.svg",
+      "bytes": 304,
+      "sha256": "00d33721ee189dcceadb2158e2543ab1b35b5b4064b59640c768f9dc7cb1ca60"
+    },
+    {
+      "path": "icons/customs-clearance.svg",
+      "bytes": 290,
+      "sha256": "2648506736dfc34b1ad52b8b3a0595e3154423fa374e1d671533fb55ca1d6a75"
+    },
+    {
+      "path": "icons/land-transport.svg",
+      "bytes": 339,
+      "sha256": "d39af7e8d3f2b05bc95b52f02224b669f9899f58847344bc97c0a39abd964c20"
+    },
+    {
+      "path": "icons/sea-freight.svg",
+      "bytes": 284,
+      "sha256": "f7d6b769d514a5ac651ca68817b3b91bf8de882a8f39c1adb28e3c0322d16529"
+    },
+    {
+      "path": "icons/warehousing.svg",
+      "bytes": 279,
+      "sha256": "72614ac9d5d0e7508b35e425afdd676c518996a142a2435392adbadabeb169d6"
+    },
+    {
+      "path": "images/hero-desktop-1280.webp",
+      "bytes": 118122,
+      "sha256": "c8978d544cb0be2c5cf7f2639fa0c3744f0ab7e3e5ecd35d379d1309e1533975"
+    },
+    {
+      "path": "images/hero-desktop-1920.webp",
+      "bytes": 255880,
+      "sha256": "9f7ff478f22524edef0925719b9801ba824c7620b7119712f14f529992832025"
+    },
+    {
+      "path": "images/hero-mobile-720.webp",
+      "bytes": 109642,
+      "sha256": "ccb44355ac3ca7f8de966f8fa92eee7cb113de0b1b6a325ff249824de62f44f7"
+    },
+    {
+      "path": "images/hero-source.webp",
+      "bytes": 558392,
+      "sha256": "0ae432f64be871379c1a531ad19747fd4169a779be316e916ee9ddbedc83868d"
+    },
+    {
+      "path": "images/warehouse-desktop-1200.webp",
+      "bytes": 134342,
+      "sha256": "c384ce1dfec804821e5f46ae790915ee5979acf40972fc3da3b081a4abff3958"
+    },
+    {
+      "path": "images/warehouse-mobile-800.webp",
+      "bytes": 85932,
+      "sha256": "59466906e528ea53e661cdf0d61a8cf3bd93f34b4e726f37b2bc249094871200"
+    },
+    {
+      "path": "images/warehouse-small-640.webp",
+      "bytes": 45342,
+      "sha256": "60d272fefc0dc8efe4361722a11924d169b5f2eb636bf90110ddbb5dcc7e31bf"
+    },
+    {
+      "path": "images/warehouse-source.webp",
+      "bytes": 566448,
+      "sha256": "3c149240c26c548803807e68fe08483f4020c4f09a41fa5e9a97f845f0860265"
+    },
+    {
+      "path": "logos/lockup-ar-on-dark.svg",
+      "bytes": 5562,
+      "sha256": "d80d96f1c3a4b785a1350e41d43e13bd96acf25a627152e8d54f167e86912c17"
+    },
+    {
+      "path": "logos/lockup-ar-on-light.svg",
+      "bytes": 5562,
+      "sha256": "128f082d2bb646ef4e17401fa02ff1d838a9b5c1b61b0419fbebbbefdcfae287"
+    },
+    {
+      "path": "logos/lockup-en-on-dark.svg",
+      "bytes": 6985,
+      "sha256": "db87357a17f286ff534cf449541bfcc44f6ebbfcc195b3625e000dd895fb5a90"
+    },
+    {
+      "path": "logos/lockup-en-on-light.svg",
+      "bytes": 6985,
+      "sha256": "3631ccb6f56aa26c16e7d77888bfb71725e740601c6f210b815727bb36b81ab9"
+    },
+    {
+      "path": "logos/mark-patina.svg",
+      "bytes": 4720,
+      "sha256": "16e68694a105215bd8e7e9a941ac2f10562aa9a7f607e4c57eecb31b8a1fb0a0"
+    },
+    {
+      "path": "logos/mark-primary.png",
+      "bytes": 14148,
+      "sha256": "00122d47ade981edc5c6b9b9ab77a523142952ecb365def7ac177474bc19dd9b"
+    },
+    {
+      "path": "logos/mark-primary.svg",
+      "bytes": 2479,
+      "sha256": "ae20dcc9bb02191a80202382c630a2841c87d44d62ca3c562aedeb2b6c212a5f"
+    },
+    {
+      "path": "logos/mark-reverse.svg",
+      "bytes": 2479,
+      "sha256": "b99afac3e0b9cdb16a1843046a9900903d72681c48af7ff2919a1be027c6a4d1"
+    },
+    {
+      "path": "logos/wordmark-ar-on-dark.svg",
+      "bytes": 3078,
+      "sha256": "96f2d72aa6f26f34ce9f2598b9b3aaddcf512b2166835a5df4ecde86a61b6d0c"
+    },
+    {
+      "path": "logos/wordmark-ar-on-light.svg",
+      "bytes": 3078,
+      "sha256": "0f0f5353c0867d8033d9ca500e587c16d444e2c6baba7b241893155ca48876ba"
+    },
+    {
+      "path": "logos/wordmark-en-on-dark.svg",
+      "bytes": 4490,
+      "sha256": "3f72de9e9a30b301bf6ce123a3d97705fef389f115d6792e756e09deb44c1834"
+    },
+    {
+      "path": "logos/wordmark-en-on-light.svg",
+      "bytes": 4490,
+      "sha256": "0aa7777633f6d74950510f5c8f96f490f0a4eeb962e37191d84f9e3fffdfe263"
+    },
+    {
+      "path": "patterns/corrugation.svg",
+      "bytes": 230,
+      "sha256": "37ce89f0996bb87e5ac54ac8895ab67b88015aab291af6dbae7d2998cde0b683"
+    }
+  ]
+}

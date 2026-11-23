@@ -1,0 +1,2 @@
+# The brand manifest verifies exact asset bytes across Windows and other hosts.
+/public/brand/nilelink/** -text

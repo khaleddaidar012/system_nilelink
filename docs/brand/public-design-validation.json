@@ -1,0 +1,114 @@
+{
+  "reports": [
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 1280,
+      "isolated": true,
+      "themeIndependent": true,
+      "minimumTextContrast": 4.8155129346415775,
+      "labels": true,
+      "focusVisible": true,
+      "reducedMotion": true,
+      "overflow": false
+    },
+    {
+      "locale": "en",
+      "theme": "light",
+      "width": 390,
+      "isolated": true,
+      "themeIndependent": true,
+      "minimumTextContrast": 4.8155129346415775,
+      "labels": true,
+      "focusVisible": true,
+      "reducedMotion": true,
+      "overflow": false
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 1280,
+      "isolated": true,
+      "themeIndependent": true,
+      "minimumTextContrast": 4.8155129346415775,
+      "labels": true,
+      "focusVisible": true,
+      "reducedMotion": true,
+      "overflow": false
+    },
+    {
+      "locale": "en",
+      "theme": "dark",
+      "width": 390,
+      "isolated": true,
+      "themeIndependent": true,
+      "minimumTextContrast": 4.8155129346415775,
+      "labels": true,
+      "focusVisible": true,
+      "reducedMotion": true,
+      "overflow": false
+    },
+    {
+      "locale": "ar",
+      "theme": "light",
+      "width": 1280,
+      "isolated": true,
+      "themeIndependent": true,
+      "minimumTextContrast": 4.8155129346415775,
+      "labels": true,
+      "focusVisible": true,
+      "reducedMotion": true,
+      "overflow": false
+    },
+    {
+      "locale": "ar",
+      "theme": "light",
+      "width": 390,
+      "isolated": true,
+      "themeIndependent": true,
+      "minimumTextContrast": 4.8155129346415775,
+      "labels": true,
+      "focusVisible": true,
+      "reducedMotion": true,
+      "overflow": false
+    },
+    {
+      "locale": "ar",
+      "theme": "dark",
+      "width": 1280,
+      "isolated": true,
+      "themeIndependent": true,
+      "minimumTextContrast": 4.8155129346415775,
+      "labels": true,
+      "focusVisible": true,
+      "reducedMotion": true,
+      "overflow": false
+    },
+    {
+      "locale": "ar",
+      "theme": "dark",
+      "width": 390,
+      "isolated": true,
+      "themeIndependent": true,
+      "minimumTextContrast": 4.8155129346415775,
+      "labels": true,
+      "focusVisible": true,
+      "reducedMotion": true,
+      "overflow": false
+    }
+  ],
+  "pageErrors": [],
+  "checkedOn": "2026-11-23",
+  "scope": "Local SSR component review, not production route verification",
+  "additionalChecks": {
+    "typeScript": "passed",
+    "eslint": "passed",
+    "esmPreview": "passed",
+    "arabicFieldHeights": [
+      60,
+      60,
+      60,
+      60
+    ]
+  }
+}

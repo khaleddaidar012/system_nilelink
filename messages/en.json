@@ -1455,5 +1455,21 @@
       "title": "Track it until it arrives",
       "description": "One reference number connects your shipment updates."
     }
+  },
+  "publicQuickQuote": {
+    "title": "GET A FULL QUOTE",
+    "description": "Every item in writing. Any additional costs listed separately.",
+    "from": "From",
+    "to": "To",
+    "shipmentType": "Shipment type",
+    "phone": "Mobile number",
+    "destinationExample": "Destination port",
+    "followUp": "Enter a phone number we can use to discuss your shipment and prepare your quote.",
+    "submit": "Send request",
+    "sending": "Sending…",
+    "success": "Your inquiry was accepted. Our team will contact you by phone.",
+    "error": "We could not confirm receipt. Your details are saved here; please try again.",
+    "invalid": "Please enter a valid value.",
+    "fullForm": "Need to add more details? Use the full quote form."
   }
 }

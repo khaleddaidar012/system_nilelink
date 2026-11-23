@@ -19,7 +19,7 @@ function PublicHeader({locale}:{locale:"ar"|"en"}) {
     <nav className={styles.navigation} aria-label={t("navigationLabel")}>
       <Link href="/services" className={styles.navLink}>{t("services")}</Link>
       <Link href="/#how-we-work" className={styles.navLink}>{t("howWeWork")}</Link>
-      <Link href="/request-quote" className={styles.navLink}>{t("quote")}</Link>
+      <Link href="/#quick-quote" className={styles.navLink}>{t("quote")}</Link>
       <label className={styles.language}><span className={styles.srOnly}>{t("language")}</span><select value={locale} onChange={event=>{const value=event.target.value as typeof routing.locales[number];if(routing.locales.includes(value))router.replace("/",{locale:value})}} aria-label={t("language")}>{routing.locales.map(code=><option key={code} value={code}>{languageNames[code]}</option>)}</select></label>
     </nav>
     <Link href={accountHref} className={styles.account}>{role?(staff?t("staffAccount"):t("customerAccount")):t("login")}</Link>
@@ -34,7 +34,7 @@ export function PublicHomeHero({locale}:{locale:"ar"|"en"}) {
       <p className={styles.eyebrow}><bdi dir="ltr">DAM → WORLD · SEA · AIR · LAND · CUSTOMS</bdi></p>
       <h1 id="public-home-title" className={styles.title}>{t("title")}</h1>
       <p className={styles.description}>{t("description")}</p>
-      <div className={styles.actions}><Link href="/request-quote" className={`${publicBrandStyles.button} ${publicBrandStyles.primary}`}>{t("quoteCta")}</Link><a href={CONTACT.WHATSAPP} target="_blank" rel="noopener noreferrer" className={`${publicBrandStyles.button} ${publicBrandStyles.secondary}`}>{t("whatsappCta")}</a></div>
+      <div className={styles.actions}><Link href="/#quick-quote" className={`${publicBrandStyles.button} ${publicBrandStyles.primary}`}>{t("quoteCta")}</Link><a href={CONTACT.WHATSAPP} target="_blank" rel="noopener noreferrer" className={`${publicBrandStyles.button} ${publicBrandStyles.secondary}`}>{t("whatsappCta")}</a></div>
       <p className={styles.credit}>{t("photoCredit")} <span dir="ltr">Alexander Bobrov / Pexels</span></p>
     </div></BrandContainer>
   </BrandSection></BrandScope>

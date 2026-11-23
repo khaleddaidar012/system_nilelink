@@ -1,0 +1,15 @@
+.section { scroll-margin-block-start: 24px; background: linear-gradient(110deg, #DF7B4F, #A4492A 45%, #3B2A22); }
+.section:dir(ltr) { background: linear-gradient(110deg, #3B2A22, #813C28 55%, #DF7B4F); }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 48px; align-items: start; }
+.copy { min-inline-size: 0; padding-block: 8px; }
+.description { margin: 20px 0 0; font-size: 1.125rem; line-height: 1.8; color: #F2EEE6; }
+.form { min-inline-size: 0; padding: 24px; border-radius: 2px; background: #F2EEE6; color: #161616; --nl-public-ink: #161616; --nl-public-muted: #62584F; --nl-public-border: #A69B8B; --nl-public-surface: #F2EEE6; --nl-public-focus: #A4492A; --nl-public-error: #A52A24; display: grid; gap: 16px; }
+.fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.phone { grid-column: 1; }
+.hint { margin: 0; color: #62584F; font-size: .8125rem; line-height: 1.8; }
+.submit { inline-size: 100%; }
+.fullForm { color: #161616; text-underline-offset: 4px; font-size: .875rem; line-height: 1.8; }
+.fullForm:focus-visible { outline: 3px solid #A4492A; outline-offset: 4px; }
+@media (max-width: 1050px) { .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } .phone { grid-column: auto; } .layout { gap: 32px; } }
+@media (max-width: 800px) { .layout { grid-template-columns: minmax(0, 1fr); } .section, .section:dir(ltr) { background: linear-gradient(180deg, #3B2A22, #A4492A 65%, #DF7B4F); } }
+@media (max-width: 500px) { .fields { grid-template-columns: minmax(0, 1fr); } .form { padding: 20px; } }

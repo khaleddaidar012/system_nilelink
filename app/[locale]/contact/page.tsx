@@ -1,4 +1,5 @@
-import { getTranslations } from "next-intl/server"
+import {PublicContactPage} from "@/components/public-brand/PublicPages"
+import { getLocale, getTranslations } from "next-intl/server"
 import { constructMetadata } from "@/lib/seo"
 import { ContactHero } from "@/components/sections/contact/ContactHero"
 import { ContactCards } from "@/components/sections/contact/ContactCards"
@@ -22,7 +23,9 @@ export async function generateMetadata({ params }: Props) {
   })
 }
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const locale = await getLocale()
+  if (locale === "ar" || locale === "en") return <PublicContactPage locale={locale}/>
   return (
     <>
       <ContactHero />

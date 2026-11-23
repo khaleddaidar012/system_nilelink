@@ -2,7 +2,7 @@
 import {useEffect,useState} from "react"
 import Image from "next/image"
 import {useTranslations} from "next-intl"
-import {Link,useRouter} from "@/navigation"
+import {Link,useRouter,usePathname} from "@/navigation"
 import {routing} from "@/i18n"
 import {CONTACT} from "@/constants/contact"
 import {BrandContainer,BrandScope,BrandSection,publicBrandStyles} from "./index"
@@ -12,6 +12,7 @@ type AccountRole="customer"|"customer_admin"|"staff"|"super_admin"
 const languageNames:Record<string,string>={en:"English",ar:"العربية",fr:"Français",de:"Deutsch",it:"Italiano",zh:"中文",bg:"Български"}
 function PublicHeader({locale}:{locale:"ar"|"en"}) {
   const t=useTranslations("publicHome"),router=useRouter(),[role,setRole]=useState<AccountRole|null>(null)
+  const pathname=usePathname()
   useEffect(()=>{const controller=new AbortController();void fetch("/api/auth/me",{signal:controller.signal,cache:"no-store"}).then(async response=>{if(!response.ok)return;const data=await response.json();if(!controller.signal.aborted&&data.authenticated&&["customer","customer_admin","staff","super_admin"].includes(data.user?.role))setRole(data.user.role)}).catch(()=>{});return()=>controller.abort()},[])
   const staff=role==="staff"||role==="super_admin",accountHref=role?(staff?"/admin":"/portal"):"/login"
   return <header className={styles.header}><BrandContainer><div className={styles.headerLayout}>
@@ -20,10 +21,13 @@ function PublicHeader({locale}:{locale:"ar"|"en"}) {
       <Link href="/services" className={styles.navLink}>{t("services")}</Link>
       <Link href="/#how-we-work" className={styles.navLink}>{t("howWeWork")}</Link>
       <Link href="/#quick-quote" className={styles.navLink}>{t("quote")}</Link>
-      <label className={styles.language}><span className={styles.srOnly}>{t("language")}</span><select value={locale} onChange={event=>{const value=event.target.value as typeof routing.locales[number];if(routing.locales.includes(value))router.replace("/",{locale:value})}} aria-label={t("language")}>{routing.locales.map(code=><option key={code} value={code}>{languageNames[code]}</option>)}</select></label>
+      <label className={styles.language}><span className={styles.srOnly}>{t("language")}</span><select value={locale} onChange={event=>{const value=event.target.value as typeof routing.locales[number];if(routing.locales.includes(value))router.replace(`${pathname}${window.location.search}${window.location.hash}`,{locale:value})}} aria-label={t("language")}>{routing.locales.map(code=><option key={code} value={code}>{languageNames[code]}</option>)}</select></label>
     </nav>
     <Link href={accountHref} className={styles.account}>{role?(staff?t("staffAccount"):t("customerAccount")):t("login")}</Link>
   </div></BrandContainer></header>
+}
+export function PublicSiteHeader({locale}:{locale:"ar"|"en"}) {
+  return <BrandScope locale={locale}><div className={styles.solidHeader}><PublicHeader locale={locale}/></div></BrandScope>
 }
 export function PublicHomeHero({locale}:{locale:"ar"|"en"}) {
   const t=useTranslations("publicHome")

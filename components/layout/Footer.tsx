@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl"
 import { PublicFooter } from "@/components/public-brand/PublicFooter"
+import {isBrandedPublicPath} from "@/lib/public/routes"
 import { Phone, Mail, MapPin, ArrowUpRight, ArrowUp } from "lucide-react"
 import { FaFacebook, FaWhatsapp, FaLinkedin, FaEnvelope } from "react-icons/fa"
 import Image from "next/image"
@@ -67,7 +68,7 @@ export function Footer() {
     return null
   }
 
-  if (pathname === "/" && (locale === "ar" || locale === "en")) return <PublicFooter locale={locale}/>
+  if (isBrandedPublicPath(pathname) && (locale === "ar" || locale === "en")) return <PublicFooter locale={locale} topTarget={pathname === "/" ? "public-home-title" : "public-page-title"}/>
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" })

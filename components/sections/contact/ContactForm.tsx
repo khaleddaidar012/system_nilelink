@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { Send } from "lucide-react"
 import { Button } from "@/components/ui/Button"
+import {BrandButton, publicBrandStyles} from "@/components/public-brand"
 import { toast } from "sonner"
 
 type ContactFormData = {
@@ -18,7 +19,7 @@ type ContactFormData = {
   message: string
 }
 
-export function ContactForm() {
+export function ContactForm({branded=false}: {branded?:boolean} = {}) {
   const t = useTranslations("contact.form")
   const [loading, setLoading] = useState(false)
 
@@ -64,46 +65,55 @@ export function ContactForm() {
     }
   }
 
-  const inputClass = "w-full rounded-xl border border-secondary-200 bg-white px-4 py-3 text-sm text-secondary-900 placeholder-secondary-400 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-secondary-700 dark:bg-secondary-800 dark:text-white dark:placeholder-secondary-500"
-  const errorClass = "mt-1 text-xs text-error"
+  const inputClass = branded ? publicBrandStyles.control : "w-full rounded-xl border border-secondary-200 bg-white px-4 py-3 text-sm text-secondary-900 placeholder-secondary-400 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-secondary-700 dark:bg-secondary-800 dark:text-white dark:placeholder-secondary-500"
+  const errorClass = branded ? publicBrandStyles.error : "mt-1 text-xs text-error"
+  const labelClass = branded ? publicBrandStyles.label : "mb-1.5 block text-sm font-medium text-secondary-700 dark:text-secondary-300"
+  const Title = branded ? "h3" : "h2"
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={branded ? false : { opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5 }}
     >
-      <h2 className="mb-8 text-2xl font-bold text-secondary-900 dark:text-white">
+      {!branded && <Title className={branded ? publicBrandStyles.cardHeading : "mb-8 text-2xl font-bold text-secondary-900 dark:text-white"}>
         {t("title")}
-      </h2>
-      <form suppressHydrationWarning onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      </Title>}
+      <form suppressHydrationWarning aria-label={t("title")} onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <input suppressHydrationWarning {...register("name")} placeholder={t("name")} className={inputClass} />
-            {errors.name && <p className={errorClass}>{errors.name.message}</p>}
+            {branded && <label htmlFor="full-contact-name" className={labelClass}>{t("name")}</label>}
+            <input suppressHydrationWarning {...register("name")} id="full-contact-name" aria-invalid={!!errors.name} aria-describedby={errors.name ? "full-contact-name-error" : undefined} placeholder={t("name")} className={inputClass} />
+            {errors.name && <p id="full-contact-name-error" role="alert" className={errorClass}>{errors.name.message}</p>}
           </div>
           <div>
-            <input suppressHydrationWarning type="email" {...register("email")} placeholder={t("email")} className={inputClass} />
-            {errors.email && <p className={errorClass}>{errors.email.message}</p>}
+            {branded && <label htmlFor="full-contact-email" className={labelClass}>{t("email")}</label>}
+            <input suppressHydrationWarning type="email" dir="ltr" {...register("email")} id="full-contact-email" aria-invalid={!!errors.email} aria-describedby={errors.email ? "full-contact-email-error" : undefined} placeholder={t("email")} className={inputClass} />
+            {errors.email && <p id="full-contact-email-error" role="alert" className={errorClass}>{errors.email.message}</p>}
           </div>
         </div>
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <input suppressHydrationWarning {...register("phone")} placeholder={t("phone")} className={inputClass} />
+            {branded && <label htmlFor="full-contact-phone" className={labelClass}>{t("phone")}</label>}
+            <input suppressHydrationWarning type="tel" dir="ltr" {...register("phone")} id="full-contact-phone" aria-invalid={!!errors.phone} aria-describedby={errors.phone ? "full-contact-phone-error" : undefined} placeholder={t("phone")} className={inputClass} />
           </div>
           <div>
-            <input suppressHydrationWarning {...register("subject")} placeholder={t("subject")} className={inputClass} />
+            {branded && <label htmlFor="full-contact-subject" className={labelClass}>{t("subject")}</label>}
+            <input suppressHydrationWarning {...register("subject")} id="full-contact-subject" aria-invalid={!!errors.subject} aria-describedby={errors.subject ? "full-contact-subject-error" : undefined} placeholder={t("subject")} className={inputClass} />
           </div>
         </div>
         <div>
-          <textarea suppressHydrationWarning {...register("message")} rows={5} placeholder={t("message")} className={inputClass} />
-          {errors.message && <p className={errorClass}>{errors.message.message}</p>}
+          {branded && <label htmlFor="full-contact-message" className={labelClass}>{t("message")}</label>}
+          <textarea suppressHydrationWarning {...register("message")} id="full-contact-message" aria-invalid={!!errors.message} aria-describedby={errors.message ? "full-contact-message-error" : undefined} rows={5} placeholder={t("message")} className={inputClass} />
+          {errors.message && <p id="full-contact-message-error" role="alert" className={errorClass}>{errors.message.message}</p>}
         </div>
+        {branded ? <BrandButton type="submit" disabled={loading}>{t("submit")}</BrandButton> : (
         <Button type="submit" loading={loading} size="lg" className="gap-2">
           <Send className="h-4 w-4" />
           {t("submit")}
         </Button>
+        )}
       </form>
     </motion.div>
   )

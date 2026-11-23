@@ -19,11 +19,7 @@ export default async function HomePage() {
       <ServicesPreview />
       {branded && <PublicHowItWorks locale={locale}/>}
       {branded && <PublicQuickQuote locale={locale}/>}
-      {branded && <AboutPreview />}
-      <WhyChooseUs />
-      <GlobalCoverage />
-      <FAQ />
-      <CTASection />
+      {!branded && <><WhyChooseUs /><GlobalCoverage /><FAQ /><CTASection /></>}
     </>
   )
 }

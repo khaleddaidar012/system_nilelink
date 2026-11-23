@@ -1,4 +1,5 @@
-import { getTranslations } from "next-intl/server"
+import {PublicQuotePage} from "@/components/public-brand/PublicPages"
+import { getLocale, getTranslations } from "next-intl/server"
 import { constructMetadata } from "@/lib/seo"
 import { QuoteHero } from "@/components/sections/quote/QuoteHero"
 import { QuoteForm } from "@/components/sections/quote/QuoteForm"
@@ -20,7 +21,9 @@ export async function generateMetadata({ params }: Props) {
   })
 }
 
-export default function QuotePage() {
+export default async function QuotePage() {
+  const locale = await getLocale()
+  if (locale === "ar" || locale === "en") return <PublicQuotePage locale={locale}/>
   return (
     <>
       <QuoteHero />

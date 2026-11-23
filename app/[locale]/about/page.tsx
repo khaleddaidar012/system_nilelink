@@ -1,4 +1,5 @@
-import { getTranslations } from "next-intl/server"
+import {PublicAboutPage} from "@/components/public-brand/PublicPages"
+import { getLocale, getTranslations } from "next-intl/server"
 import { constructMetadata } from "@/lib/seo"
 import { AboutHero } from "@/components/sections/about/AboutHero"
 import { WhoWeAre } from "@/components/sections/about/WhoWeAre"
@@ -22,7 +23,9 @@ export async function generateMetadata({ params }: Props) {
   })
 }
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const locale = await getLocale()
+  if (locale === "ar" || locale === "en") return <PublicAboutPage locale={locale}/>
   return (
     <>
       <AboutHero />

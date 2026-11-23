@@ -1478,5 +1478,20 @@
     "contact": "Contact",
     "policyInquiry": "Privacy and terms enquiries",
     "backToTop": "Back to top"
+  },
+  "publicPages": {
+    "purpose": "Our mission and vision",
+    "warehouseAlt": "Warehouse aisles and stored goods.",
+    "estimates": "Indicative comparisons only. Route, cargo and schedules determine your final quote and transit time.",
+    "contactChannels": "Ways to reach us",
+    "mapTitle": "NileLink Damietta office location",
+    "regions": {
+      "northAmerica": "North America",
+      "europe": "Europe",
+      "asiaPacific": "Asia Pacific",
+      "middleEast": "Middle East",
+      "africa": "Africa",
+      "southAmerica": "South America"
+    }
   }
 }

@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/Button"
 import { Link, usePathname } from "@/navigation"
 import Image from "next/image"
 import logoImg from "@/public/images/logo.png"
+import {PublicSiteHeader} from "@/components/public-brand/PublicHomeHero"
+import {isBrandedPublicPath} from "@/lib/public/routes"
 import { EmailLink } from "@/components/ui/EmailLink"
 import { AuthNavActions } from "@/components/auth/AuthNavActions"
 import { cn } from "@/lib/utils"
@@ -73,6 +75,8 @@ export function Navbar() {
   if (isPortalOrAdmin || (pathname === "/" && (locale === "ar" || locale === "en"))) {
     return null
   }
+
+  if ((locale === "ar" || locale === "en") && isBrandedPublicPath(pathname)) return <PublicSiteHeader locale={locale}/>
 
   return (
     <header

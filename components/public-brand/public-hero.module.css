@@ -3,6 +3,7 @@
 .heroImage { object-fit: cover; object-position: center 55%; }
 .scrim { background: linear-gradient(180deg, rgb(22 22 22 / 65%) 0%, rgb(22 22 22 / 55%) 38%, rgb(22 22 22 / 94%) 100%); }
 .header { padding-block: 28px; }
+.solidHeader { background: #161616; color: #F2EEE6; }
 .headerLayout { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 32px; }
 .logo { display: inline-block; flex-shrink: 0; }
 .logoImage { inline-size: 180px; block-size: auto; aspect-ratio: 334.37 / 64; object-fit: contain; }

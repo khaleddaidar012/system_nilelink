@@ -18,7 +18,7 @@ const services = [
   {href: "/services#warehousing", label: "nav.warehousing"}, {href: "/services#specialized", label: "nav.specialized"},
 ]
 
-export function PublicFooter({locale}: {locale: "ar" | "en"}) {
+export function PublicFooter({locale, topTarget="public-home-title"}: {locale: "ar" | "en"; topTarget?: string}) {
   const t = useTranslations(), f = useTranslations("publicFooter")
   return <BrandScope locale={locale}>
     <footer id="public-footer" className={styles.footer}>
@@ -37,7 +37,7 @@ export function PublicFooter({locale}: {locale: "ar" | "en"}) {
             <li><a href={CONTACT.LINKEDIN} target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
           </ul></nav>
         </div>
-        <div className={styles.bottom}><p>© 2026 NileLink. {t("footer.copyright")}</p><Link href="/contact">{f("policyInquiry")}</Link><a href="#public-home-title">{f("backToTop")}</a></div>
+        <div className={styles.bottom}><p>© 2026 NileLink. {t("footer.copyright")}</p><Link href="/contact">{f("policyInquiry")}</Link><a href={`#${topTarget}`}>{f("backToTop")}</a></div>
       </BrandContainer>
       <div className={styles.pattern} aria-hidden="true"><Image src="/brand/nilelink/logos/mark-primary.svg" width={96} height={96} alt=""/></div>
     </footer>

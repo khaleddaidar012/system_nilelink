@@ -1,0 +1,30 @@
+.page { min-inline-size: 0; }
+.page :is(a, summary):focus-visible { outline: 3px solid #A4492A; outline-offset: 4px; }
+.page :is(section, article)[id] { scroll-margin-block-start: 24px; }
+.page p { line-height: 1.9; }
+.page li { line-height: 1.9; }
+.page a:not([class]) { color: #A4492A; text-underline-offset: 4px; overflow-wrap: anywhere; }
+.intro { max-inline-size: 65ch; }
+.twoColumns, .formLayout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+.formLayout { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.formLayout > * { min-inline-size: 0; }
+.photo { position: relative; aspect-ratio: 3 / 2; }
+.image { object-fit: cover; }
+.regions { display: flex; flex-wrap: wrap; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.regions li { background: #F2EEE6; padding: 12px 20px; border-inline-start: 3px solid #A4492A; }
+.serviceList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.service { position: relative; display: grid; gap: 16px; align-content: start; }
+.anchorAlias { position: absolute; inset-block-start: 0; inline-size: 0; block-size: 0; scroll-margin-block-start: 24px; }
+.service p { margin: 0; }
+.service ul { margin: 0; padding-inline-start: 20px; }
+.textLink { color: #A4492A; text-underline-offset: 4px; }
+.comparison { margin: 16px 0 0; }
+.comparison div { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; border-block-start: 1px solid #A69B8B; padding-block: 12px; }
+.comparison dd { margin: 0; }
+.detail { border-block-start: 2px solid #161616; padding-block: 20px; }
+.detail summary { cursor: pointer; font-weight: 600; font-size: 1.125rem; }
+.detail p { max-inline-size: 75ch; }
+.map { inline-size: 100%; min-inline-size: 0; aspect-ratio: 2 / 1; min-block-size: 320px; background: #E5DFD3; }
+.map iframe { display: block; inline-size: 100%; block-size: 100%; min-block-size: 320px; border: 0; }
+@media (max-width: 900px) { .formLayout { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 800px) { .twoColumns, .serviceList { grid-template-columns: minmax(0, 1fr); } }

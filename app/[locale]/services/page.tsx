@@ -1,4 +1,5 @@
-import { getTranslations } from "next-intl/server"
+import {PublicServicesPage} from "@/components/public-brand/PublicPages"
+import { getLocale, getTranslations } from "next-intl/server"
 import { constructMetadata } from "@/lib/seo"
 import { ServicesHero } from "@/components/sections/services/ServicesHero"
 import { ServicesGrid } from "@/components/sections/services/ServicesGrid"
@@ -21,7 +22,9 @@ export async function generateMetadata({ params }: Props) {
   })
 }
 
-export default function ServicesPage() {
+export default async function ServicesPage() {
+  const locale = await getLocale()
+  if (locale === "ar" || locale === "en") return <PublicServicesPage locale={locale}/>
   return (
     <>
       <ServicesHero />

@@ -1,6 +1,7 @@
 "use client"
 
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
+import { PublicFooter } from "@/components/public-brand/PublicFooter"
 import { Phone, Mail, MapPin, ArrowUpRight, ArrowUp } from "lucide-react"
 import { FaFacebook, FaWhatsapp, FaLinkedin, FaEnvelope } from "react-icons/fa"
 import Image from "next/image"
@@ -45,6 +46,7 @@ const socialLinks = [
 
 export function Footer() {
   const t = useTranslations()
+  const locale = useLocale()
   const pathname = usePathname()
   const [showScrollTop, setShowScrollTop] = useState(false)
 
@@ -64,6 +66,8 @@ export function Footer() {
   if (isPortalOrAdmin) {
     return null
   }
+
+  if (pathname === "/" && (locale === "ar" || locale === "en")) return <PublicFooter locale={locale}/>
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" })

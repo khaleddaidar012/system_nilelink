@@ -1471,5 +1471,12 @@
     "error": "We could not confirm receipt. Your details are saved here; please try again.",
     "invalid": "Please enter a valid value.",
     "fullForm": "Need to add more details? Use the full quote form."
+  },
+  "publicFooter": {
+    "tagline": "Clear, and it stays.",
+    "location": "Damietta, Egypt",
+    "contact": "Contact",
+    "policyInquiry": "Privacy and terms enquiries",
+    "backToTop": "Back to top"
   }
 }

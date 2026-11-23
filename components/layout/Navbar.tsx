@@ -70,7 +70,7 @@ export function Navbar() {
     pathname?.includes("/portal") ||
     pathname?.includes("/admin")
 
-  if (isPortalOrAdmin) {
+  if (isPortalOrAdmin || (pathname === "/" && (locale === "ar" || locale === "en"))) {
     return null
   }
 

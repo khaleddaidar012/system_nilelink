@@ -1,14 +1,15 @@
 "use client"
 
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
 import { motion } from "framer-motion"
 import Image from "next/image"
 import { ArrowRight, Shield } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { Container } from "@/components/ui/Container"
 import { Link } from "@/navigation"
+import { PublicHomeHero } from "@/components/public-brand/PublicHomeHero"
 
-export function HeroSection() {
+function LegacyHeroSection() {
   const t = useTranslations("hero")
 
   return (
@@ -100,3 +101,5 @@ export function HeroSection() {
     </section>
   )
 }
+
+export function HeroSection() { const locale=useLocale(); return locale==="ar"||locale==="en"?<PublicHomeHero locale={locale}/>:<LegacyHeroSection/> }

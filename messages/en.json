@@ -1395,5 +1395,22 @@
     "mismatch_details": "Company or registration details mismatch",
     "wrong_category": "Document uploaded under wrong category",
     "other": "Other reason (specified in notes)"
+  },
+  "publicHome": {
+    "homeLabel": "NileLink home",
+    "navigationLabel": "Main navigation",
+    "services": "Services",
+    "howWeWork": "How we work",
+    "quote": "Get a quote",
+    "language": "Language",
+    "login": "Log in",
+    "customerAccount": "Client portal",
+    "staffAccount": "Staff portal",
+    "title": "EVERY SHIPMENT GETS A COMPLETE CARD.",
+    "description": "Freight forwarding from Damietta: sea, air and land, customs done, and every cost on its own line.",
+    "quoteCta": "Get a full quote",
+    "whatsappCta": "WhatsApp us",
+    "photoCredit": "Photo:",
+    "imageAlt": "Cargo ship at sea — illustrative photograph"
   }
 }

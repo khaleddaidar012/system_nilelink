@@ -18,8 +18,8 @@
     "required": "Required"
   },
   "metadata": {
-    "title": "Soluzioni Logistiche Globali",
-    "description": "NileLink è un'azienda di spedizioni leader in Egitto, che offre servizi di trasporto marittimo, aereo, terrestre, sdoganamento e magazzinaggio in tutto il mondo."
+    "title": "Spedizioni e dogana da Damietta",
+    "description": "Trasporto marittimo, aereo e terrestre e pratiche doganali da Damietta. Preventivi dettagliati con inclusioni ed esclusioni."
   },
   "navbar": {
     "getQuote": "Richiedi un preventivo"
@@ -43,7 +43,7 @@
   },
   "hero": {
     "title": "Soluzioni Logistiche Globali",
-    "subtitle": "Il Vostro Partner N°1 nelle Spedizioni Internazionali",
+    "subtitle": "Spedizioni e dogana da Damietta",
     "description": "Servizi di trasporto marittimo, aereo e terrestre affidabili in tutto il mondo. NileLink offre eccellenza in ogni spedizione.",
     "ctaQuote": "Ottieni un preventivo",
     "ctaServices": "I Nostri Servizi"

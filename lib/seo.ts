@@ -1,11 +1,13 @@
 import type { Metadata } from "next"
+import {routing} from "@/i18n"
+import {PUBLIC_SITE_ORIGIN, PUBLIC_SITE_NAME, PUBLIC_SITE_DESCRIPTION, PUBLIC_SHARE_IMAGE} from "@/lib/public/site"
 
 export const siteConfig = {
-  name: "NileLink",
+  name: PUBLIC_SITE_NAME,
   description:
-    "NileLink is a leading freight forwarding company in Egypt, offering sea freight, air freight, land freight, customs clearance, and warehousing services worldwide.",
-  url: "https://nilelink-eg.com",
-  ogImage: "/images/og-image.jpg",
+    PUBLIC_SITE_DESCRIPTION,
+  url: PUBLIC_SITE_ORIGIN,
+  ogImage: PUBLIC_SHARE_IMAGE,
   locale: "en_US",
   localeAr: "ar_EG",
   localeFr: "fr_FR",
@@ -13,7 +15,6 @@ export const siteConfig = {
   localeIt: "it_IT",
   localeZh: "zh_CN",
   localeBg: "bg_BG",
-  twitterHandle: "@nilelink",
   keywords: [
     "freight forwarding",
     "logistics Egypt",
@@ -41,8 +42,9 @@ export function constructMetadata({
   locale?: string
   path?: string
 }): Metadata {
+  const pageTitle = title.endsWith(siteConfig.name) ? title : `${title} | ${siteConfig.name}`
   return {
-    title: `${title} | ${siteConfig.name}`,
+    title: {absolute: pageTitle},
     description: description || siteConfig.description,
     keywords: siteConfig.keywords,
     authors: [{ name: siteConfig.name }],
@@ -66,7 +68,7 @@ export function constructMetadata({
                     ? siteConfig.localeBg
                     : siteConfig.locale,
       url: `${siteConfig.url}/${locale}${path}`,
-      title: `${title} | ${siteConfig.name}`,
+      title: pageTitle,
       description: description || siteConfig.description,
       siteName: siteConfig.name,
       images: [
@@ -80,22 +82,13 @@ export function constructMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: `${title} | ${siteConfig.name}`,
+      title: pageTitle,
       description: description || siteConfig.description,
       images: [image || siteConfig.ogImage],
-      creator: siteConfig.twitterHandle,
     },
     alternates: {
       canonical: `${siteConfig.url}/${locale}${path}`,
-      languages: {
-        en: `${siteConfig.url}/en${path}`,
-        ar: `${siteConfig.url}/ar${path}`,
-        fr: `${siteConfig.url}/fr${path}`,
-        de: `${siteConfig.url}/de${path}`,
-        it: `${siteConfig.url}/it${path}`,
-        zh: `${siteConfig.url}/zh${path}`,
-        bg: `${siteConfig.url}/bg${path}`,
-      },
+      languages: Object.fromEntries([...routing.locales.map(code => [code, `${siteConfig.url}/${code}${path}`]), ["x-default", `${siteConfig.url}/en${path}`]]),
     },
   }
 }

@@ -18,8 +18,8 @@
     "required": "Required"
   },
   "metadata": {
-    "title": "Solutions Logistiques Globales",
-    "description": "NileLink est une société de transit leader en Égypte, offrant des services de fret maritime, aérien, routier, de dédouanement et d'entreposage dans le monde entier."
+    "title": "Fret et douane depuis Damiette",
+    "description": "Transport maritime, aérien et routier et formalités douanières depuis Damiette. Devis détaillés avec prestations incluses et exclues."
   },
   "navbar": {
     "getQuote": "Demander un devis"
@@ -43,7 +43,7 @@
   },
   "hero": {
     "title": "Solutions Logistiques Globales",
-    "subtitle": "Votre Partenaire N°1 dans le Transport International",
+    "subtitle": "Fret et douane depuis Damiette",
     "description": "Des services de fret maritime, aérien et terrestre fiables à travers le monde. NileLink offre l'excellence dans chaque envoi.",
     "ctaQuote": "Obtenir un devis",
     "ctaServices": "Nos Services"

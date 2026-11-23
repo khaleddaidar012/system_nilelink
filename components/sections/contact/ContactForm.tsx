@@ -55,11 +55,11 @@ export function ContactForm({branded=false}: {branded?:boolean} = {}) {
         throw new Error(result.message || t("error"))
       }
 
-      toast.success(result.message || t("success"))
+      toast.success(branded ? t("success") : result.message || t("success"))
       reset()
     } catch (err) {
       const message = err instanceof Error ? err.message : t("error")
-      toast.error(message)
+      toast.error(branded ? t("error") : message)
     } finally {
       setLoading(false)
     }

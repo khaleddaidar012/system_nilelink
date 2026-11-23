@@ -19,8 +19,8 @@
     "details": "Details"
   },
   "metadata": {
-    "title": "Global Logistics Solutions",
-    "description": "NileLink is a leading freight forwarding company in Egypt, offering sea freight, air freight, land freight, customs clearance, and warehousing services worldwide."
+    "title": "Freight and customs from Damietta",
+    "description": "Sea, air and land freight and customs from Damietta. Itemized quotes with clear inclusions and exclusions."
   },
   "navbar": {
     "getQuote": "Get a Quote"
@@ -44,7 +44,7 @@
   },
   "hero": {
     "title": "Global Logistics Solutions",
-    "subtitle": "Your No.1 Partner in International Shipping",
+    "subtitle": "Freight and customs from Damietta",
     "description": "Reliable sea, air, and land freight services across the globe. NileLink delivers excellence in every shipment.",
     "ctaQuote": "Get a Quote",
     "ctaServices": "Our Services"
@@ -52,95 +52,95 @@
   "aboutPreview": {
     "subtitle": "About NileLink",
     "title": "Your Trusted Partner in Global Logistics",
-    "description": "At NileLink, we are a leading force in the freight forwarding industry, dedicated to delivering unparalleled logistics solutions. With a rich history and a commitment to excellence, our mission is to provide reliable and innovative services that empower businesses to navigate the complexities of global trade.",
+    "description": "Freight and customs from Damietta. Send your shipment details for an itemized quote with clear inclusions and exclusions.",
     "learnMore": "Learn More About Us"
   },
   "services": {
     "subtitle": "Our Services",
     "title": "Comprehensive Logistics Solutions",
-    "description": "NileLink is committed to providing its clients with the best and cost-effective services to cover all logistics requests.",
+    "description": "Sea, air and land freight and customs from Damietta. We review your shipment details before setting out the quote items.",
     "seaFreight": {
       "title": "Sea Freight",
-      "description": "Cost-effective and versatile shipping solution for large or bulky shipments. Offering FCL and LCL container options with global coverage through strategic partnerships.",
+      "description": "Full containers (FCL) and shared loads (LCL) from Damietta.",
       "features": {
-        "item1": "FCL & LCL containers",
-        "item2": "Global port network",
-        "item3": "Flexible sailing schedules",
-        "item4": "Real-time tracking"
+        "item1": "FCL containers and LCL loads",
+        "item2": "Origin and destination details",
+        "item3": "Schedules reviewed for your route",
+        "item4": "Shipment updates"
       }
     },
     "airFreight": {
       "title": "Air Freight",
-      "description": "Fast and reliable international shipping service via air transportation. Ideal for time-sensitive goods ensuring swift delivery and efficient logistics.",
+      "description": "For urgent shipments and samples.",
       "features": {
-        "item1": "Express & standard options",
-        "item2": "Consolidation services",
-        "item3": "Time-sensitive cargo",
-        "item4": "Global coverage"
+        "item1": "Urgent shipments and samples",
+        "item2": "Cargo type and dimensions",
+        "item3": "Route and schedule review",
+        "item4": "Shipment updates"
       }
     },
     "roadFreight": {
       "title": "Land Freight",
-      "description": "Seamless overland transportation services including trucking and intermodal solutions. Ensuring safe and timely delivery of goods within specified regions.",
+      "description": "Factory to port, and port to warehouse.",
       "features": {
-        "item1": "Domestic & cross-border",
-        "item2": "Full & partial loads",
-        "item3": "Intermodal solutions",
-        "item4": "Real-time GPS tracking"
+        "item1": "Factory, port and warehouse",
+        "item2": "Pickup and delivery points",
+        "item3": "Quantity, weight and dimensions",
+        "item4": "Transport coordination"
       }
     },
     "customsClearance": {
       "title": "Customs Clearance",
-      "description": "Expert handling of customs procedures, documentation, and compliance to ensure smooth passage through international borders.",
+      "description": "Export and import. Documents ready first.",
       "features": {
-        "item1": "Documentation handled",
-        "item2": "Compliance guaranteed",
-        "item3": "Fast clearance",
-        "item4": "Regulatory expertise"
+        "item1": "Import and export",
+        "item2": "Required-document review",
+        "item3": "Clearance procedure updates",
+        "item4": "Updates for your shipment status"
       }
     },
     "warehousing": {
       "title": "Warehousing",
-      "description": "Secure and efficient storage solutions for goods including short-term and long-term options. Full inventory management and order fulfillment.",
+      "description": "Tell us what you need to store, how much and for how long so we can review your requirements.",
       "features": {
-        "item1": "Short & long-term storage",
-        "item2": "Inventory management",
-        "item3": "Order fulfillment",
-        "item4": "Climate-controlled options"
+        "item1": "Type of goods",
+        "item2": "Quantity and dimensions",
+        "item3": "Required storage duration",
+        "item4": "Location and handling needs"
       }
     },
     "specialized": {
       "title": "Specialized Services",
-      "description": "Tailored solutions for unique cargo needs such as temperature-sensitive items, hazardous materials, and oversized project cargo.",
+      "description": "If your cargo has special requirements, send the details for a feasibility review before agreeing the service.",
       "features": {
-        "item1": "Temperature-controlled",
-        "item2": "Hazardous materials",
-        "item3": "Oversized project cargo",
-        "item4": "Custom solutions"
+        "item1": "Cargo type and requirements",
+        "item2": "Weight and dimensions",
+        "item3": "Shipment documents",
+        "item4": "Feasibility review"
       }
     },
     "comparison": {
       "title": "Shipping Methods Compared",
-      "subtitle": "Choose the Right Option",
+      "subtitle": "Review what fits your shipment",
       "seaFreight": {
         "method": "Sea Freight",
-        "transit": "7–30 days",
-        "cost": "$$",
-        "capacity": "Unlimited",
+        "transit": "Route and schedule dependent",
+        "cost": "As itemized in your quote",
+        "capacity": "Based on cargo details",
         "bestFor": "Large shipments, non-urgent"
       },
       "airFreight": {
         "method": "Air Freight",
-        "transit": "1–5 days",
-        "cost": "$$$",
-        "capacity": "Limited",
+        "transit": "Route and schedule dependent",
+        "cost": "As itemized in your quote",
+        "capacity": "Based on cargo details",
         "bestFor": "Time-sensitive, high-value"
       },
       "roadFreight": {
         "method": "Land Freight",
-        "transit": "1–7 days",
-        "cost": "$",
-        "capacity": "Medium",
+        "transit": "Route and schedule dependent",
+        "cost": "As itemized in your quote",
+        "capacity": "Based on cargo details",
         "bestFor": "Regional, door-to-door"
       },
       "labels": {
@@ -157,26 +157,26 @@
     "subtitle": "Why Choose NileLink",
     "title": "The NileLink Advantage",
     "globalReach": {
-      "title": "Global Reach",
-      "description": "Benefit from our extensive network and partnerships, facilitating smooth logistics operations on a global scale."
+      "title": "Route review",
+      "description": "We review the origin, destination and feasibility."
     },
     "expertTeam": {
-      "title": "Expert Team",
-      "description": "Rely on seasoned professionals with years of experience, ensuring precision and reliability in every shipment."
+      "title": "Shipment detail review",
+      "description": "We review cargo type, quantity and shipping requirements."
     },
     "customerCentric": {
-      "title": "Customer-Centric",
-      "description": "Your satisfaction is our priority. We work closely to understand your requirements and deliver solutions that exceed expectations."
+      "title": "Clear quotes",
+      "description": "Every item is written down, with inclusions and exclusions."
     },
     "compliance": {
-      "title": "Compliance & Regulations",
-      "description": "Navigate international trade regulations with confidence. We ensure strict compliance with customs procedures and regulatory standards."
+      "title": "Shipment documents",
+      "description": "Requirements are reviewed for the cargo and route."
     }
   },
   "globalCoverage": {
     "subtitle": "Global Network",
-    "title": "Worldwide Shipping Coverage",
-    "description": "With a worldwide network of partners around the globe, we are ready to ship your goods anywhere with the best competitive price."
+    "title": "Your shipment route",
+    "description": "Tell us the origin and destination. We review the route, feasibility and costs before agreement."
   },
   "faq": {
     "subtitle": "FAQ",
@@ -184,75 +184,75 @@
     "items": [
       {
         "question": "What types of cargo do you ship?",
-        "answer": "We ship all types of cargo including general goods, perishables, hazardous materials, oversized project cargo, and temperature-controlled items."
+        "answer": "Send the cargo type, weight and dimensions. Special requirements need a feasibility review before agreement."
       },
       {
         "question": "How long does sea freight take?",
-        "answer": "Transit times vary by route. Typically, sea freight from Egypt to major global ports ranges from 7 to 30 days depending on the destination."
+        "answer": "Transit time depends on the route, schedules and procedures. We review the estimate with your shipment details."
       },
       {
         "question": "Do you offer door-to-door delivery?",
-        "answer": "Yes, we offer comprehensive door-to-door logistics solutions covering pickup, transportation, customs clearance, and final delivery."
+        "answer": "Send the pickup and delivery addresses so we can specify the service scope and included quote items."
       },
       {
         "question": "How can I track my shipment?",
-        "answer": "We provide real-time tracking for all shipments. Once your cargo is in transit, you will receive a tracking number and regular updates."
+        "answer": "After confirmation, follow the request stages and available updates in your account."
       },
       {
         "question": "What documentation is required for international shipping?",
-        "answer": "Required documentation typically includes commercial invoice, packing list, bill of lading or air waybill, and certificate of origin. Our team handles all customs documentation."
+        "answer": "Documents depend on the cargo and route. Send the details so we can identify requirements, such as a commercial invoice and packing list."
       }
     ]
   },
   "cta": {
     "title": "Ready to Ship?",
-    "description": "Get in touch with our team today for a free, no-obligation quote. We are available 24/7 to assist you.",
+    "description": "Enter a phone number we can use to discuss your shipment and prepare your quote.",
     "button": "Request a Quote"
   },
   "about": {
     "hero": {
       "title": "About NileLink",
-      "description": "Discover our story, mission, and commitment to excellence in global logistics."
+      "description": "How we work: shipment details first, a clear quote and updates you can follow."
     },
     "whoWeAre": {
       "title": "Who We Are",
-      "description1": "At NileLink, we are a leading force in the freight forwarding industry, dedicated to delivering unparalleled logistics solutions.",
-      "description2": "With a rich history and a commitment to excellence, our mission is to provide reliable and innovative services that empower businesses to navigate the complexities of global trade. Backed by a team of seasoned professionals and strategic partnerships, NileLink stands as a trusted partner in optimizing supply chains and ensuring the seamless movement of goods across borders."
+      "description1": "NileLink coordinates sea, air and land freight and customs from Damietta.",
+      "description2": "Send the origin, destination, cargo type and quantity. We review the details and prepare a quote listing each cost, what is included and what is excluded. After confirmation, follow your shipment updates."
     },
     "mission": {
       "title": "Our Mission",
-      "description": "NileLink is dedicated to empowering businesses through seamless global logistics solutions. Our mission is to be the trusted partner of choice, providing innovative and reliable freight forwarding services that optimize supply chains, overcome challenges, and drive success."
+      "description": "Make shipment details, costs and documents clear before agreement, and keep request updates organized during execution."
     },
     "vision": {
       "title": "Our Vision",
-      "description": "To be the global benchmark in logistics excellence, setting the standard for innovation, reliability, and customer satisfaction in the freight forwarding industry."
+      "description": "A clear reference for every shipment, with every item understood from the start."
     },
     "coreValues": {
       "title": "Our Core Values",
       "subtitle": "What Drives Us",
       "integrity": {
         "title": "Integrity",
-        "description": "We conduct business with the highest ethical standards, transparency, and honesty in every transaction."
+        "description": "We set out inclusions and exclusions clearly."
       },
       "innovation": {
         "title": "Innovation",
-        "description": "We leverage cutting-edge technology and creative solutions to optimize supply chains."
+        "description": "We use tools to organize request information."
       },
       "customerFocus": {
         "title": "Customer Focus",
-        "description": "Our clients are at the heart of everything we do. We deliver personalized solutions."
+        "description": "We start with your shipment details and requirements."
       },
       "reliability": {
         "title": "Reliability",
-        "description": "Consistent, dependable service that our clients can trust for every shipment."
+        "description": "We follow the request status and available updates."
       },
       "sustainability": {
         "title": "Sustainability",
-        "description": "Committed to environmentally responsible practices in global logistics."
+        "description": "We review transport options against shipment requirements."
       },
       "safety": {
         "title": "Safety",
-        "description": "Rigorous safety standards protect your cargo, our team, and the environment."
+        "description": "We review cargo handling requirements before agreement."
       }
     }
   },
@@ -260,7 +260,7 @@
     "hero": {
       "title": "Contact Us",
       "companyName": "Nile Link Logistics Services",
-      "description": "Your trusted logistics partner providing reliable sea, air, and land freight solutions across Egypt and worldwide."
+      "description": "Contact NileLink about freight and customs from Damietta, or to follow up on your inquiry."
     },
     "hq": "Head Office",
     "hqAddressStreet": "Entrance to Al-Ananiyah Road, opposite the Ice Factory",
@@ -293,7 +293,7 @@
     "support247Desc": "Our team is ready to assist you with your shipping needs.",
     "quickResponse": {
       "title": "Quick Response",
-      "description": "Our team typically responds within 2 hours during business hours."
+      "description": "Send your question and contact details. Our team will review them and get back to you."
     },
     "channels": {
       "phone": {
@@ -339,10 +339,10 @@
   "quote": {
     "hero": {
       "title": "Request a Quote",
-      "description": "Please fill out the form below. Our team will check your request and get back to you with the best possible rate."
+      "description": "Send your shipment and contact details. We will review them and prepare an itemized quote."
     },
     "form": {
-      "title": "Get Your Free Quote",
+      "title": "Quote request details",
       "firstName": "First Name",
       "lastName": "Last Name",
       "company": "Company",
@@ -367,7 +367,9 @@
       "notes": "Additional Notes",
       "submit": "Submit Request",
       "success": "Quote request submitted successfully! We will contact you shortly.",
-      "error": "An error occurred. Please try again."
+      "error": "An error occurred. Please try again.",
+      "validationRequired": "Please complete the required field.",
+      "validationEmail": "Please enter a valid email address."
     }
   },
   "footer": {
@@ -1433,7 +1435,7 @@
     },
     "warehouse": {
       "title": "Warehousing",
-      "description": "Short- and long-term storage options for your goods."
+      "description": "Tell us what you need to store, how much and for how long so we can review your requirements."
     },
     "insurance": {
       "title": "Cargo insurance",

@@ -1,3 +1,4 @@
+import {publicIcons} from "@/lib/public/site"
 import { NextIntlClientProvider } from "next-intl"
 import { getMessages, getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
@@ -22,30 +23,8 @@ export async function generateMetadata({ params }: Props) {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: "metadata" })
 
-  return {
-    title: t("title"),
-    description: t("description"),
-    icons: {
-      icon: [
-        { url: "/favicon.ico?v=nilelink-circle-20261026", type: "image/x-icon" },
-        { url: "/favicon-32.png?v=nilelink-circle-20261026", type: "image/png", sizes: "32x32" },
-      ],
-      shortcut: "/favicon.ico?v=nilelink-circle-20261026",
-      apple: "/apple-touch-icon.png?v=nilelink-circle-20261026",
-    },
-    alternates: {
-      canonical: `https://nilelink-eg.com/${locale}`,
-      languages: {
-        en: "https://nilelink-eg.com/en",
-        ar: "https://nilelink-eg.com/ar",
-        fr: "https://nilelink-eg.com/fr",
-        de: "https://nilelink-eg.com/de",
-        it: "https://nilelink-eg.com/it",
-        zh: "https://nilelink-eg.com/zh",
-        bg: "https://nilelink-eg.com/bg",
-      },
-    },
-  }
+  return {title: t("title"), description: t("description"), icons: publicIcons}
+
 }
 
 export default async function LocaleLayout({ children, params }: Props) {

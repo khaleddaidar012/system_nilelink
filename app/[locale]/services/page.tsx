@@ -14,9 +14,10 @@ export async function generateMetadata({ params }: Props) {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: "services" })
 
+  const meta = await getTranslations({locale, namespace: "metadata"})
   return constructMetadata({
     title: t("title"),
-    description: t("description"),
+    description: locale === "ar" || locale === "en" ? t("description") : meta("description"),
     locale,
     path: "/services",
   })

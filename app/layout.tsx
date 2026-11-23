@@ -1,3 +1,5 @@
+import {getLocale} from "next-intl/server"
+import {PUBLIC_SITE_ORIGIN, PUBLIC_SITE_DESCRIPTION, PUBLIC_SHARE_IMAGE} from "@/lib/public/site"
 import type { Metadata } from "next"
 import { Inter, Cairo } from "next/font/google"
 import "./globals.css"
@@ -17,13 +19,13 @@ const cairo = Cairo({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://nilelink-eg.com"),
+  metadataBase: new URL(PUBLIC_SITE_ORIGIN),
   title: {
     default: "NileLink | Global Logistics Solutions",
     template: "%s | NileLink",
   },
   description:
-    "NileLink is a leading freight forwarding company in Egypt, offering sea freight, air freight, land freight, customs clearance, and warehousing services worldwide.",
+    PUBLIC_SITE_DESCRIPTION,
   keywords: [
     "freight forwarding",
     "logistics Egypt",
@@ -42,10 +44,10 @@ export const metadata: Metadata = {
     siteName: "NileLink",
     title: "NileLink | Global Logistics Solutions",
     description:
-      "Your No.1 Partner in Global Logistics — Sea, Air & Land Freight",
+      PUBLIC_SITE_DESCRIPTION,
     images: [
       {
-        url: "/images/container-ship.jpg",
+        url: PUBLIC_SHARE_IMAGE,
         width: 1200,
         height: 630,
         alt: "NileLink - Global Logistics Solutions",
@@ -56,7 +58,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NileLink | Global Logistics Solutions",
     description:
-      "Your No.1 Partner in Global Logistics — Sea, Air & Land Freight",
+      PUBLIC_SITE_DESCRIPTION,
   },
   robots: {
     index: true,
@@ -64,14 +66,15 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const locale = await getLocale()
   return (
     <html
-      lang="en"
+      lang={locale}
       suppressHydrationWarning
       className={`${inter.variable} ${cairo.variable}`}
       data-scroll-behavior="smooth"

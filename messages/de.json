@@ -18,8 +18,8 @@
     "required": "Required"
   },
   "metadata": {
-    "title": "Globale Logistiklösungen",
-    "description": "NileLink ist ein führendes Speditionsunternehmen in Ägypten, das weltweit See-, Luft-, Landfracht, Zollabfertigung und Lagerhaltung anbietet."
+    "title": "Fracht und Zoll ab Damietta",
+    "description": "See-, Luft- und Landfracht sowie Zollabwicklung ab Damietta. Angebote mit einzelnen Kosten und klaren Ein- und Ausschlüssen."
   },
   "navbar": {
     "getQuote": "Angebot einholen"
@@ -43,7 +43,7 @@
   },
   "hero": {
     "title": "Globale Logistiklösungen",
-    "subtitle": "Ihr Partner Nr. 1 im internationalen Versand",
+    "subtitle": "Fracht und Zoll ab Damietta",
     "description": "Zuverlässige See-, Luft- und Landfrachtdienste weltweit. NileLink liefert Exzellenz in jeder Sendung.",
     "ctaQuote": "Angebot einholen",
     "ctaServices": "Unsere Leistungen"

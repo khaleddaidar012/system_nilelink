@@ -1,89 +1,36 @@
 "use client"
 
-import { useEffect } from "react"
 import { CONTACT } from "@/constants/contact"
+import {PUBLIC_SITE_ORIGIN, PUBLIC_SITE_NAME, PUBLIC_SITE_DESCRIPTION} from "@/lib/public/site"
+import {isBrandedPublicPath} from "@/lib/public/routes"
+import {usePathname} from "@/navigation"
 
-function useJsonLd(id: string, schema: Record<string, unknown> | null) {
-  useEffect(() => {
-    if (!schema) return
-
-    const script = document.createElement("script")
-    script.id = id
-    script.type = "application/ld+json"
-    script.textContent = JSON.stringify(schema)
-    document.head.appendChild(script)
-
-    return () => {
-      script.remove()
-    }
-  }, [id, schema])
+function JsonLd({id, schema}: {id: string; schema: Record<string, unknown> | null}) {
+  if (!schema) return null
+  return <script id={id} type="application/ld+json" dangerouslySetInnerHTML={{__html: JSON.stringify(schema).replace(/</g, "\\u003c")}}/>
 }
-
 const organizationSchema = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: "NileLink",
-  url: "https://nilelink-eg.com",
-  logo: "https://nilelink-eg.com/images/logo.png",
-  description:
-    "NileLink is a leading freight forwarding company in Egypt, offering sea freight, air freight, land freight, customs clearance, and warehousing services worldwide.",
-  contactPoint: {
-    "@type": "ContactPoint",
-    telephone: "+20-10-00018549",
-    contactType: "customer service",
-    availableLanguage: ["English", "Arabic", "French", "German", "Italian", "Chinese", "Bulgarian"],
-  },
-  address: {
-    "@type": "PostalAddress",
-    streetAddress: "Entrance to Al-Ananiyah Road, opposite the Ice Factory",
-    addressLocality: "Damietta",
-    addressCountry: "EG",
-  },
-  sameAs: [
-    "https://facebook.com/nilelink",
-    "https://linkedin.com/company/nilelink",
-    "https://twitter.com/nilelink",
-  ],
+  "@context": "https://schema.org", "@type": "Organization",
+  "@id": `${PUBLIC_SITE_ORIGIN}/#organization`, name: PUBLIC_SITE_NAME, alternateName: CONTACT.COMPANY_NAME,
+  url: PUBLIC_SITE_ORIGIN, logo: `${PUBLIC_SITE_ORIGIN}/brand/nilelink/logos/mark-primary.png`,
+  description: PUBLIC_SITE_DESCRIPTION, email: CONTACT.EMAIL,
+  contactPoint: {"@type": "ContactPoint", telephone: CONTACT.PHONE, contactType: "customer service"},
+  sameAs: [CONTACT.FACEBOOK, CONTACT.LINKEDIN],
 }
-
 export function OrganizationSchema() {
-  useJsonLd("organization-schema", organizationSchema)
-  return null
+  const pathname = usePathname()
+  return <JsonLd id="organization-schema" schema={isBrandedPublicPath(pathname) ? organizationSchema : null}/>
 }
-
 const localBusinessSchema = {
-  "@context": "https://schema.org",
-  "@type": "LocalBusiness",
-  name: "NileLink - Damietta Office",
-  description: "Head office of NileLink freight forwarding company",
-  url: "https://nilelink-eg.com",
-  telephone: "+20-10-00018549",
-  email: CONTACT.EMAIL,
-  address: {
-    "@type": "PostalAddress",
-    streetAddress: "Entrance to Al-Ananiyah Road, opposite the Ice Factory",
-    addressLocality: "Damietta",
-    addressCountry: "EG",
-  },
-  openingHoursSpecification: {
-    "@type": "OpeningHoursSpecification",
-    dayOfWeek: [
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-      "Sunday",
-    ],
-    opens: "00:00",
-    closes: "23:59",
-  },
+  "@context": "https://schema.org", "@type": "LocalBusiness",
+  "@id": `${PUBLIC_SITE_ORIGIN}/#damietta-office`, name: `${PUBLIC_SITE_NAME} — Damietta`,
+  url: PUBLIC_SITE_ORIGIN, telephone: CONTACT.PHONE, email: CONTACT.EMAIL,
+  parentOrganization: {"@id": `${PUBLIC_SITE_ORIGIN}/#organization`}, hasMap: CONTACT.MAPS,
+  address: {"@type": "PostalAddress", streetAddress: "Entrance to Al-Ananiyah Road, opposite the Ice Factory", addressLocality: "Damietta", addressCountry: "EG"},
 }
-
 export function LocalBusinessSchema() {
-  useJsonLd("local-business-schema", localBusinessSchema)
-  return null
+  const pathname = usePathname()
+  return <JsonLd id="local-business-schema" schema={isBrandedPublicPath(pathname) ? localBusinessSchema : null}/>
 }
 
 export function FAQSchema({ items }: { items: { question: string; answer: string }[] }) {
@@ -102,9 +49,7 @@ export function FAQSchema({ items }: { items: { question: string; answer: string
       }
     : null
 
-  useJsonLd("faq-schema", schema)
-
-  return null
+  return <JsonLd id="faq-schema" schema={schema}/>
 }
 
 export function BreadcrumbSchema({ items }: { items: { name: string; url: string }[] }) {
@@ -121,7 +66,5 @@ export function BreadcrumbSchema({ items }: { items: { name: string; url: string
       }
     : null
 
-  useJsonLd("breadcrumb-schema", schema)
-
-  return null
+  return <JsonLd id="breadcrumb-schema" schema={schema}/>
 }

@@ -39,11 +39,11 @@ export function QuoteForm({branded=false}: {branded?:boolean} = {}) {
         throw new Error(result.message || t("error"))
       }
 
-      toast.success(result.message || t("success"))
+      toast.success(branded ? t("success") : result.message || t("success"))
       reset()
     } catch (err) {
       const message = err instanceof Error ? err.message : t("error")
-      toast.error(message)
+      toast.error(branded ? t("error") : message)
     } finally {
       setLoading(false)
     }
@@ -72,14 +72,14 @@ export function QuoteForm({branded=false}: {branded?:boolean} = {}) {
               {t("firstName")} *
             </label>
             <input suppressHydrationWarning {...register("firstName")} id="full-quote-firstName" aria-invalid={!!errors.firstName} aria-describedby={errors.firstName ? "full-quote-firstName-error" : undefined} className={inputClass} />
-            {errors.firstName && <p id="full-quote-firstName-error" role="alert" className={errorClass}>{errors.firstName.message}</p>}
+            {errors.firstName && <p id="full-quote-firstName-error" role="alert" className={errorClass}>{branded ? t("validationRequired") : errors.firstName.message}</p>}
           </div>
           <div>
             <label htmlFor="full-quote-lastName" className={labelClass}>
               {t("lastName")} *
             </label>
             <input suppressHydrationWarning {...register("lastName")} id="full-quote-lastName" aria-invalid={!!errors.lastName} aria-describedby={errors.lastName ? "full-quote-lastName-error" : undefined} className={inputClass} />
-            {errors.lastName && <p id="full-quote-lastName-error" role="alert" className={errorClass}>{errors.lastName.message}</p>}
+            {errors.lastName && <p id="full-quote-lastName-error" role="alert" className={errorClass}>{branded ? t("validationRequired") : errors.lastName.message}</p>}
           </div>
         </div>
 
@@ -95,7 +95,7 @@ export function QuoteForm({branded=false}: {branded?:boolean} = {}) {
               {t("email")} *
             </label>
             <input suppressHydrationWarning type="email" dir="ltr" {...register("email")} id="full-quote-email" aria-invalid={!!errors.email} aria-describedby={errors.email ? "full-quote-email-error" : undefined} className={inputClass} />
-            {errors.email && <p id="full-quote-email-error" role="alert" className={errorClass}>{errors.email.message}</p>}
+            {errors.email && <p id="full-quote-email-error" role="alert" className={errorClass}>{branded ? t("validationEmail") : errors.email.message}</p>}
           </div>
         </div>
 
@@ -105,7 +105,7 @@ export function QuoteForm({branded=false}: {branded?:boolean} = {}) {
               {t("phone")} *
             </label>
             <input suppressHydrationWarning type="tel" dir="ltr" {...register("phone")} id="full-quote-phone" aria-invalid={!!errors.phone} aria-describedby={errors.phone ? "full-quote-phone-error" : undefined} className={inputClass} />
-            {errors.phone && <p id="full-quote-phone-error" role="alert" className={errorClass}>{errors.phone.message}</p>}
+            {errors.phone && <p id="full-quote-phone-error" role="alert" className={errorClass}>{branded ? t("validationRequired") : errors.phone.message}</p>}
           </div>
           <div>
             <label htmlFor="full-quote-freightType" className={labelClass}>
@@ -116,7 +116,7 @@ export function QuoteForm({branded=false}: {branded?:boolean} = {}) {
               <option value="road">{t("freightRoad")}</option>
               <option value="ocean">{t("freightOcean")}</option>
             </select>
-            {errors.freightType && <p id="full-quote-freightType-error" role="alert" className={errorClass}>{errors.freightType.message}</p>}
+            {errors.freightType && <p id="full-quote-freightType-error" role="alert" className={errorClass}>{branded ? t("validationRequired") : errors.freightType.message}</p>}
           </div>
         </div>
 
@@ -141,14 +141,14 @@ export function QuoteForm({branded=false}: {branded?:boolean} = {}) {
               {t("from")} *
             </label>
             <input suppressHydrationWarning {...register("from")} id="full-quote-from" aria-invalid={!!errors.from} aria-describedby={errors.from ? "full-quote-from-error" : undefined} className={inputClass} />
-            {errors.from && <p id="full-quote-from-error" role="alert" className={errorClass}>{errors.from.message}</p>}
+            {errors.from && <p id="full-quote-from-error" role="alert" className={errorClass}>{branded ? t("validationRequired") : errors.from.message}</p>}
           </div>
           <div>
             <label htmlFor="full-quote-to" className={labelClass}>
               {t("to")} *
             </label>
             <input suppressHydrationWarning {...register("to")} id="full-quote-to" aria-invalid={!!errors.to} aria-describedby={errors.to ? "full-quote-to-error" : undefined} className={inputClass} />
-            {errors.to && <p id="full-quote-to-error" role="alert" className={errorClass}>{errors.to.message}</p>}
+            {errors.to && <p id="full-quote-to-error" role="alert" className={errorClass}>{branded ? t("validationRequired") : errors.to.message}</p>}
           </div>
         </div>
 

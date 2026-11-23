@@ -1,6 +1,8 @@
-import { MetadataRoute } from "next"
+import {PUBLIC_SITE_ORIGIN} from "@/lib/public/site"
+import {routing} from "@/i18n"
+import type { MetadataRoute } from "next"
 
-const locales = ["en", "ar", "fr", "de", "it", "zh", "bg"]
+const locales = routing.locales
 const staticPages = ["", "/about", "/services", "/request-quote", "/contact"]
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -9,16 +11,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
   for (const locale of locales) {
     for (const page of staticPages) {
       entries.push({
-        url: `https://nilelink-eg.com/${locale}${page}`,
-        lastModified: new Date(),
+        url: `${PUBLIC_SITE_ORIGIN}/${locale}${page}`,
         changeFrequency: page === "" ? "weekly" : "monthly",
         priority: page === "" ? 1.0 : 0.8,
         alternates: {
           languages: Object.fromEntries(
-            locales.map((l) => [
+            [...locales.map((l) => [
               l,
-              `https://nilelink-eg.com/${l}${page}`,
-            ])
+              `${PUBLIC_SITE_ORIGIN}/${l}${page}`,
+            ]), ["x-default", `${PUBLIC_SITE_ORIGIN}/en${page}`]]
           ),
         },
       })

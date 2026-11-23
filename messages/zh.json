@@ -18,8 +18,8 @@
     "required": "Required"
   },
   "metadata": {
-    "title": "全球物流解决方案",
-    "description": "NileLink 是埃及领先的货运代理公司，提供全球海运、空运、陆运、报关和仓储服务。"
+    "title": "达米埃塔货运与清关",
+    "description": "从达米埃塔出发的海运、空运、陆运及清关。逐项列明费用，并说明包含和不包含的服务。"
   },
   "navbar": {
     "getQuote": "获取报价"
@@ -43,7 +43,7 @@
   },
   "hero": {
     "title": "全球物流解决方案",
-    "subtitle": "您在国际航运中的首选合作伙伴",
+    "subtitle": "达米埃塔货运与清关",
     "description": "值得信赖的海运、空运和陆运服务，覆盖全球。NileLink 在每一批货物中提供卓越品质。",
     "ctaQuote": "获取报价",
     "ctaServices": "我们的服务"

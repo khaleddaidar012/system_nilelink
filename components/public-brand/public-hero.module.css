@@ -6,8 +6,12 @@
 .header { padding-block: 28px; }
 .solidHeader { background: #161616; color: #F2EEE6; }
 .headerLayout { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 32px; }
-.logo { display: inline-block; flex-shrink: 0; }
-.logoImage { inline-size: 180px; block-size: auto; aspect-ratio: 334.37 / 64; object-fit: contain; }
+.logo { display: inline-flex; align-items: center; gap: 12px; flex-shrink: 0; text-decoration: none; }
+.logoMark { inline-size: 40px; block-size: 40px; flex-shrink: 0; object-fit: contain; }
+.logoText { display: inline-flex; flex-direction: column; justify-content: center; inline-size: 136px; line-height: 1; }
+.logoWordmark { display: block; inline-size: 100%; block-size: auto; aspect-ratio: 572 / 92; object-fit: contain; }
+.logoDivider { display: block; inline-size: 100%; block-size: 1.5px; margin-block: 4px 3px; background: #DF7B4F; }
+.logoSubtitle { display: flex; justify-content: space-between; inline-size: 100%; color: #F2EEE6; opacity: .92; font-family: "Safiro Medium", Arial, Helvetica, sans-serif; font-size: .625rem; font-weight: 600; line-height: 1; letter-spacing: 0; }
 .navigation { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: clamp(12px, 2vw, 32px); }
 .navLink { color: #F2EEE6; text-decoration: none; font-size: .9375rem; white-space: nowrap; padding-block: 10px; }
 .navLink:hover { text-decoration: underline; text-underline-offset: 6px; }
@@ -37,7 +41,10 @@
 @media (max-width: 600px) {
   .hero { min-block-size: 0; }
   .heroImage { object-position: 72% center; }
-  .logoImage { inline-size: 155px; }
+  .logo { gap: 10px; }
+  .logoMark { inline-size: 34px; block-size: 34px; }
+  .logoText { inline-size: 116px; }
+  .logoSubtitle { font-size: .5625rem; }
   .account { min-inline-size: 96px; padding-inline: 8px; }
   .navigation { justify-content: space-between; gap: 8px; }
   .navLink { font-size: .75rem; }

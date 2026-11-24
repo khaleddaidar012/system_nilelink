@@ -16,7 +16,7 @@ function PublicHeader({locale}:{locale:"ar"|"en"}) {
   useEffect(()=>{const controller=new AbortController();void fetch("/api/auth/me",{signal:controller.signal,cache:"no-store"}).then(async response=>{if(!response.ok)return;const data=await response.json();if(!controller.signal.aborted&&data.authenticated&&["customer","customer_admin","staff","super_admin"].includes(data.user?.role))setRole(data.user.role)}).catch(()=>{});return()=>controller.abort()},[])
   const staff=role==="staff"||role==="super_admin",accountHref=role?(staff?"/admin":"/portal"):"/login"
   return <header className={styles.header}><BrandContainer><div className={styles.headerLayout}>
-    <Link href="/" className={styles.logo} aria-label={t("homeLabel")} dir="ltr"><Image src="/brand/nilelink/logos/lockup-en-on-dark.svg" alt="NILELINK" width={335} height={64} className={styles.logoImage}/></Link>
+    <Link href="/" className={styles.logo} aria-label={t("homeLabel")} dir="ltr"><Image src="/brand/nilelink/logos/mark-primary.svg" alt="" width={555} height={555} className={styles.logoMark}/><span className={styles.logoText}><Image src="/brand/nilelink/logos/wordmark-en-on-dark.svg" alt="NileLink Logistics" width={572} height={92} className={styles.logoWordmark}/><span className={styles.logoDivider} aria-hidden="true"/><span className={styles.logoSubtitle} aria-hidden="true">{"LOGISTICS".split("").map((letter,index)=><span key={index}>{letter}</span>)}</span></span></Link>
     <nav className={styles.navigation} aria-label={t("navigationLabel")}>
       <Link href="/services" className={styles.navLink}>{t("services")}</Link>
       <Link href="/#how-we-work" className={styles.navLink}>{t("howWeWork")}</Link>

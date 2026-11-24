@@ -24,10 +24,23 @@ The isolated candidate workspace is `734ac246-b644-49fd-9f86-7910f273bd55`. An i
 
 ## Rollback
 
-Before-deployment live Worker version: `0a41ea54-36cc-4372-aded-07f01c231113` (100% traffic), deployment `017cd8a4-9800-4d3b-8e46-0c8e7e66f761`. The version was read from Cloudflare immediately before release preparation.
+Active production live Worker version (restored after initial release check): `d677c245-f706-48f3-8b4c-13237b76b9d6` (100% traffic on `nilelink-system` / `https://nilelinklogistics.com`). Earlier pre-preparation snapshot recorded before Nov 22 was `0a41ea54-36cc-4372-aded-07f01c231113`.
 
-The Git snapshot `codex/external-site-before-brand-redesign-2026-11-22` at `88d55c19da7f144ed67bbe483fa8dd2e98b47555` is reachable on the application remote. Prefer a Worker-version rollback for an immediate deployment failure. A source rollback must selectively restore marketing files after reviewing subsequent changes; never reset main or financial/customer records wholesale.
+The Git backups `backup/main-before-brand-redesign-2026-11-23` and `codex/external-site-before-brand-redesign-2026-11-22` at `88d55c19da7f144ed67bbe483fa8dd2e98b47555` are reachable on both `origin` and `new_origin`. Prefer a Worker-version rollback for an immediate deployment failure. A source rollback must selectively restore marketing files after reviewing subsequent changes; never reset main or financial/customer records wholesale.
+
+## Preview verification and performance (2026-11-24)
+
+- Source revision built and previewed: `d97ed0e` (includes `codex/fix-brand-language` footer organization and RTL language selector chevron fixes on top of `8194c99`).
+- Automated tests: `10/10` public tests (`tests/public/quick-quote.test.mjs`, `tests/public/seo.test.mjs`) and `96/96` D1 regression tests (`accounts`, `finance`, `account-health-consistency`, `service-colors`, `shipment-accounting`, `timeline-groups`, `visible-services`) passed.
+- Refreshed isolated Worker build (`scripts/d1/build-audit.mjs --worker --first-launch --refresh-unpublished-workspace 734ac246-b644-49fd-9f86-7910f273bd55`) passed with TypeScript check, 380 static pages, and verified trace isolation.
+- Isolated preview deployment (no production D1/R2/email bindings): `nilelink-brand-preview` — `https://nilelink-brand-preview.mohamedznaty55.workers.dev` (Version ID `5115c058-54f0-4f01-a089-cee52745fbc8`).
+- Route and asset checks on preview: `35/35` public routes across all 7 locales returned `200 OK`; `/ar/login`, `/en/login`, `/robots.txt`, `/sitemap.xml`, responsive hero images (`hero-720.webp`, `hero-1280.webp`, `hero-1920.webp`), brand logos, and `/brand/social-share.png` all returned `200 OK`; invalid `/api/quick-quote` payload rejected with `400` without dispatching email.
+- Laboratory Chrome headless comparison (`https://nilelinklogistics.com` before vs `https://nilelink-brand-preview.mohamedznaty55.workers.dev` after, cache disabled, zero console errors, zero horizontal overflow):
+  - Desktop AR (`1280x800`): HTML `158 KB -> 116 KB` (`-26%`), image transfer `844 KB -> 173 KB` (`-79.5%`), total transfer `1,175 KB -> 686 KB` (`-41.6%`), LCP `3,048 ms -> 2,796 ms` (cold preview hit; warm median HTTP `166 ms` vs `321 ms`), CLS `0.0218`.
+  - Desktop EN (`1280x800`): HTML `137 KB -> 95 KB` (`-31%`), image transfer `844 KB -> 173 KB` (`-79.5%`), total transfer `1,140 KB -> 494 KB` (`-56.7%`), FCP `980 ms -> 692 ms`, LCP `3,108 ms -> 692 ms` (`-77.7%`), CLS `0`.
+  - Mobile AR (`390x844`, 2x DPR): image transfer `530 KB -> 129 KB` (`-75.7%`), total transfer `822 KB -> 638 KB` (`-22.4%`), FCP `2,368 ms -> 776 ms`, LCP `4,216 ms -> 852 ms` (`-79.8%`), CLS `0.0047`.
+  - Mobile EN (`390x844`, 2x DPR): FCP `732 ms`, LCP `828 ms`, total transfer `582 KB`, CLS `0`.
 
 ## Final evidence
 
-Pending final candidate build, production-preview performance, guarded deployment and live verification. No live release is claimed by this preparation record alone.
+Preview verification and laboratory before/after measurements are complete. Guarded live production deployment to `https://nilelinklogistics.com` and final post-launch live verification remain pending explicit user approval after reviewing the preview URL. No live release is claimed yet.

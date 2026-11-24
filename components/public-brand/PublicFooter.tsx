@@ -25,17 +25,19 @@ export function PublicFooter({locale, topTarget="public-home-title"}: {locale: "
       <BrandContainer>
         <div className={styles.summary}>
           <p className={styles.tagline}>{f("tagline")}</p>
-          <div className={styles.location}><a href={CONTACT.MAPS} target="_blank" rel="noopener noreferrer">{f("location")}</a><span aria-hidden="true"> · </span><a href={`mailto:${CONTACT.EMAIL}`}><bdi dir="ltr">{CONTACT.EMAIL}</bdi></a></div>
         </div>
         <div className={styles.links}>
           <nav aria-label={t("footer.quickLinks")}><h2 className={styles.heading}>{t("footer.quickLinks")}</h2><ul>{pages.map(page => <li key={page.href}><Link href={page.href}>{t(page.label)}</Link></li>)}</ul></nav>
           <nav aria-label={t("footer.services")}><h2 className={styles.heading}>{t("footer.services")}</h2><ul>{services.map(service => <li key={service.href}><Link href={service.href}>{t(service.label)}</Link></li>)}</ul></nav>
-          <nav aria-label={f("contact")}><h2 className={styles.heading}>{f("contact")}</h2><ul>
+          <nav className={styles.contact} aria-label={f("contact")}><h2 className={styles.heading}>{f("contact")}</h2><ul>
             <li><a href={`tel:${CONTACT.PHONE}`}><bdi dir="ltr">{CONTACT.PHONE}</bdi></a></li>
-            <li><a href={CONTACT.WHATSAPP} target="_blank" rel="noopener noreferrer">WhatsApp</a></li>
-            <li><a href={CONTACT.FACEBOOK} target="_blank" rel="noopener noreferrer">Facebook</a></li>
-            <li><a href={CONTACT.LINKEDIN} target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
-          </ul></nav>
+            <li><a href={`mailto:${CONTACT.EMAIL}`}><bdi dir="ltr">{CONTACT.EMAIL}</bdi></a></li>
+            <li><a href={CONTACT.MAPS} target="_blank" rel="noopener noreferrer">{f("location")}</a></li>
+          </ul><div className={styles.socials}>
+            <a href={CONTACT.WHATSAPP} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+            <a href={CONTACT.FACEBOOK} target="_blank" rel="noopener noreferrer">Facebook</a>
+            <a href={CONTACT.LINKEDIN} target="_blank" rel="noopener noreferrer">LinkedIn</a>
+          </div></nav>
         </div>
         <div className={styles.bottom}><p>© 2026 NileLink. {t("footer.copyright")}</p><Link href="/contact">{f("policyInquiry")}</Link><a href={`#${topTarget}`}>{f("backToTop")}</a></div>
       </BrandContainer>

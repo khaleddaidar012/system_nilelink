@@ -14,7 +14,7 @@
 .account { display: inline-flex; justify-content: center; align-items: center; min-block-size: 44px; min-inline-size: 112px; padding: 8px 12px; border: 1px solid #F2EEE6; color: #F2EEE6; text-decoration: none; font-size: .8125rem; text-align: center; }
 .account:hover { background: rgb(22 22 22 / 50%); }
 .language { position: relative; display: inline-flex; flex-shrink: 0; }
-.language::after { content: ""; position: absolute; inset-inline-end: 14px; top: 50%; inline-size: 7px; block-size: 7px; border-inline-end: 1.5px solid #DF7B4F; border-block-end: 1.5px solid #DF7B4F; transform: translateY(-70%) rotate(45deg); pointer-events: none; }
+.language::after { content: ""; position: absolute; inset-inline-end: 14px; top: 50%; inline-size: 7px; block-size: 7px; border-right: 1.5px solid #DF7B4F; border-bottom: 1.5px solid #DF7B4F; transform: translateY(-70%) rotate(45deg); pointer-events: none; }
 .language select { appearance: none; inline-size: 128px; min-block-size: 44px; padding: 9px 28px; border: 1px solid #F2EEE6; border-radius: 0; background: #161616; color: #DF7B4F; font: inherit; font-size: .875rem; line-height: 1.5; text-align: center; cursor: pointer; }
 .language option { background: #161616; color: #F2EEE6; }
 .logo:focus-visible, .navLink:focus-visible, .account:focus-visible, .language select:focus-visible { outline: 3px solid #F2EEE6; outline-offset: 5px; }

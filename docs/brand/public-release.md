@@ -30,10 +30,10 @@ The Git backups `backup/main-before-brand-redesign-2026-11-23` and `codex/extern
 
 ## Preview verification and performance (2026-11-24)
 
-- Source revision built and previewed: `d97ed0e` (includes `codex/fix-brand-language` footer organization and RTL language selector chevron fixes on top of `8194c99`).
+- Source revision built and previewed: `6bfab22` (includes `codex/fix-brand-language` footer/RTL language fixes at `d97ed0e` plus the full stacked `NILELINK / LOGISTICS` header lockup at `6bfab22` on top of `8194c99`).
 - Automated tests: `10/10` public tests (`tests/public/quick-quote.test.mjs`, `tests/public/seo.test.mjs`) and `96/96` D1 regression tests (`accounts`, `finance`, `account-health-consistency`, `service-colors`, `shipment-accounting`, `timeline-groups`, `visible-services`) passed.
 - Refreshed isolated Worker build (`scripts/d1/build-audit.mjs --worker --first-launch --refresh-unpublished-workspace 734ac246-b644-49fd-9f86-7910f273bd55`) passed with TypeScript check, 380 static pages, and verified trace isolation.
-- Isolated preview deployment (no production D1/R2/email bindings): `nilelink-brand-preview` — `https://nilelink-brand-preview.mohamedznaty55.workers.dev` (Version ID `5115c058-54f0-4f01-a089-cee52745fbc8`).
+- Isolated preview deployment (no production D1/R2/email bindings): `nilelink-brand-preview` — `https://nilelink-brand-preview.mohamedznaty55.workers.dev` (latest Version ID `5d60e973-261c-4e68-b677-ec4bcb182c01`, verified visually on EN/AR desktop and mobile).
 - Route and asset checks on preview: `35/35` public routes across all 7 locales returned `200 OK`; `/ar/login`, `/en/login`, `/robots.txt`, `/sitemap.xml`, responsive hero images (`hero-720.webp`, `hero-1280.webp`, `hero-1920.webp`), brand logos, and `/brand/social-share.png` all returned `200 OK`; invalid `/api/quick-quote` payload rejected with `400` without dispatching email.
 - Laboratory Chrome headless comparison (`https://nilelinklogistics.com` before vs `https://nilelink-brand-preview.mohamedznaty55.workers.dev` after, cache disabled, zero console errors, zero horizontal overflow):
   - Desktop AR (`1280x800`): HTML `158 KB -> 116 KB` (`-26%`), image transfer `844 KB -> 173 KB` (`-79.5%`), total transfer `1,175 KB -> 686 KB` (`-41.6%`), LCP `3,048 ms -> 2,796 ms` (cold preview hit; warm median HTTP `166 ms` vs `321 ms`), CLS `0.0218`.

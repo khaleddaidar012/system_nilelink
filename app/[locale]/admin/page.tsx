@@ -10,7 +10,7 @@ import { AdminAnalyticsOverview } from "@/components/admin/analytics/AdminAnalyt
 import { CustomerOverviewTable } from "@/components/admin/customers/CustomerOverviewTable"
 import { cn } from "@/lib/utils"
 import { Link } from "@/navigation"
-import { useCanAccessAccounts, useCanManageAdminBackups, useCanMarkReadyForAccounts, useCanViewShipmentData, useSimpleAdminExperience } from "@/components/admin/AdminExperienceContext"
+import { useAdminNavPermissions, useAdminRole, useCanAccessAccounts, useCanManageAdminBackups, useCanMarkReadyForAccounts, useCanViewShipmentData, useSimpleAdminExperience } from "@/components/admin/AdminExperienceContext"
 
 type WorkspaceAction = {
   href: string
@@ -46,6 +46,8 @@ export default function AdminDashboardPage() {
   const locale = useLocale()
   const isAr = locale === "ar"
   const simpleView = useSimpleAdminExperience()
+  const role = useAdminRole()
+  const navPerms = useAdminNavPermissions()
   const canManageBackups = useCanManageAdminBackups()
 
   const canViewShipmentData = useCanViewShipmentData()
@@ -57,21 +59,31 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "compliance">("overview")
 
   if (simpleView) {
+    const isAdmin = role === "super_admin"
+    const isAccountsOnly = !isAdmin && navPerms.staffCategory === "accounts"
+    const isOperations = !isAdmin && navPerms.staffCategory === "operations"
+    const isCategorized = isOperations || isAccountsOnly
+    const canSeeDocs = isAdmin || navPerms.canReviewDocuments === true
+    const canSeeCustomers = isAdmin || navPerms.canManageCustomers === true || navPerms.canReviewDocuments === true || navPerms.viewCustomerStatements === true || !isCategorized
+    const canSeeInvoices = isAdmin || canAccessAccounts || navPerms.createInvoice === true || navPerms.viewCustomerStatements === true
+    const canSeeRequests = isAdmin || !isAccountsOnly
+    const canSeeQuotes = isAdmin || !isAccountsOnly
+
     const actions: WorkspaceAction[] = [
       ...(canAccessAccounts ? [{ href: "/admin/shipment-invoices", title: isAr ? "الحسابات" : "Accounts", detail: isAr ? "تكاليف الشحنات ومسودات الفواتير" : "Shipment costs and invoice drafts", icon: Receipt, group: "daily" as const, tone: "emerald" as const }] : []),
       ...((canAccessAccounts || canMarkReadyForAccounts) ? [{ href: "/admin/accounts-ready", title: isAr ? "جاهزة للحسابات" : "Ready for accounts", detail: isAr ? "اعتماد الشحنات الجاهزة وإحالتها للحسابات" : "Review and approve shipments ready for invoicing", icon: FileCheck2, group: "daily" as const, tone: "amber" as const }] : []),
       ...(canViewShipmentData ? [{ href: shipmentHref, title: shipmentTitle, icon: PackageSearch, group: "daily" as const, tone: "sky" as const }] : []),
       { href: "/admin/chat", title: isAr ? "الشات" : "Chat", detail: isAr ? "تابع رسائلك مع الفريق والعملاء" : "Catch up with staff and customer conversations", icon: MessageSquare, group: "daily", tone: "violet" },
-      { href: "/admin/requests", title: isAr ? "الطلبات" : "Requests", detail: isAr ? "افتح طلبات الخدمة وتابع حالتها" : "Open service requests and follow their status", icon: PackageSearch, group: "daily", tone: "sky" },
-      { href: "/admin/customers", title: isAr ? "العملاء" : "Customers", detail: isAr ? "ابحث عن حسابات العملاء" : "Find customer accounts", icon: UsersRound, group: "daily", tone: "emerald", illustration: "faceless-people" },
-      { href: "/admin/mailbox", title: isAr ? "البريد الإلكتروني" : "Email", detail: isAr ? "راجع أحدث رسائل العمل" : "Review your latest work email", icon: Mail, group: "daily", tone: "blue" },
-      { href: "/admin/activity", title: isAr ? "سجل الحركات" : "Activity log", detail: isAr ? "راجع آخر أنشطة العملاء والفريق" : "Review recent customer and team activity", icon: History, group: "daily", tone: "amber" },
-      { href: "/admin/documents/review", title: isAr ? "مراجعة المستندات" : "Document review", detail: isAr ? "راجع مستندات العملاء وطلبات التحقق" : "Review customer documents and verification requests", icon: FileCheck2, group: "daily", tone: "sky" },
-      { href: "/admin/quotes", title: isAr ? "عروض الأسعار" : "Quotations", detail: isAr ? "تابع عروض الأسعار وحالاتها" : "Review quotations and their status", icon: FileSpreadsheet, group: "management", tone: "violet" },
-      { href: "/admin/invoices", title: isAr ? "الفواتير والمدفوعات" : "Invoices & Billing", detail: isAr ? "تابع الفواتير والتحصيلات" : "Manage invoices, payments, and balances", icon: Receipt, group: "management", tone: "emerald" },
+      ...(canSeeRequests ? [{ href: "/admin/requests", title: isAr ? "الطلبات" : "Requests", detail: isAr ? "افتح طلبات الخدمة وتابع حالتها" : "Open service requests and follow their status", icon: PackageSearch, group: "daily" as const, tone: "sky" as const }] : []),
+      ...(canSeeCustomers ? [{ href: "/admin/customers", title: isAr ? "العملاء" : "Customers", detail: isAr ? "ابحث عن حسابات العملاء" : "Find customer accounts", icon: UsersRound, group: "daily" as const, tone: "emerald" as const, illustration: "faceless-people" as const }] : []),
+      ...(isAdmin || !isCategorized ? [{ href: "/admin/mailbox", title: isAr ? "البريد الإلكتروني" : "Email", detail: isAr ? "راجع أحدث رسائل العمل" : "Review your latest work email", icon: Mail, group: "daily" as const, tone: "blue" as const }] : []),
+      ...(isAdmin || !isCategorized ? [{ href: "/admin/activity", title: isAr ? "سجل الحركات" : "Activity log", detail: isAr ? "راجع آخر أنشطة العملاء والفريق" : "Review recent customer and team activity", icon: History, group: "daily" as const, tone: "amber" as const }] : []),
+      ...(canSeeDocs ? [{ href: "/admin/documents/review", title: isAr ? "مراجعة المستندات" : "Document review", detail: isAr ? "راجع مستندات العملاء وطلبات التحقق" : "Review customer documents and verification requests", icon: FileCheck2, group: "daily" as const, tone: "sky" as const }] : []),
+      ...(canSeeQuotes ? [{ href: "/admin/quotes", title: isAr ? "عروض الأسعار" : "Quotations", detail: isAr ? "تابع عروض الأسعار وحالاتها" : "Review quotations and their status", icon: FileSpreadsheet, group: "management" as const, tone: "violet" as const }] : []),
+      ...(canSeeInvoices ? [{ href: "/admin/invoices", title: isAr ? "الفواتير والمدفوعات" : "Invoices & Billing", detail: isAr ? "تابع الفواتير والتحصيلات" : "Manage invoices, payments, and balances", icon: Receipt, group: "management" as const, tone: "emerald" as const }] : []),
       { href: "/admin/notifications", title: isAr ? "مركز الإشعارات" : "Notification center", detail: isAr ? "تابع التنبيهات ومواعيد انتهاء المستندات" : "Track alerts and document expiry dates", icon: Bell, group: "management", tone: "rose" },
-      { href: "/admin/staff", title: isAr ? "الموظفون والصلاحيات" : "Staff & Permissions", detail: isAr ? "إدارة حسابات الفريق وصلاحياته" : "Manage team accounts and permissions", icon: UsersRound, group: "management", tone: "blue" },
-      { href: "/admin/settings", title: isAr ? "إعدادات النظام" : "System settings", detail: isAr ? "إدارة أنواع المستندات وإعدادات التشغيل" : "Manage document types and operational settings", icon: Settings2, group: "management", tone: "amber" },
+      ...(isAdmin ? [{ href: "/admin/staff", title: isAr ? "الموظفون والصلاحيات" : "Staff & Permissions", detail: isAr ? "إدارة حسابات الفريق وصلاحياته" : "Manage team accounts and permissions", icon: UsersRound, group: "management" as const, tone: "blue" as const }] : []),
+      ...(isAdmin ? [{ href: "/admin/settings", title: isAr ? "إعدادات النظام" : "System settings", detail: isAr ? "إدارة أنواع المستندات وإعدادات التشغيل" : "Manage document types and operational settings", icon: Settings2, group: "management" as const, tone: "amber" as const }] : []),
       ...(canManageBackups ? [{ href: "/admin/system/backups", title: isAr ? "النسخ الاحتياطية" : "System backups", detail: isAr ? "راجع النسخ الاحتياطية وحالة الحماية" : "Review backups and protection status", icon: DatabaseBackup, group: "management" as const, tone: "sky" as const }] : []),
     ]
     const sections = [

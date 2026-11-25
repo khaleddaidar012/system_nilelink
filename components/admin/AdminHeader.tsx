@@ -7,6 +7,7 @@ import { Moon, Sun, Shield, Bell, Globe, ChevronDown, History, House, KeyRound }
 import { Link, usePathname } from "@/navigation"
 import { ChatLink } from "@/components/chat/ChatLink"
 import { StaffChangePasswordModal } from "@/components/admin/StaffChangePasswordModal"
+import { useAdminNavPermissions, useAdminRole } from "@/components/admin/AdminExperienceContext"
 
 interface AdminHeaderProps {
   title?: string
@@ -37,6 +38,9 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
   const { theme, setTheme } = useTheme()
   const [langOpen, setLangOpen] = useState(false)
   const [passwordOpen, setPasswordOpen] = useState(false)
+  const adminRole = useAdminRole()
+  const adminPerms = useAdminNavPermissions()
+  const showActivityIcon = adminRole === "super_admin" || !adminPerms.staffCategory
 
   return (
     <>
@@ -89,9 +93,9 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
 
           {/* Notifications Center Link */}
           <ChatLink />
-          <Link href="/admin/activity" aria-label={locale === "ar" ? "سجل الحركات" : "Activity log"} title={locale === "ar" ? "سجل الحركات" : "Activity log"} className="rounded-xl border border-secondary-200 bg-secondary-50 p-2 text-secondary-700 shadow-sm transition-colors hover:bg-secondary-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">
+          {showActivityIcon && <Link href="/admin/activity" aria-label={locale === "ar" ? "سجل الحركات" : "Activity log"} title={locale === "ar" ? "سجل الحركات" : "Activity log"} className="rounded-xl border border-secondary-200 bg-secondary-50 p-2 text-secondary-700 shadow-sm transition-colors hover:bg-secondary-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">
             <History className="h-4 w-4" />
-          </Link>
+          </Link>}
           <Link href="/admin/notifications">
             <button
               className="rounded-xl border border-secondary-200 bg-secondary-50 p-2 text-secondary-700 shadow-sm hover:bg-secondary-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white transition-colors"

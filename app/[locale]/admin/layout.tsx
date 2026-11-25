@@ -1,4 +1,4 @@
-import { getAccountsAccess, getMarkReadyAccess, getShipmentAccess } from "@/lib/auth/shipment-access-server"
+import { getAccountsAccess, getMarkReadyAccess, getShipmentAccess, getStaffPermissionsSnapshot } from "@/lib/auth/shipment-access-server"
 import { redirect } from "next/navigation"
 import { getServerSession } from "@/lib/auth/token-service"
 import { WorkspaceActivity } from "@/components/admin/WorkspaceActivity"
@@ -22,10 +22,19 @@ export default async function AdminLayout({ children }: Props) {
   }
 
   const accountName = session.email.split("@")[0].toLowerCase()
-  const simpleStaffView = ["mohamedzanaty", "mahmoudzanaty"].includes(accountName)
+  const simpleStaffView = session.role === "staff" || ["mohamedzanaty", "mahmoudzanaty"].includes(accountName)
   const canViewShipmentData = await getShipmentAccess(session.userId)
   const canAccessAccounts = await getAccountsAccess(session.userId)
   const canMarkReadyForAccounts = await getMarkReadyAccess(session.userId)
+  const livePermissions = await getStaffPermissionsSnapshot(session.userId)
+  const navPermissions = {
+    staffCategory: livePermissions?.staffCategory,
+    canSendAlerts: livePermissions?.canSendAlerts ?? session.staffPermissions?.canSendAlerts,
+    canReviewDocuments: livePermissions?.canReviewDocuments ?? session.staffPermissions?.canReviewDocuments,
+    canManageCustomers: livePermissions?.canManageCustomers ?? session.staffPermissions?.canManageCustomers,
+    createInvoice: livePermissions?.createInvoice ?? session.staffPermissions?.createInvoice,
+    viewCustomerStatements: livePermissions?.viewCustomerStatements ?? session.staffPermissions?.viewCustomerStatements,
+  }
   const canManageBackups = session.role === "super_admin" || session.staffPermissions?.canManageBackups === true
 
   return (
@@ -38,6 +47,8 @@ export default async function AdminLayout({ children }: Props) {
       </div>
 
       <AdminSidebar
+        role={session.role}
+        permissions={navPermissions}
         canManageBackups={canManageBackups}
         canViewShipmentData={canViewShipmentData}
         canAccessAccounts={canAccessAccounts}
@@ -45,7 +56,7 @@ export default async function AdminLayout({ children }: Props) {
         userId={session.userId}
       />
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <AdminExperienceProvider simple={simpleStaffView} role={session.role} canManageBackups={canManageBackups} canViewShipmentData={canViewShipmentData} canAccessAccounts={canAccessAccounts} canMarkReadyForAccounts={canMarkReadyForAccounts}><main className="flex-1">{children}</main></AdminExperienceProvider>
+        <AdminExperienceProvider simple={simpleStaffView} role={session.role} permissions={navPermissions} canManageBackups={canManageBackups} canViewShipmentData={canViewShipmentData} canAccessAccounts={canAccessAccounts} canMarkReadyForAccounts={canMarkReadyForAccounts}><main className="flex-1">{children}</main></AdminExperienceProvider>
       </div>
     </div></WorkspaceActivity>
   )

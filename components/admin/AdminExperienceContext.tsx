@@ -2,13 +2,31 @@
 
 import { createContext, useContext } from "react"
 
-const AdminExperienceContext = createContext({
+export interface AdminNavPermissions {
+  staffCategory?: "operations" | "accounts"
+  canSendAlerts?: boolean
+  canReviewDocuments?: boolean
+  canManageCustomers?: boolean
+  createInvoice?: boolean
+  viewCustomerStatements?: boolean
+}
+
+const AdminExperienceContext = createContext<{
+  simple: boolean
+  role: string
+  canManageBackups: boolean
+  canViewShipmentData: boolean
+  canAccessAccounts: boolean
+  canMarkReadyForAccounts: boolean
+  permissions: AdminNavPermissions
+}>({
   simple: false,
   role: "staff",
   canManageBackups: false,
   canViewShipmentData: false,
   canAccessAccounts: false,
   canMarkReadyForAccounts: false,
+  permissions: {},
 })
 
 export function AdminExperienceProvider({
@@ -18,6 +36,7 @@ export function AdminExperienceProvider({
   canViewShipmentData = false,
   canAccessAccounts = false,
   canMarkReadyForAccounts = false,
+  permissions = {},
   children,
 }: {
   simple: boolean
@@ -26,11 +45,12 @@ export function AdminExperienceProvider({
   canViewShipmentData?: boolean
   canAccessAccounts?: boolean
   canMarkReadyForAccounts?: boolean
+  permissions?: AdminNavPermissions
   children: React.ReactNode
 }) {
   return (
     <AdminExperienceContext.Provider
-      value={{ simple, role, canManageBackups, canViewShipmentData, canAccessAccounts, canMarkReadyForAccounts }}
+      value={{ simple, role, canManageBackups, canViewShipmentData, canAccessAccounts, canMarkReadyForAccounts, permissions }}
     >
       {children}
     </AdminExperienceContext.Provider>
@@ -59,4 +79,8 @@ export function useCanAccessAccounts() {
 
 export function useCanMarkReadyForAccounts() {
   return useContext(AdminExperienceContext).canMarkReadyForAccounts
+}
+
+export function useAdminNavPermissions() {
+  return useContext(AdminExperienceContext).permissions
 }

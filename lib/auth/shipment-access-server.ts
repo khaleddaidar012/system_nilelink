@@ -31,3 +31,7 @@ export const getMarkReadyAccess = cache(async (userId: string) => {
   const account = await getAccessAccount(userId)
   return account ? userCanMarkReadyForAccounts(account) : false
 })
+export const getStaffPermissionsSnapshot = cache(async (userId: string) => {
+  const account = await getAccessAccount(userId)
+  return account?.staffPermissions ?? null
+})

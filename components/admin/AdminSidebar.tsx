@@ -29,8 +29,9 @@ import { Link, usePathname, useRouter } from "@/navigation"
 import { cn } from "@/lib/utils"
 import { MailboxUnreadBadge } from "./mailbox/MailboxUnreadBadge"
 import { useWorkspaceCounts } from "./WorkspaceActivity"
+import type { AdminNavPermissions } from "./AdminExperienceContext"
 
-export function AdminSidebar({ canManageBackups = false, canViewShipmentData = false, canAccessAccounts = false, canMarkReadyForAccounts = false, userId }: { canManageBackups?: boolean; canViewShipmentData?: boolean; canAccessAccounts?: boolean; canMarkReadyForAccounts?: boolean; userId?: string }) {
+export function AdminSidebar({ role = "staff", permissions = {}, canManageBackups = false, canViewShipmentData = false, canAccessAccounts = false, canMarkReadyForAccounts = false, userId }: { role?: string; permissions?: AdminNavPermissions; canManageBackups?: boolean; canViewShipmentData?: boolean; canAccessAccounts?: boolean; canMarkReadyForAccounts?: boolean; userId?: string }) {
   const counts=useWorkspaceCounts()
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
@@ -53,6 +54,17 @@ export function AdminSidebar({ canManageBackups = false, canViewShipmentData = f
   const router = useRouter()
   const isAr = locale === "ar"
 
+  const isAdmin = role === "super_admin"
+  const category = permissions.staffCategory
+  const isAccountsOnly = !isAdmin && category === "accounts"
+  const isOperations = !isAdmin && category === "operations"
+  const isCategorized = isOperations || isAccountsOnly
+  const canSeeDocs = isAdmin || permissions.canReviewDocuments === true
+  const canSeeCustomers = isAdmin || permissions.canManageCustomers === true || permissions.canReviewDocuments === true || permissions.viewCustomerStatements === true || !isCategorized
+  const canSeeInvoices = isAdmin || canAccessAccounts || permissions.createInvoice === true || permissions.viewCustomerStatements === true
+  const canSeeRequests = isAdmin || !isAccountsOnly
+  const canSeeQuotes = isAdmin || !isAccountsOnly
+
   const coreNavItems = [
     {
       href: "/admin",
@@ -62,53 +74,53 @@ export function AdminSidebar({ canManageBackups = false, canViewShipmentData = f
     ...(canViewShipmentData ? [{ href: "/admin/coming-soon/shipments", label: isAr ? "بيانات الشحنات" : "Shipment data", icon: Ship }] : []),
     ...(canAccessAccounts ? [{ href: "/admin/shipment-invoices", label: isAr ? "الحسابات" : "Accounts", icon: Receipt }] : []),
     ...((canAccessAccounts || canMarkReadyForAccounts) ? [{ href: "/admin/accounts-ready", label: isAr ? "جاهزة للحسابات" : "Ready for accounts", icon: FileCheck2 }] : []),
-    { href: "/admin/activity", label: isAr ? "سجل الحركات" : "Activity log", icon: History },
+    ...(isAdmin || !isCategorized ? [{ href: "/admin/activity", label: isAr ? "سجل الحركات" : "Activity log", icon: History }] : []),
     { href: "/admin/chat", label: isAr ? "الشات" : "Chat", icon: MessageSquare },
-    {
+    ...(canSeeDocs ? [{
       href: "/admin/documents/review",
       label: t("admin.sidebar.reviewQueue") || "Document Review Queue",
       icon: FileCheck,
-    },
-    {
+    }] : []),
+    ...(canSeeCustomers ? [{
       href: "/admin/customers",
       label: t("admin.sidebar.customers") || "Customer Accounts",
       icon: Users,
-    },
-    {
+    }] : []),
+    ...(canSeeRequests ? [{
       href: "/admin/requests",
       label: t("admin.sidebar.requests") || "Service Requests",
       icon: Layers,
-    },
-    {
+    }] : []),
+    ...(canSeeQuotes ? [{
       href: "/admin/quotes",
       label: isAr ? "عروض الأسعار" : "Quotations",
       icon: FileSpreadsheet,
-    },
-    {
+    }] : []),
+    ...(canSeeInvoices ? [{
       href: "/admin/invoices",
       label: isAr ? "إدارة الفواتير والماليات" : "Invoices & Billing",
       icon: Receipt,
-    },
+    }] : []),
     {
       href: "/admin/notifications",
       label: t("admin.sidebar.notifications") || "Notification Center",
       icon: Bell,
     },
-    {
+    ...(isAdmin || !isCategorized ? [{
       href: "/admin/mailbox",
       label: isAr ? "البريد الإلكتروني" : "Email",
       icon: Mail,
-    },
-    {
+    }] : []),
+    ...(isAdmin ? [{
       href: "/admin/staff",
       label: t("admin.sidebar.staff") || "Staff & Permissions",
       icon: Users,
-    },
-    {
+    }] : []),
+    ...(isAdmin ? [{
       href: "/admin/settings",
       label: t("admin.sidebar.settings") || "System Settings",
       icon: Activity,
-    },
+    }] : []),
     ...(canManageBackups
       ? [
           {

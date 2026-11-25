@@ -10,7 +10,7 @@ import { AdminAnalyticsOverview } from "@/components/admin/analytics/AdminAnalyt
 import { CustomerOverviewTable } from "@/components/admin/customers/CustomerOverviewTable"
 import { cn } from "@/lib/utils"
 import { Link } from "@/navigation"
-import { useCanAccessAccounts, useCanManageAdminBackups, useCanViewShipmentData, useSimpleAdminExperience } from "@/components/admin/AdminExperienceContext"
+import { useCanAccessAccounts, useCanManageAdminBackups, useCanMarkReadyForAccounts, useCanViewShipmentData, useSimpleAdminExperience } from "@/components/admin/AdminExperienceContext"
 
 type WorkspaceAction = {
   href: string
@@ -50,6 +50,7 @@ export default function AdminDashboardPage() {
 
   const canViewShipmentData = useCanViewShipmentData()
   const canAccessAccounts = useCanAccessAccounts()
+  const canMarkReadyForAccounts = useCanMarkReadyForAccounts()
   const shipmentTitle = isAr ? "بيانات الشحنات" : "Shipment data"
   const shipmentHref = "/admin/coming-soon/shipments"
 
@@ -58,6 +59,7 @@ export default function AdminDashboardPage() {
   if (simpleView) {
     const actions: WorkspaceAction[] = [
       ...(canAccessAccounts ? [{ href: "/admin/shipment-invoices", title: isAr ? "الحسابات" : "Accounts", detail: isAr ? "تكاليف الشحنات ومسودات الفواتير" : "Shipment costs and invoice drafts", icon: Receipt, group: "daily" as const, tone: "emerald" as const }] : []),
+      ...((canAccessAccounts || canMarkReadyForAccounts) ? [{ href: "/admin/accounts-ready", title: isAr ? "جاهزة للحسابات" : "Ready for accounts", detail: isAr ? "اعتماد الشحنات الجاهزة وإحالتها للحسابات" : "Review and approve shipments ready for invoicing", icon: FileCheck2, group: "daily" as const, tone: "amber" as const }] : []),
       ...(canViewShipmentData ? [{ href: shipmentHref, title: shipmentTitle, icon: PackageSearch, group: "daily" as const, tone: "sky" as const }] : []),
       { href: "/admin/chat", title: isAr ? "الشات" : "Chat", detail: isAr ? "تابع رسائلك مع الفريق والعملاء" : "Catch up with staff and customer conversations", icon: MessageSquare, group: "daily", tone: "violet" },
       { href: "/admin/requests", title: isAr ? "الطلبات" : "Requests", detail: isAr ? "افتح طلبات الخدمة وتابع حالتها" : "Open service requests and follow their status", icon: PackageSearch, group: "daily", tone: "sky" },
@@ -125,6 +127,9 @@ export default function AdminDashboardPage() {
       <div className="space-y-6 p-6 sm:p-8">
         {canAccessAccounts && <Link href="/admin/shipment-invoices" className="flex max-w-sm items-center gap-3 rounded-2xl border border-secondary-200 bg-white p-5 font-bold shadow-sm hover:border-primary-400 dark:border-slate-700 dark:bg-slate-900">
           <Receipt className="h-5 w-5 text-emerald-600" />{isAr ? "الحسابات" : "Accounts"}<ArrowUpRight className="ms-auto h-4 w-4" />
+        </Link>}
+        {(canAccessAccounts || canMarkReadyForAccounts) && <Link href="/admin/accounts-ready" className="flex max-w-sm items-center gap-3 rounded-2xl border border-secondary-200 bg-white p-5 font-bold shadow-sm hover:border-primary-400 dark:border-slate-700 dark:bg-slate-900">
+          <FileCheck2 className="h-5 w-5 text-amber-600" />{isAr ? "جاهزة للحسابات" : "Ready for accounts"}<ArrowUpRight className="ms-auto h-4 w-4" />
         </Link>}
         {canViewShipmentData && (
           <Link href={shipmentHref} className="flex max-w-sm items-center gap-3 rounded-2xl border border-secondary-200 bg-white p-5 font-bold shadow-sm hover:border-primary-400 dark:border-slate-700 dark:bg-slate-900">

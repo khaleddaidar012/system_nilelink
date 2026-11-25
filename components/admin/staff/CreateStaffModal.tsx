@@ -18,6 +18,7 @@ import {
   Plus,
 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
+import { ACCOUNTS_PRESET, OPERATIONS_PRESET } from "@/lib/auth/staff-categories"
 
 interface CreateStaffModalProps {
   isOpen: boolean
@@ -130,15 +131,15 @@ export function CreateStaffModal({ isOpen, onClose, onSuccess }: CreateStaffModa
 
     try {
       let roleType = "staff"
-      let staffPermissions = {
+      let staffPermissions: Record<string, unknown> = {
         canSendAlerts: false,
         canReviewDocuments: false,
         canManageCustomers: false,
         issueTaxInvoice: false,
-        createInvoice: true,
-        editInvoice: true,
-        viewCustomerStatements: true,
-        exportCustomerStatements: true,
+        createInvoice: false,
+        editInvoice: false,
+        viewCustomerStatements: false,
+        exportCustomerStatements: false,
         sendFinancialDocuments: false,
       }
       let jobTitleStr = selectedRoleId === "staff" ? t("admin.staff.staff") : ""
@@ -149,6 +150,9 @@ export function CreateStaffModal({ isOpen, onClose, onSuccess }: CreateStaffModa
           canSendAlerts: true,
           canReviewDocuments: true,
           canManageCustomers: true,
+          canViewShipmentData: true,
+          canMarkReadyForAccounts: true,
+          canAccessAccounts: true,
           issueTaxInvoice: true,
           createInvoice: true,
           editInvoice: true,
@@ -156,6 +160,12 @@ export function CreateStaffModal({ isOpen, onClose, onSuccess }: CreateStaffModa
           exportCustomerStatements: true,
           sendFinancialDocuments: true,
         }
+      } else if (selectedRoleId === "operations") {
+        jobTitleStr = "Operation"
+        staffPermissions = { ...OPERATIONS_PRESET }
+      } else if (selectedRoleId === "accounts") {
+        jobTitleStr = "Accounts"
+        staffPermissions = { ...ACCOUNTS_PRESET }
       } else {
         const selectedRoleObj = roles.find(r => r.id === selectedRoleId)
         if (selectedRoleObj) {
@@ -166,6 +176,10 @@ export function CreateStaffModal({ isOpen, onClose, onSuccess }: CreateStaffModa
           }
         }
       }
+
+      const finalPermissions = selectedRoleId === "operations"
+        ? staffPermissions
+        : { ...staffPermissions, canAccessAccounts: roleType === "super_admin" || selectedRoleId === "accounts" || canAccessAccounts }
 
       const res = await fetch("/api/admin/staff", {
         method: "POST",
@@ -179,7 +193,7 @@ export function CreateStaffModal({ isOpen, onClose, onSuccess }: CreateStaffModa
           phone,
           password,
           role: roleType,
-          staffPermissions: { ...staffPermissions, canAccessAccounts: roleType === "super_admin" || canAccessAccounts },
+          staffPermissions: finalPermissions,
         }),
       })
 
@@ -374,10 +388,12 @@ export function CreateStaffModal({ isOpen, onClose, onSuccess }: CreateStaffModa
                 </button>
               </label>
 
-              <label className="my-3 flex items-center gap-2 text-xs font-bold">
-                <input type="checkbox" checked={selectedRoleId === "super_admin" || canAccessAccounts} disabled={selectedRoleId === "super_admin"} onChange={event => setCanAccessAccounts(event.target.checked)} />
-                عرض كارت الحسابات والوصول إليه (Accounts access)
-              </label>
+              {selectedRoleId !== "operations" && (
+                <label className="my-3 flex items-center gap-2 text-xs font-bold">
+                  <input type="checkbox" checked={selectedRoleId === "super_admin" || selectedRoleId === "accounts" || canAccessAccounts} disabled={selectedRoleId === "super_admin" || selectedRoleId === "accounts"} onChange={event => setCanAccessAccounts(event.target.checked)} />
+                  عرض كارت الحسابات والوصول إليه (Accounts access)
+                </label>
+              )}
 
               {isCreatingRole && (
                 <div className="mb-3 mt-2 rounded-xl border border-primary-100 bg-primary-50/50 p-3 dark:border-primary-900/50 dark:bg-primary-950/30">
@@ -417,6 +433,8 @@ export function CreateStaffModal({ isOpen, onClose, onSuccess }: CreateStaffModa
                   className="w-full rounded-xl border border-secondary-200 bg-white p-2.5 pl-9 text-xs text-secondary-900 focus:border-primary-500 focus:outline-none dark:border-secondary-700 dark:bg-secondary-800 dark:text-white rtl:pl-2.5 rtl:pr-9"
                 >
                   <option value="staff">{t("admin.staff.staff")}</option>
+                  <option value="operations">Operation (تشغيل وشحنات و UCR)</option>
+                  <option value="accounts">Accounts (الحسابات والفواتير)</option>
                   <option value="super_admin">{t("admin.staff.roleAdmin") || "Administrator (Full Access)"}</option>
                   {roles.map(r => (
                     <option key={r.id} value={r.id}>{r.title}</option>

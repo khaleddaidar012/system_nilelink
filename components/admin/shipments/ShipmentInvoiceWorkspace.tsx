@@ -147,9 +147,9 @@ export function ShipmentInvoiceList({ initialShipmentId = "" }: { initialShipmen
       </form>}
       <section className={panelClass}>
         <div className="mb-4 flex flex-wrap gap-3"><input aria-label={label("البحث", "Search")} placeholder={label("رقم الشحنة أو الفاتورة أو العميل", "Shipment, invoice number or customer")} className={inputClass + " sm:max-w-md"} value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} />
-          <select aria-label={label("الحالة", "Status")} className={inputClass + " sm:max-w-xs"} value={status} onChange={event => { setStatus(event.target.value); setPage(1) }}><option value="all">{label("كل الحالات", "All statuses")}</option><option value="draft">Draft · {label("مسودة / مراجعة", "Draft / revision")}</option><option value="published">Published · {label("منشورة", "Published")}</option></select></div>
+          <select aria-label={label("الحالة", "Status")} className={inputClass + " sm:max-w-xs"} value={status} onChange={event => { setStatus(event.target.value); setPage(1) }}><option value="all">{label("كل الحالات", "All statuses")}</option><option value="draft">Draft · {label("مسودة / مراجعة", "Draft / revision")}</option><option value="awaiting_approval">{label("بانتظار اعتماد الأدمن", "Awaiting admin approval")}</option><option value="published">Published · {label("منشورة", "Published")}</option></select></div>
         {loading ? <p role="status">{label("جاري التحميل…", "Loading…")}</p> : <div className="overflow-x-auto"><table className="w-full text-start text-sm"><thead><tr>{[label("الفاتورة", "Invoice"), label("الشحنة", "Shipment"), label("العميل", "Customer"), label("الحالة", "Status"), label("سعر البيع للعميل", "Selling price")].map(title => <th className="p-3 text-start" key={title}>{title}</th>)}</tr></thead><tbody>{rows.map(row => <tr key={row.id} className="border-t border-slate-200 dark:border-slate-800">
-          <td className="p-3"><Link className="font-bold text-primary-700 underline dark:text-primary-300" href={`/admin/shipment-invoices/${row.id}`}>{row.referenceNumber || row.invoiceNumber}</Link></td><td className="p-3"><bdi>{row.booking}</bdi></td><td className="p-3">{row.customerName}</td><td className="p-3">{row.status === "draft" ? "Draft" : "Published"}{row.pendingRevision && <span className="ms-2 text-amber-700">+ Draft v{row.publications.length + 1}</span>}</td><td className="p-3"><bdi>{row.totals.customerTotal} {row.currency}</bdi></td>
+          <td className="p-3"><Link className="font-bold text-primary-700 underline dark:text-primary-300" href={`/admin/shipment-invoices/${row.id}`}>{row.referenceNumber || row.invoiceNumber}</Link></td><td className="p-3"><bdi>{row.booking}</bdi></td><td className="p-3">{row.customerName}</td><td className="p-3">{row.status === "draft" ? "Draft" : "Published"}{row.pendingRevision && <span className="ms-2 text-amber-700">+ Draft v{row.publications.length + 1}</span>}{row.approvalRequest && <span className="ms-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800">{label("بانتظار الاعتماد", "Awaiting approval")}</span>}</td><td className="p-3"><bdi>{row.totals.customerTotal} {row.currency}</bdi></td>
         </tr>)}</tbody></table>{!rows.length && <p className="p-5 text-center text-slate-500">{label("لا توجد فواتير مطابقة", "No matching invoices")}</p>}</div>}
         <div className="mt-5 flex justify-end gap-3"><button className={buttonClass} disabled={loading || page <= 1} onClick={() => setPage(page - 1)}>{label("السابق", "Previous")}</button><span className="p-2">{page} / {Math.max(1, Math.ceil(total / 20))}</span><button className={buttonClass} disabled={loading || page * 20 >= total} onClick={() => setPage(page + 1)}>{label("التالي", "Next")}</button></div>
       </section>
@@ -215,7 +215,7 @@ export function ShipmentInvoiceEditor({ id }: { id: string }) {
     next.stages[stage].costs.unshift({ id: crypto.randomUUID(), description: "", amount: "", saleEqualsCost: true, currency: invoice.currency, exchangeRate: "1", notes: "", createdAt: "", createdBy: "", updatedAt: "", updatedBy: "" })
     change(next)
   }
-  async function operation(action: "save" | "preview" | "publish" | "revise") {
+  async function operation(action: "save" | "preview" | "publish" | "revise" | "request-approval") {
     if (!invoice || !draft || busy) return
     if (action === "save" && (!canSave || !amountsValid)) {
       const issue = saveValidation?.success === false ? saveValidation.error.issues[0] : undefined
@@ -225,7 +225,7 @@ export function ShipmentInvoiceEditor({ id }: { id: string }) {
       document.getElementById("shipment-invoice-costs")?.scrollIntoView({ block: "start", behavior: "smooth" })
       return
     }
-    if ((action === "preview" || action === "publish") && (dirty || !canPreview)) {
+    if ((action === "preview" || action === "publish" || action === "request-approval") && (dirty || !canPreview)) {
       setError("Complete at least one stage and enter the customer selling price before publication")
       return
     }
@@ -238,7 +238,7 @@ export function ShipmentInvoiceEditor({ id }: { id: string }) {
         const data = await api(`/api/admin/shipment-invoices/${id}/${action}`, "POST", { revision: invoice.revision,
           ...(action === "publish" ? { previewKey: preview?.previewKey } : {}), ...(action === "revise" ? { reason: revisionReason } : {}) })
         if (action === "preview") { setPreview(data); setConfirmed(false) }
-        else { accept(data); setRevisionReason(""); setMessage(action === "publish" ? label("تم النشر للعميل", "Published to customer") : label("تم فتح مسودة مراجعة مستقلة عن النسخة المنشورة", "Revision draft started. The published version remains unchanged.")) }
+        else { accept(data); setRevisionReason(""); setMessage(action === "publish" ? label("تم النشر للعميل", "Published to customer") : action === "request-approval" ? label("تم إرسال طلب اعتماد الفاتورة للأدمن", "Approval request sent to administrator") : label("تم فتح مسودة مراجعة مستقلة عن النسخة المنشورة", "Revision draft started. The published version remains unchanged.")) }
       }
       if (action !== "preview") {
         const detail = await api(`/api/admin/shipment-invoices/${id}`)
@@ -253,6 +253,7 @@ export function ShipmentInvoiceEditor({ id }: { id: string }) {
     shipment_draft_saved: label("حفظ بيانات المسودة", "Draft saved"),
     shipment_revision_started: label("فتح إصدار مراجعة", "Revision started"),
     shipment_invoice_published: label("نشر الفاتورة للعميل", "Invoice published to customer"),
+    shipment_approval_requested: label("إرسال طلب اعتماد للأدمن", "Sent for admin approval"),
     invoice_request_linked: label("ربط الفاتورة بالطلب", "Invoice linked to request"),
     payment_recorded: label("تسجيل دفعة", "Payment recorded"),
   }
@@ -343,8 +344,10 @@ export function ShipmentInvoiceEditor({ id }: { id: string }) {
         </section>
         <section className={panelClass}><label className="block text-sm">{label("ملاحظات الفاتورة للعميل", "Invoice notes for the customer")}<textarea disabled={!editing || busy} maxLength={2000} rows={3} className={inputClass} value={draft.notes} onChange={event => change({ ...draft, notes: event.target.value })} /></label></section>
         {editing && dirty && (!canSave || !amountsValid) && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{saveProblem}</p>}
+        {invoice.approvalRequest && (invoice.status === "draft" || invoice.pendingRevision) && <section role="status" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"><p className="font-bold">{label("تم إرسال طلب اعتماد هذه المسودة للأدمن", "Approval requested from administrator")}</p><p className="mt-1 text-xs">{invoice.approvalRequest.byName} · {new Date(invoice.approvalRequest.at).toLocaleString(ar ? "ar-EG" : "en-GB", { hour12: true })}{permissions?.canPublish ? " — " + label("راجع نسخة العميل ثم اضغط «نشر الفاتورة» لإظهارها للعميل.", "Preview the customer invoice below and click Publish to make it visible to the customer.") : ""}</p></section>}
         <div className="flex flex-wrap gap-3">{editing && <button disabled={busy || (!dirty && !requiresPricingSave)} className={primaryClass} onClick={() => void operation("save")}>{label("حفظ المسودة", "Save draft")}</button>}
           {editing && <button className={buttonClass} disabled={busy || dirty || !canPreview} onClick={() => void operation("preview")}>{label("معاينة نسخة العميل قبل النشر", "Preview customer invoice before publication")}</button>}
+          {editing && !permissions?.canPublish && <button className={primaryClass} disabled={busy || dirty || !canPreview || Boolean(invoice.approvalRequest)} onClick={() => void operation("request-approval")}>{invoice.approvalRequest ? label("تم إرسال طلب الاعتماد", "Approval requested") : label("إرسال طلب اعتماد للأدمن", "Send for Admin Approval")}</button>}
         </div>
         {preview && <section role="region" aria-label={label("مراجعة النشر", "Publication review")} className="space-y-4 rounded-2xl border-2 border-primary-300 p-5"><h2 className="font-bold">{label("مراجعة نسخة العميل", "Review customer invoice")}</h2><CustomerInvoicePreview snapshot={preview.snapshot} />
           {permissions?.canPublish && <><label className="flex gap-2 text-sm"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} />{label("راجعت هذه النسخة وأوافق على نشرها للعميل المرتبط بالشحنة", "I reviewed this version and approve publication to the linked customer")}</label>

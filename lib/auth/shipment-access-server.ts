@@ -6,6 +6,7 @@ import { connectDB } from "@/lib/mongodb"
 import { User } from "@/lib/models/User"
 import { canAccessShipmentData } from "./shipment-access"
 import { canAccessAccounts } from "./accounts-access"
+import { userCanMarkReadyForAccounts } from "./staff-categories"
 
 const getAccessAccount = cache(async (userId: string) => {
   if (getDatabaseProvider() === "d1") {
@@ -25,4 +26,8 @@ export const getShipmentAccess = cache(async (userId: string) => {
 export const getAccountsAccess = cache(async (userId: string) => {
   const account = await getAccessAccount(userId)
   return account ? canAccessAccounts(account) : false
+})
+export const getMarkReadyAccess = cache(async (userId: string) => {
+  const account = await getAccessAccount(userId)
+  return account ? userCanMarkReadyForAccounts(account) : false
 })

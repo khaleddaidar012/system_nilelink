@@ -3,6 +3,7 @@ export const invoiceEventLabels:Record<string,[string,string]> = {
   "shipment-invoice-save":["تعديل مسودة الفاتورة","Invoice draft updated"],shipment_draft_saved:["تعديل مسودة الفاتورة","Invoice draft updated"],
   "shipment-invoice-publish":["نشر الفاتورة للعميل","Invoice published to customer"],shipment_invoice_published:["نشر الفاتورة للعميل","Invoice published to customer"],
   "shipment-invoice-revise":["بدء مراجعة الفاتورة","Invoice revision started"],shipment_revision_started:["بدء مراجعة الفاتورة","Invoice revision started"],
+  "shipment-invoice-request-approval":["إرسال الفاتورة لاعتماد الإدارة","Invoice sent for administrator approval"],shipment_approval_requested:["إرسال الفاتورة لاعتماد الإدارة","Invoice sent for administrator approval"],
   "invoice-request-link":["تعيين فاتورة الطلب","Request invoice assigned"],invoice_request_linked:["تعيين فاتورة الطلب","Request invoice assigned"],invoice_request_unlinked:["فصل الفاتورة السابقة عن الطلب","Previous invoice detached from request"],
   "invoice-create":["إنشاء فاتورة","Invoice created"],create:["إنشاء فاتورة","Invoice created"],
   "invoice-update":["تعديل فاتورة","Invoice updated"],edit:["تعديل فاتورة","Invoice updated"],

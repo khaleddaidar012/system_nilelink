@@ -27,7 +27,7 @@ export function accountingStaffView(value: Data, revision: number, sensitive: bo
   return { id: value._id, invoiceNumber: value.invoiceNumber, referenceNumber: value.referenceNumber as string | undefined, customerCode: value.customerCode as string | undefined, shipmentId: value.shipmentRecordId,
     booking: value.shipmentSnapshot.trackingNumber, customerId: value.customerId, relatedRequestId: value.relatedRequestId ?? null,
     customerName: value.customerSnapshot.companyName, currency: value.currency, revision,
-    status: accounting.publications.length ? "published" : "draft", pendingRevision: accounting.pendingRevision,
+    status: accounting.publications.length ? "published" : "draft", pendingRevision: accounting.pendingRevision, approvalRequest: accounting.approvalRequest ?? null,
     draft: { ...draft, customerItems: customerSaleItems(resolvedDraft, value.currency), sellingPrice: internalSellingPrice, ...(sensitive ? { internalSellingPrice } : {}) },
     totals: { perStage: summary.perStage, perStageSales: summary.perStageSales, totalCosts: summary.totalCosts, customerTotal: summary.customerTotal,
       ...(sensitive ? { expectedProfit: summary.expectedProfit } : {}) },

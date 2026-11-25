@@ -6,6 +6,7 @@ import { connectDB } from "@/lib/mongodb"
 import { User } from "@/lib/models/User"
 import { getSessionFromRequest } from "@/lib/auth/token-service"
 import { hashPassword } from "@/lib/auth/password"
+import { sanitizeStaffPermissions } from "@/lib/auth/staff-categories"
 
 const updateStaffSchema = z.object({
   firstName: z.string().min(2).optional(),
@@ -16,6 +17,8 @@ const updateStaffSchema = z.object({
   staffPermissions: z
     .object({
       canAccessAccounts: z.boolean().optional(),
+      staffCategory: z.enum(["operations", "accounts"]).optional(),
+      canMarkReadyForAccounts: z.boolean().optional(),
       canViewShipmentData: z.boolean().optional(),
       canSendAlerts: z.boolean().optional(),
       canReviewDocuments: z.boolean().optional(),
@@ -86,6 +89,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     if (parsed.data.staffPermissions) {
       targetStaff.staffPermissions = {
         canUseTieredPricing: parsed.data.staffPermissions.canUseTieredPricing ?? targetStaff.staffPermissions?.canUseTieredPricing ?? false,
+        staffCategory: parsed.data.staffPermissions.staffCategory ?? targetStaff.staffPermissions?.staffCategory,
+        canMarkReadyForAccounts: parsed.data.staffPermissions.canMarkReadyForAccounts ?? targetStaff.staffPermissions?.canMarkReadyForAccounts,
         canAccessAccounts: parsed.data.staffPermissions.canAccessAccounts ?? targetStaff.staffPermissions?.canAccessAccounts,
         canViewShipmentData: parsed.data.staffPermissions.canViewShipmentData ?? targetStaff.staffPermissions?.canViewShipmentData,
         canSendAlerts:

@@ -3,9 +3,10 @@
 import { useState } from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { useTheme } from "@/components/layout/ThemeProvider"
-import { Moon, Sun, Shield, Bell, Globe, ChevronDown, History, House } from "lucide-react"
+import { Moon, Sun, Shield, Bell, Globe, ChevronDown, History, House, KeyRound } from "lucide-react"
 import { Link, usePathname } from "@/navigation"
 import { ChatLink } from "@/components/chat/ChatLink"
+import { StaffChangePasswordModal } from "@/components/admin/StaffChangePasswordModal"
 
 interface AdminHeaderProps {
   title?: string
@@ -35,6 +36,7 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const [langOpen, setLangOpen] = useState(false)
+  const [passwordOpen, setPasswordOpen] = useState(false)
 
   return (
     <>
@@ -112,6 +114,17 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
             )}
           </button>
 
+          {/* Change Password */}
+          <button
+            type="button"
+            onClick={() => setPasswordOpen(true)}
+            className="rounded-xl border border-secondary-200 bg-secondary-50 p-2 text-secondary-700 shadow-sm hover:bg-secondary-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white transition-colors"
+            title={locale === "ar" ? "تغيير كلمة المرور" : "Change Password"}
+            aria-label={locale === "ar" ? "تغيير كلمة المرور" : "Change Password"}
+          >
+            <KeyRound className="h-4 w-4" />
+          </button>
+
           {/* Staff Role Badge */}
           <div className="hidden items-center gap-2 rounded-xl border border-primary-500/30 bg-primary-50 px-3 py-1.5 text-xs text-primary-700 shadow-sm sm:flex dark:bg-primary-950/40 dark:text-primary-300">
             <Shield className="h-3.5 w-3.5 text-primary-600 dark:text-primary-400" />
@@ -124,6 +137,7 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
           <AdminHomeLink />
         </div>
       )}
+      <StaffChangePasswordModal isOpen={passwordOpen} onClose={() => setPasswordOpen(false)} />
     </>
   )
 }

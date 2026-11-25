@@ -6,6 +6,7 @@ import { connectDB } from "@/lib/mongodb"
 import { User } from "@/lib/models/User"
 import { getSessionFromRequest } from "@/lib/auth/token-service"
 import { hashPassword } from "@/lib/auth/password"
+import { sanitizeStaffPermissions } from "@/lib/auth/staff-categories"
 
 const createStaffSchema = z.object({
   firstName: z.string().min(2, "First name is required").trim(),
@@ -18,6 +19,9 @@ const createStaffSchema = z.object({
   role: z.enum(["staff", "super_admin"]).default("staff"),
   staffPermissions: z.object({
     canAccessAccounts: z.boolean().optional(),
+    canViewShipmentData: z.boolean().optional(),
+    staffCategory: z.enum(["operations", "accounts"]).optional(),
+    canMarkReadyForAccounts: z.boolean().optional(),
     canSendAlerts: z.boolean().default(true),
     canReviewDocuments: z.boolean().default(true),
     canManageCustomers: z.boolean().default(false),
@@ -35,6 +39,7 @@ const createStaffSchema = z.object({
   // Reserved, non-deliverable identity for the existing required email column.
   email: value.email || `${value.username}@staff.nilelink.invalid`,
   username: value.username || undefined,
+  staffPermissions: value.role === "super_admin" ? value.staffPermissions : sanitizeStaffPermissions(value.staffPermissions),
 }))
 
 export async function GET(req: NextRequest) {

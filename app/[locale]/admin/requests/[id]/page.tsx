@@ -15,6 +15,7 @@ import { toast } from "sonner"
 import { RequestQRCode } from "@/components/admin/requests/RequestQRCode"
 import { RequestInvoices } from "@/components/admin/shipments/RequestInvoices"
 import { RequestWorkflowSettings } from "@/components/admin/requests/RequestWorkflowSettings"
+import { AccountsReadinessBar } from "@/components/admin/requests/AccountsReadinessBar"
 import { StageManager } from "@/components/admin/requests/StageManager"
 
 export default function AdminRequestDetailPage() {
@@ -244,6 +245,7 @@ export default function AdminRequestDetailPage() {
 
       <div className="p-6 sm:p-8 max-w-7xl mx-auto w-full space-y-6">
         <RequestWorkflowSettings request={request} onUpdated={fetchRequestAndPrices} />
+        <AccountsReadinessBar requestId={String(id)} requestStatus={request.status} readiness={request.accountsReadiness} onUpdated={fetchRequestAndPrices} />
         {request.details?.containerCount!==undefined&&<p className="rounded-xl border p-4 font-semibold">{isAr?"عدد الحاويات: ":"Container count: "}{request.details.containerCount}</p>}
         <UCRSection requestId={String(id)} admin onUpdated={fetchRequestAndPrices} />
         {/* Actions & Meta */}

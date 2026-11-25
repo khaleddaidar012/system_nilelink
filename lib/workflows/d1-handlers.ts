@@ -3,6 +3,7 @@ import type { D1Binding } from "../db/d1"
 import { WorkflowStore, WorkflowError, actorFor, response } from "./runtime"
 import type { WorkflowInput } from "./runtime"
 import { handleRequests } from "./requests"
+import { handleAccountsReadiness } from "./accounts-readiness"
 import { handleDocuments, defaultStorage } from "./documents"
 import type { WorkflowStorage } from "./documents"
 import { handleCategories, handleNotifications } from "./settings"
@@ -27,6 +28,7 @@ export function createD1WorkflowHandler(db: D1Binding, options: { storage?: Work
       store.activity = { user: actor.user, action: args.action }
       if (args.action === "admin-analytics-overview") return await accountAnalytics(store, actor)
       if (args.action === "admin-system-overview") return await systemOverview(store, actor)
+      if (args.action.startsWith("accounts-readiness")) return await handleAccountsReadiness(store, actor, args)
       if (["invoice-send", "statement-send"].includes(args.action)) return await queueFinancialDelivery(store, actor, args)
       if (["portal-financials", "admin-invoice-pdf", "portal-invoice-pdf", "statement-view", "statement-pdf"].includes(args.action)) return await handleFinancialViews(store, actor, args)
       if (args.action === "payment-record") return await handleFinance(store, actor, args)

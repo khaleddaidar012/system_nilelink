@@ -1,6 +1,7 @@
 import { randomUUID, createHash } from "node:crypto"
 import { z } from "zod"
 import { canAccessAccounts } from "../auth/accounts-access"
+import { staffCategoryOf } from "../auth/staff-categories"
 import { accountingStaffView, shipmentAudit } from "../shipments/invoice-privacy"
 import { accountingDraft, customerSaleItems, customerInvoiceGroups, draftSchema, emptyAccounting, minor, decimal, tierSubtotal, tierSchema, stages, totals, currencies, draftBusinessKey } from "../shipments/accounting"
 import type { Accounting, AccountingDraft, Publication } from "../shipments/accounting"
@@ -18,7 +19,8 @@ export function accountingPermissions(actor: Actor) {
   requireStaff(actor.user)
   if (!canAccessAccounts(actor.user)) reject(403, "Accounts access required")
   const admin = actor.user.role === "super_admin"
-  return { viewSensitive: admin, canPublish: admin, canEdit: admin || actor.user.staffPermissions?.editInvoice === true,
+  const requiresApproval = !admin && staffCategoryOf(actor.user) === "accounts"
+  return { isAdmin: admin, requiresApproval, viewSensitive: admin, canPublish: admin, canEdit: admin || actor.user.staffPermissions?.editInvoice === true,
     canUseTieredPricing:admin || actor.user.staffPermissions?.canUseTieredPricing===true,
     canCreate: admin || actor.user.staffPermissions?.createInvoice === true }
 }
@@ -63,6 +65,7 @@ export async function handleShipmentInvoices(store: WorkflowStore, actor: Actor,
     if(!customer)reject(409,"Registered customer is missing")
     const existing=(await store.list("invoices","relatedRequestId=? AND status!='cancelled' AND json_extract(data,'$.archivedAt') IS NULL",[parent.id]))[0]
     if(existing){if(existing.data.customerId!==customer.id)reject(409,"Invoice customer mismatch");return response({invoice:{id:existing.id,accounting:isAccountingInvoice(existing.data)},permissions})}
+    if(permissions.requiresApproval&&parent.data.accountsReadiness?.state!=="approved")reject(403,"This shipment has not been approved for accounts by an administrator")
     const quote=await latestQuote(store,parent.id)
     if(parent.data.quoteRequired!==false&&(!quote||!["accepted","partially_accepted"].includes(quote.data.status)))reject(409,"Accept a quotation first, or select the direct processing workflow")
     if(quote&&quote.data.customerId!==customer.id)reject(409,"Quotation customer mismatch")
@@ -95,20 +98,20 @@ export async function handleShipmentInvoices(store: WorkflowStore, actor: Actor,
     if (!/^[a-f\d]{24}$/i.test(customerId)) reject(400, "Registered customer required")
     const q = (url.searchParams.get("q") || "").trim().slice(0, 200)
     const rows = await store.db.prepare(`SELECT id,trackingNumber,json_extract(data,'$.subject') AS subject FROM customer_requests
-      WHERE customerId=? AND (?='' OR instr(lower(trackingNumber),lower(?))>0 OR instr(lower(coalesce(json_extract(data,'$.subject'),'')),lower(?))>0 OR instr(lower(coalesce(json_extract(data,'$.previousTrackingNumbers'),'')),lower(?))>0 OR instr(lower(coalesce(json_extract(data,'$.legacyTrackingNumber'),'')),lower(?))>0)
-      ORDER BY createdAt DESC,id DESC LIMIT 50`).bind(customerId,q,q,q,q,q).all()
+      WHERE customerId=? AND (?=1 OR json_extract(data,'$.accountsReadiness.state')='approved') AND (?='' OR instr(lower(trackingNumber),lower(?))>0 OR instr(lower(coalesce(json_extract(data,'$.subject'),'')),lower(?))>0 OR instr(lower(coalesce(json_extract(data,'$.previousTrackingNumbers'),'')),lower(?))>0 OR instr(lower(coalesce(json_extract(data,'$.legacyTrackingNumber'),'')),lower(?))>0)
+      ORDER BY createdAt DESC,id DESC LIMIT 50`).bind(customerId,permissions.requiresApproval?0:1,q,q,q,q,q).all()
     return response({ requests: rows.results })
   }
   if (args.action === "shipment-invoice-list") {
     const url = new URL(args.request.url), { page, limit } = paging(url)
     const status = url.searchParams.get("status") || "all"
-    if (!["all", "draft", "published"].includes(status)) reject(400, "Invalid status")
+    if (!["all", "draft", "published", "awaiting_approval"].includes(status)) reject(400, "Invalid status")
     const search = (url.searchParams.get("q") || "").trim().slice(0, 200)
     const filter = `(json_extract(data,'$.shipmentRecordId') IS NOT NULL OR json_extract(data,'$.requestAccounting')=1)
-      AND (? = 'all' OR (? = 'draft' AND (status = 'draft' OR json_extract(data,'$.shipmentAccounting.pendingRevision') = 1)) OR (? = 'published' AND status != 'draft'))
+      AND (? = 'all' OR (? = 'draft' AND (status = 'draft' OR json_extract(data,'$.shipmentAccounting.pendingRevision') = 1)) OR (? = 'published' AND status != 'draft') OR (? = 'awaiting_approval' AND json_extract(data,'$.shipmentAccounting.approvalRequest') IS NOT NULL AND (status = 'draft' OR json_extract(data,'$.shipmentAccounting.pendingRevision') = 1)))
       AND (? = '' OR instr(lower(invoiceNumber || ' ' || coalesce(json_extract(data,'$.referenceNumber'),'') || ' ' || coalesce(json_extract(data,'$.previousReferenceNumbers'),'')),lower(?)) > 0 OR instr(lower(json_extract(data,'$.shipmentSnapshot.trackingNumber')),lower(?)) > 0
       OR instr(lower(json_extract(data,'$.shipmentRecordId')),lower(?)) > 0 OR instr(lower(json_extract(data,'$.customerSnapshot.companyName')),lower(?)) > 0)`
-    const values = [status, status, status, search, search, search, search, search]
+    const values = [status, status, status, status, search, search, search, search, search]
     const [rows, count] = await store.db.batch([
       store.db.prepare(`SELECT id,data,revision FROM invoices WHERE ${filter} ORDER BY createdAt DESC,id DESC LIMIT ? OFFSET ?`).bind(...values, limit, (page - 1) * limit),
       store.db.prepare(`SELECT count(*) AS total FROM invoices WHERE ${filter}`).bind(...values),
@@ -126,6 +129,7 @@ export async function handleShipmentInvoices(store: WorkflowStore, actor: Actor,
     if (!shipment || !customer) reject(404, "Shipment or registered customer not found")
     const parent = input.data.requestId ? await store.read("customer_requests", input.data.requestId) : null
     if (input.data.requestId && (!parent || parent.data.customerId !== customer.id)) reject(409, "Request and invoice must belong to the same customer")
+    if (parent && permissions.requiresApproval && parent.data.accountsReadiness?.state !== "approved") reject(403, "This shipment has not been approved for accounts by an administrator")
     const existing = (await store.list("invoices", "json_extract(data,'$.shipmentRecordId')=?", [shipment.id]))[0]
     if (existing) {
       if (existing.data.customerId !== customer.id || existing.data.currency !== input.data.currency) reject(409, "Shipment already has an invoice with a different customer or currency")
@@ -188,7 +192,7 @@ export async function handleShipmentInvoices(store: WorkflowStore, actor: Actor,
     const summary = totals(draft, source.data.currency)
     if (draft.pricingMode === "per-item-v1") draft.internalSellingPrice = summary.customerTotal
     draft.customerItems = customerSaleItems(draft, source.data.currency).map(item=>({description:item.description,amount:item.amount}))
-    const patch = { shipmentAccounting: { ...accounting, draft }, updatedBy: actor.user._id }
+    const patch = { shipmentAccounting: { ...accounting, draft, approvalRequest: null }, updatedBy: actor.user._id }
     checkAccountingSize(patch.shipmentAccounting)
     const saveLog=log(actor,source.data,"shipment_draft_saved",accounting.draft,draft)
     saveLog.meaningfulChange=draftBusinessKey(accounting.draft)!==draftBusinessKey(draft)
@@ -203,6 +207,21 @@ export async function handleShipmentInvoices(store: WorkflowStore, actor: Actor,
   if (args.action === "shipment-invoice-preview") {
     if (accounting.publications.length && !accounting.pendingRevision) reject(409, "This invoice is already published")
     return response({ snapshot: publication(source.data, accounting.draft, actor), previewKey: previewKey(source), revision: source.revision })
+  }
+  if (args.action === "shipment-invoice-request-approval") {
+    if (!permissions.canEdit) reject(403, "Invoice editing permission required")
+    if (accounting.publications.length && !accounting.pendingRevision) reject(409, "This invoice is already published")
+    publication(source.data, accounting.draft, actor)
+    const requested = { at: now(), by: actor.user._id, byName: `${actor.user.firstName} ${actor.user.lastName}`.trim(), revision: source.revision }
+    const requestPatch = { shipmentAccounting: { ...accounting, approvalRequest: requested }, updatedBy: actor.user._id }
+    await store.commit({ checks: [actor.snapshot], updates: [{ before: source, patch: requestPatch }], inserts: [
+      { table: "invoice_activity_logs", data: log(actor, source.data, "shipment_approval_requested", null, requested) },
+      { table: "notifications", data: notification({ targetAudience: "super_admin", type: "invoice_approval_requested", severity: "normal",
+        title: "فاتورة بانتظار الاعتماد / Invoice awaiting approval", message: `${source.data.invoiceNumber} — ${requested.byName}`,
+        relatedInvoiceId: source.id, relatedRequestId: source.data.relatedRequestId ?? null, actionUrl: `/admin/shipment-invoices/${source.id}` }) },
+    ] })
+    const updated = (await store.read("invoices", source.id))!
+    return response({ invoice: accountingStaffView(updated.data, updated.revision, permissions.viewSensitive), permissions })
   }
   if (!permissions.canPublish) reject(403, "Only an administrator may revise or publish shipment invoices")
   if (args.action === "shipment-invoice-revise") {
@@ -224,7 +243,7 @@ export async function handleShipmentInvoices(store: WorkflowStore, actor: Actor,
   const customer = await store.read("customers", source.data.customerId)
   if (!customer) reject(409, "Invoice customer unavailable")
   const patch = {
-    shipmentAccounting: { ...accounting, publications: [...accounting.publications, snapshot], pendingRevision: false },
+    shipmentAccounting: { ...accounting, publications: [...accounting.publications, snapshot], pendingRevision: false, approvalRequest: null },
     items: snapshot.items.map(item => ({ description: item.description, quantity: 1, unitPrice: Number(minor(item.amount)) / 100, total: Number(minor(item.amount)) / 100 })),
     subtotal: Number(minor(snapshot.total)) / 100, totalAmount: Number(minor(snapshot.total)) / 100, remainingAmount: Number(minor(snapshot.total)) / 100,
     notes: snapshot.notes, status: "confirmed", confirmedAt: snapshot.publishedAt, confirmedBy: actor.user._id,

@@ -2,6 +2,7 @@
 
 import { canAccessShipmentData } from "@/lib/auth/shipment-access"
 import { canAccessAccounts as accountsAccess } from "@/lib/auth/accounts-access"
+import { normalizeStaffCategory, userCanMarkReadyForAccounts } from "@/lib/auth/staff-categories"
 import { useState } from "react"
 import { useTranslations } from "next-intl"
 import { motion, AnimatePresence } from "framer-motion"
@@ -31,6 +32,8 @@ export interface StaffItem {
   role: string
   status: string
   staffPermissions: {
+    staffCategory?: "operations" | "accounts"
+    canMarkReadyForAccounts?: boolean
     canAccessAccounts?: boolean
     canViewShipmentData?: boolean
     canSendAlerts: boolean
@@ -60,6 +63,9 @@ export function EditPermissionsModal({
   onSuccess,
 }: EditPermissionsModalProps) {
   const t = useTranslations()
+  const staffCategory = normalizeStaffCategory(staff?.staffPermissions?.staffCategory)
+  const isOperations = staff?.role === "staff" && staffCategory === "operations"
+  const [canMarkReadyForAccounts, setCanMarkReadyForAccounts] = useState(() => staff ? userCanMarkReadyForAccounts(staff) : false)
   const [canAccessAccounts, setCanAccessAccounts] = useState(() => staff ? accountsAccess(staff) : false)
   const [canViewShipmentData, setCanViewShipmentData] = useState(() =>
     staff ? canAccessShipmentData({
@@ -108,7 +114,9 @@ export function EditPermissionsModal({
         body: JSON.stringify({
           status,
           staffPermissions: {
-            canAccessAccounts,
+            ...(staffCategory ? { staffCategory } : {}),
+            canMarkReadyForAccounts,
+            canAccessAccounts: isOperations ? false : canAccessAccounts,
             canViewShipmentData,
             canSendAlerts,
             canReviewDocuments,
@@ -177,7 +185,7 @@ export function EditPermissionsModal({
               </div>
             )}
 
-            <label className="flex items-center gap-2 rounded-lg border p-3 text-sm"><input type="checkbox" checked={canUseTieredPricing} onChange={event=>setCanUseTieredPricing(event.target.checked)} />التسعير المتدرج / Tiered pricing</label>
+            {!isOperations && <label className="flex items-center gap-2 rounded-lg border p-3 text-sm"><input type="checkbox" checked={canUseTieredPricing} onChange={event=>setCanUseTieredPricing(event.target.checked)} />التسعير المتدرج / Tiered pricing</label>}
             {/* Account Status Toggle */}
             <div>
               <label className="text-xs font-bold text-secondary-700 dark:text-secondary-300">
@@ -274,6 +282,17 @@ export function EditPermissionsModal({
                 </div>
               </label>
 
+              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg p-2 text-xs font-bold">
+                <input type="checkbox" checked={canViewShipmentData} onChange={(event) => setCanViewShipmentData(event.target.checked)} />
+                عرض بيانات الشحنات (View shipment data)
+              </label>
+
+              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg p-2 text-xs font-bold">
+                <input type="checkbox" checked={canMarkReadyForAccounts} onChange={(event) => setCanMarkReadyForAccounts(event.target.checked)} />
+                تحويل الشحنة إلى «جاهزة للحسابات» (Mark Ready for Accounts)
+              </label>
+
+              {!isOperations && <>
               {/* Create & Manage Invoices */}
               <label className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 transition-colors hover:bg-white dark:hover:bg-secondary-800">
                 <input
@@ -332,8 +351,8 @@ export function EditPermissionsModal({
               </label>
 
               <label className="flex cursor-pointer items-center gap-2.5 rounded-lg p-2 text-xs font-bold">
-                <input type="checkbox" checked={canViewShipmentData} onChange={(event) => setCanViewShipmentData(event.target.checked)} />
-                عرض بيانات الشحنات (View shipment data)
+                <input type="checkbox" checked={canAccessAccounts} disabled={staff.role === "super_admin"} onChange={event => setCanAccessAccounts(event.target.checked)} />
+                عرض كارت الحسابات والوصول إليه (Accounts access)
               </label>
 
               <label className="flex cursor-pointer items-center gap-2.5 rounded-lg p-2 text-xs font-bold">
@@ -359,6 +378,7 @@ export function EditPermissionsModal({
                   </p>
                 </div>
               </label>
+              </>}
             </div>
 
             <div className="mt-5 flex items-center justify-end gap-2 border-t border-secondary-100 pt-4 dark:border-secondary-800">

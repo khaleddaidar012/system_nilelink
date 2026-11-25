@@ -17,6 +17,8 @@ export interface IStaffPermissions {
   canAccessAccounts?: boolean
   canManageBackups?: boolean
   canUseTieredPricing?: boolean
+  staffCategory?: "operations" | "accounts"
+  canMarkReadyForAccounts?: boolean
 }
 
 export interface IUser extends Document {

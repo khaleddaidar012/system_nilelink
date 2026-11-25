@@ -7,6 +7,7 @@ import { canOperateRequest } from "../requests/access"
 import { canonicalServiceStatus, serviceStatuses, serviceTransitions, serviceLabels, serviceStatusLabels } from "../requests/progress"
 import { publishedRequestInvoice } from "../requests/published-invoice"
 import { WorkflowStore, body, reject, response, timestamped, notification, now, validDate, fields, requireStaff, requireCustomer, own, paging } from "./runtime"
+import { autoReadiness } from "./accounts-readiness"
 import type { Actor, Snapshot, WorkflowInput, Change, Data } from "./runtime"
 import { newRequestNumber } from "../references/numbering"
 import { validShippingOperation } from "../requests/operation-type"
@@ -266,9 +267,10 @@ export async function handleRequests(store: WorkflowStore, actor: Actor, args: W
     const title=`${names[0]}: ${state[0]} / ${names[1]}: ${state[1]}`
     const event={...timeline(actor,status,title,input.comment),eventId:crypto.randomUUID(),eventType:"service_status_changed",serviceId:service.id,serviceKey:service.data.serviceKey}
     const patch = { status: input.status, timeline: [...(service.data.timeline || []), event] }
-    const parentPatch={status,timeline:[...(parent.data.timeline||[]),event,...(finished&&parent.data.status!=="completed"?[{...timeline(actor,"completed","تم الانتهاء من الطلب / Request completed",""),eventId:crypto.randomUUID(),eventType:"request_completed"}]:[])]}
+    const auto=finished&&parent.data.status!=="completed"?autoReadiness(parent.data,actor):null
+    const parentPatch={status,...(auto?.patch??{}),timeline:[...(parent.data.timeline||[]),event,...(finished&&parent.data.status!=="completed"?[{...timeline(actor,"completed","تم الانتهاء من الطلب / Request completed",""),eventId:crypto.randomUUID(),eventType:"request_completed"}]:[])]}
     await store.commit({ checks: [actor.snapshot,...services.filter(row=>row.id!==service.id)], updates: [{ before: service, patch },{before:parent,patch:parentPatch}],
-      inserts:[{table:"notifications",data:notifyRequest(parent,title,`${parent.data.trackingNumber}: ${title}${input.comment?` — ${input.comment}`:""}`,{actionUrl:`/portal/requests/${parent.id}`})}] })
+      inserts:[...(auto?[{table:"notifications" as const,data:auto.notice}]:[]),{table:"notifications",data:notifyRequest(parent,title,`${parent.data.trackingNumber}: ${title}${input.comment?` — ${input.comment}`:""}`,{actionUrl:`/portal/requests/${parent.id}`})}] })
     return response({ success: true, service: { ...service.data, ...patch } })
   }
   if (action.startsWith("pricing-")) {
@@ -357,8 +359,9 @@ export async function handleRequests(store: WorkflowStore, actor: Actor, args: W
     const event={...timeline(actor,status,title,input.staffNote),eventId,eventType:"service_stage_changed",serviceId:service.id,serviceKey:service.data.serviceKey,stageKey:input.stageKey,stageLabelAr:previous.labelAr,stageLabelEn:previous.labelEn,previousStageStatus:previous.status,stageStatus:input.status,actorName:`${actor.user.firstName} ${actor.user.lastName}`}
     const events=[event]
     if(done&&service.data.status!=="completed")events.push({...timeline(actor,status,"Service completed",""),eventId:crypto.randomUUID(),eventType:"service_completed",serviceId:service.id,serviceKey:service.data.serviceKey} as any)
+    const auto=finished&&parent.data.status!=="completed"?autoReadiness(parent.data,actor):null
     if(finished&&parent.data.status!=="completed")events.push({...timeline(actor,"completed","تم الانتهاء من الطلب / Request completed",""),eventId:crypto.randomUUID(),eventType:"request_completed"} as any)
-    await store.commit({checks:[actor.snapshot,...all.filter(row=>row.id!==service.id)],updates:[{before:service,patch:{status:nextStatus,trackingStages:next,timeline:[...(service.data.timeline||[]),event]}},{before:parent,patch:{status,...(finished?{completedAt:parent.data.completedAt||now()}:reopening?{completedAt:null}:{}),timeline:[...(parent.data.timeline||[]),...events]}}],inserts:[{table:"notifications",data:notifyRequest(parent,finished?"تم الانتهاء من الطلب / Request completed":title,`${parent.data.trackingNumber}${input.staffNote?` — ${input.staffNote}`:""}`,{actionUrl:`/portal/requests/${parent.id}`})}]})
+    await store.commit({checks:[actor.snapshot,...all.filter(row=>row.id!==service.id)],updates:[{before:service,patch:{status:nextStatus,trackingStages:next,timeline:[...(service.data.timeline||[]),event]}},{before:parent,patch:{status,...(auto?.patch??{}),...(finished?{completedAt:parent.data.completedAt||now()}:reopening?{completedAt:null}:{}),timeline:[...(parent.data.timeline||[]),...events]}}],inserts:[...(auto?[{table:"notifications" as const,data:auto.notice}]:[]),{table:"notifications",data:notifyRequest(parent,finished?"تم الانتهاء من الطلب / Request completed":title,`${parent.data.trackingNumber}${input.staffNote?` — ${input.staffNote}`:""}`,{actionUrl:`/portal/requests/${parent.id}`})}]})
     return response({success:true,changed:true})
   }
   if(action==="admin-request-ucr"||action==="request-ucr"){

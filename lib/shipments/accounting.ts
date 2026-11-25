@@ -47,7 +47,8 @@ export type Publication = {
   currency: typeof currencies[number]; items: { description: string; amount: string }[]
   total: string; notes: string; groups?: InvoiceGroup[]
 }
-export type Accounting = { draft: AccountingDraft; publications: Publication[]; pendingRevision: boolean }
+export type ApprovalRequest = { at: string; by: string; byName: string; revision: number }
+export type Accounting = { draft: AccountingDraft; publications: Publication[]; pendingRevision: boolean; approvalRequest?: ApprovalRequest | null }
 // All supported currencies use two minor digits. Conversion uses a decimal rate
 // supplied for the entry, rounded half up once at the converted line total.
 const maxUnits = BigInt(999999999999)

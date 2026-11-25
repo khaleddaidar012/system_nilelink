@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils"
 import { MailboxUnreadBadge } from "./mailbox/MailboxUnreadBadge"
 import { useWorkspaceCounts } from "./WorkspaceActivity"
 
-export function AdminSidebar({ canManageBackups = false, canViewShipmentData = false, canAccessAccounts = false, userId }: { canManageBackups?: boolean; canViewShipmentData?: boolean; canAccessAccounts?: boolean; userId?: string }) {
+export function AdminSidebar({ canManageBackups = false, canViewShipmentData = false, canAccessAccounts = false, canMarkReadyForAccounts = false, userId }: { canManageBackups?: boolean; canViewShipmentData?: boolean; canAccessAccounts?: boolean; canMarkReadyForAccounts?: boolean; userId?: string }) {
   const counts=useWorkspaceCounts()
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
@@ -61,6 +61,7 @@ export function AdminSidebar({ canManageBackups = false, canViewShipmentData = f
     },
     ...(canViewShipmentData ? [{ href: "/admin/coming-soon/shipments", label: isAr ? "بيانات الشحنات" : "Shipment data", icon: Ship }] : []),
     ...(canAccessAccounts ? [{ href: "/admin/shipment-invoices", label: isAr ? "الحسابات" : "Accounts", icon: Receipt }] : []),
+    ...((canAccessAccounts || canMarkReadyForAccounts) ? [{ href: "/admin/accounts-ready", label: isAr ? "جاهزة للحسابات" : "Ready for accounts", icon: FileCheck2 }] : []),
     { href: "/admin/activity", label: isAr ? "سجل الحركات" : "Activity log", icon: History },
     { href: "/admin/chat", label: isAr ? "الشات" : "Chat", icon: MessageSquare },
     {

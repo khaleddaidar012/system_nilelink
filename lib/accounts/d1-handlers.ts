@@ -10,6 +10,7 @@ import {
   verifyAuthToken, REFRESH_COOKIE_NAME, clearAuthCookies,
 } from "../auth/token-service"
 import { hashPassword, verifyPassword, generateSecureToken } from "../auth/password"
+import { sanitizeStaffPermissions } from "../auth/staff-categories"
 import { manualWhatsappCode } from "../auth/manual-whatsapp-code"
 import { checkRateLimit, resetRateLimit } from "../auth/rate-limiter"
 import { dispatchOtpNotification, generateNumericOtp } from "../auth/otp-service"
@@ -343,12 +344,14 @@ export function createD1AccountsHandler(db: D1Binding, options: { sendOtp?: (inp
         if (existing && input.email.endsWith("@staff.nilelink.invalid")) return fail(409, "Username is already taken")
         let staff: StoredUser
         if (existing) {
-          const patch = { ...selectFields(input, ["role", "firstName", "lastName", "jobTitle", "phone"]), staffPermissions: { ...defaults, ...input.staffPermissions }, status: "active", ...(input.password ? { passwordHash: await hashPassword(input.password) } : {}) }
+          const nextPermissions = input.role === "super_admin" ? { ...defaults, ...input.staffPermissions } : sanitizeStaffPermissions({ ...defaults, ...input.staffPermissions })
+          const patch = { ...selectFields(input, ["role", "firstName", "lastName", "jobTitle", "phone"]), staffPermissions: nextPermissions, status: "active", ...(input.password ? { passwordHash: await hashPassword(input.password) } : {}) }
           await repository.patchUser(existing, { ...patch, ...(input.username ? { username: input.username } : {}) })
           staff = { ...existing.user, ...patch } as StoredUser
         } else {
           if (!input.password) return fail(400, "Password is required for new accounts")
-          staff = createUser({ ...input, email: input.email, firstName: input.firstName, lastName: input.lastName, passwordHash: await hashPassword(input.password), role: input.role, emailVerified: true, whatsappVerified: true })
+          const nextPermissions = input.role === "super_admin" ? { ...defaults, ...input.staffPermissions } : sanitizeStaffPermissions({ ...defaults, ...input.staffPermissions })
+          staff = createUser({ ...input, staffPermissions: nextPermissions, email: input.email, firstName: input.firstName, lastName: input.lastName, passwordHash: await hashPassword(input.password), role: input.role, emailVerified: true, whatsappVerified: true })
           // Input passwords are never persisted alongside their hash.
           delete staff.password
           await repository.createStaff(staff)
@@ -362,7 +365,7 @@ export function createD1AccountsHandler(db: D1Binding, options: { sendOtp?: (inp
         const patch = action === "staff-suspend" ? { status: "suspended" } : {
           ...selectFields(input, ["firstName", "lastName", "phone", "status"]),
           ...(input.password ? { passwordHash: await hashPassword(input.password) } : {}),
-          ...(input.staffPermissions ? { staffPermissions: { ...defaults, ...target.user.staffPermissions, ...input.staffPermissions } } : {}),
+          ...(input.staffPermissions ? { staffPermissions: target.user.role === "super_admin" ? { ...defaults, ...target.user.staffPermissions, ...input.staffPermissions } : sanitizeStaffPermissions({ ...defaults, ...target.user.staffPermissions, ...input.staffPermissions }) } : {}),
         }
         await repository.patchUser(target, patch)
         return json({ success: true, message: action === "staff-suspend" ? `Staff member ${target.user.firstName} ${target.user.lastName} has been suspended.` : "Staff member updated successfully.", staff: userView({ ...target.user, ...patch } as StoredUser) })

@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl"
 import { AdminHeader } from "@/components/admin/AdminHeader"
+import { AccountsHubTabs } from "@/components/admin/accounts/AccountsHubTabs"
 import { CustomerOverviewTable } from "@/components/admin/customers/CustomerOverviewTable"
 
 export default function AdminCustomersPage() {
@@ -16,6 +17,8 @@ export default function AdminCustomersPage() {
           "Inspect client compliance health, audit legal documents, and govern account operational access"
         }
       />
+
+      <AccountsHubTabs />
 
       <div className="space-y-6 p-6 sm:p-8">
         <CustomerOverviewTable />

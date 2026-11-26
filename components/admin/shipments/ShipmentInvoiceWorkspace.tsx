@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import { useLocale } from "next-intl"
 import { Link, useRouter } from "@/navigation"
 import { AdminHeader } from "@/components/admin/AdminHeader"
+import { AccountsHubTabs } from "@/components/admin/accounts/AccountsHubTabs"
 import { stages, currencies, previewTotals, draftSchema, minor } from "@/lib/shipments/accounting"
 import type { AccountingDraft, CostInput, Publication } from "@/lib/shipments/accounting"
 import type { accountingStaffView } from "@/lib/shipments/invoice-privacy"
@@ -48,13 +49,26 @@ export function CustomerInvoicePreview({ snapshot }: { snapshot: Publication }) 
   </section>
 }
 
-export function ShipmentInvoiceList({ initialShipmentId = "" }: { initialShipmentId?: string }) {
+export function ShipmentInvoiceList({
+  initialShipmentId = "",
+  initialCustomerId = "",
+  initialCustomerName = "",
+  initialScope = "all",
+}: {
+  initialShipmentId?: string
+  initialCustomerId?: string
+  initialCustomerName?: string
+  initialScope?: "all" | "active"
+}) {
   const { ar, label } = useLabels()
   const router = useRouter()
   const [rows, setRows] = useState<Invoice[]>([])
   const [permissions, setPermissions] = useState<Permissions | null>(null)
   const [search, setSearch] = useState("")
   const [status, setStatus] = useState("all")
+  const [filterCustomerId, setFilterCustomerId] = useState(initialCustomerId)
+  const [filterCustomerName, setFilterCustomerName] = useState(initialCustomerName)
+  const [scope, setScope] = useState<"all" | "active">(initialScope)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [error, setError] = useState("")
@@ -77,13 +91,15 @@ export function ShipmentInvoiceList({ initialShipmentId = "" }: { initialShipmen
     let disposed = false
     setLoading(true)
     const timer = setTimeout(() => {
-      api(`/api/admin/shipment-invoices?${new URLSearchParams({ q: search, status, page: String(page) })}`)
+      const qs = new URLSearchParams({ q: search, status, page: String(page), scope })
+      if (filterCustomerId) qs.set("customerId", filterCustomerId)
+      api(`/api/admin/shipment-invoices?${qs}`)
         .then(data => { if (!disposed) { setRows(data.invoices); setTotal(data.total); setPermissions(data.permissions); setError("") } })
         .catch(error => { if (!disposed) setError(error.message) })
         .finally(() => { if (!disposed) setLoading(false) })
     }, 250)
     return () => { disposed = true; clearTimeout(timer) }
-  }, [search, status, page])
+  }, [search, status, page, filterCustomerId, scope])
   useEffect(() => {
     if (!creating || !permissions?.canCreate) return
     let disposed = false
@@ -127,7 +143,24 @@ export function ShipmentInvoiceList({ initialShipmentId = "" }: { initialShipmen
   }
   return <div dir={ar ? "rtl" : "ltr"}>
     <AdminHeader title={label("حسابات وفواتير الشحنات", "Shipment accounting & invoices")} subtitle={label("مسودة داخلية لكل شحنة حتى ينشرها الأدمن", "One internal draft per shipment until an administrator publishes it")} />
+    <AccountsHubTabs />
     <div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-7">
+      {filterCustomerId && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 text-xs font-bold text-primary-900 dark:border-primary-900 dark:bg-primary-950/40 dark:text-primary-200">
+          <span>
+            {scope === "active"
+              ? label(`فواتير الشحنات النشطة للعميل: ${filterCustomerName || rows[0]?.customerName || filterCustomerId}`, `Active shipment invoices for customer: ${filterCustomerName || rows[0]?.customerName || filterCustomerId}`)
+              : label(`فواتير الشحنات للعميل: ${filterCustomerName || rows[0]?.customerName || filterCustomerId}`, `Shipment invoices for customer: ${filterCustomerName || rows[0]?.customerName || filterCustomerId}`)}
+          </span>
+          <button
+            type="button"
+            onClick={() => { setFilterCustomerId(""); setFilterCustomerName(""); setScope("all"); setPage(1) }}
+            className="rounded-lg border border-primary-300 bg-white px-3 py-1 text-xs font-bold text-primary-700 hover:bg-primary-100 dark:border-primary-800 dark:bg-slate-900 dark:text-primary-300"
+          >
+            {label("عرض كل الفواتير", "Show all invoices")}
+          </button>
+        </div>
+      )}
       <div className="flex flex-wrap justify-between gap-3"><Link href="/admin/invoices" className={buttonClass}>{label("كل الفواتير والمدفوعات", "All invoices & payments")}</Link>
         {permissions?.canCreate && <button className={primaryClass} onClick={() => setCreating(!creating)}>{creating ? label("إلغاء", "Cancel") : label("فاتورة لشحنة موجودة", "Invoice an existing shipment")}</button>}</div>
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-4 text-rose-700">{label("تعذر تنفيذ العملية. راجع البيانات أو الصلاحيات، وفي حالة التعارض أعد تحميل الفاتورة.", "Operation failed. Check the values and permissions. Reload the invoice if it changed.")} <bdi>{error}</bdi></p>}
@@ -298,7 +331,7 @@ export function ShipmentInvoiceEditor({ id }: { id: string }) {
   return <div dir={ar ? "rtl" : "ltr"}>
     <AdminHeader title={title} subtitle={invoice ? `${invoice.referenceNumber || invoice.invoiceNumber} · ${invoice.booking} · ${invoice.customerName}` : undefined} />
     <div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-7">
-      <div className="flex flex-wrap justify-between gap-3"><div className="flex flex-wrap gap-3"><Link href="/admin/shipment-invoices" className={buttonClass}>{label("قائمة فواتير الشحنات", "Shipment invoice list")}</Link>{invoice?.relatedRequestId && <Link href={`/admin/requests/${invoice.relatedRequestId}`} className={buttonClass}>{label("الرجوع للطلب المرتبط", "Back to linked request")}</Link>}</div><button disabled={busy} onClick={() => { if (!dirty || window.confirm(label("إلغاء التعديلات غير المحفوظة؟", "Discard unsaved changes?"))) void reload() }} className={buttonClass}>{label("إعادة تحميل", "Reload")}</button></div>
+      <div className="flex flex-wrap justify-between gap-3"><div className="flex flex-wrap gap-3"><Link href={invoice?.customerId ? `/admin/shipment-invoices?customerId=${encodeURIComponent(invoice.customerId)}&customerName=${encodeURIComponent(invoice.customerName || "")}&scope=active` : "/admin/shipment-invoices"} className={buttonClass}>{label("قائمة فواتير الشحنات", "Shipment invoice list")}</Link>{invoice?.relatedRequestId && <Link href={`/admin/requests/${invoice.relatedRequestId}`} className={buttonClass}>{label("الرجوع للطلب المرتبط", "Back to linked request")}</Link>}</div><button disabled={busy} onClick={() => { if (!dirty || window.confirm(label("إلغاء التعديلات غير المحفوظة؟", "Discard unsaved changes?"))) void reload() }} className={buttonClass}>{label("إعادة تحميل", "Reload")}</button></div>
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{publicationError
         ? label("أكمل أي مرحلة واحدة وأدخل سعر البيع، ثم احفظ التعديلات قبل المعاينة والنشر.", "Complete any one stage, enter the selling price, then save before previewing or publishing.")
         : ar ? translatedError ?? error : "Operation failed. Check data and permissions. Reload if the invoice changed."}{ar && translatedError && errorStatus && <bdi className="ms-2">({errorStatus})</bdi>}{!ar && <bdi className="ms-2">{error}</bdi>}</p>}

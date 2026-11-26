@@ -8,6 +8,8 @@ import { minorUnits } from "./finance"
 import { shipmentAudit, withoutAccounting } from "../shipments/invoice-privacy"
 import { requestInvoiceReplacement } from "../shipments/request-invoice-link"
 import { newInvoiceReference } from "../references/numbering"
+import { staffCategoryOf } from "../auth/staff-categories"
+import { matchesSmartQuery } from "../shipments/smart-search"
 
 export function invoicePermission(actor: Actor, key: "createInvoice" | "editInvoice" | "issueTaxInvoice" | "viewCustomerStatements" | "exportCustomerStatements" | "sendFinancialDocuments") {
   requireStaff(actor.user)
@@ -134,7 +136,7 @@ export async function handleInvoices(store: WorkflowStore, actor: Actor, args: W
     const year = yearValue(new URL(args.request.url).searchParams.get("year") ?? undefined)
     return response({ success: true, nextNumber: await invoiceNumber(store, year, false), year })
   }
-  if (args.action === "invoices-list") return listInvoices(store, args)
+  if (args.action === "invoices-list") return listInvoices(store, actor, args)
   if (args.action === "invoice-create") {
     permission(actor, "createInvoice")
     const parsed = CreateInvoiceSchema.safeParse(await body(args))
@@ -251,9 +253,14 @@ export async function handleInvoices(store: WorkflowStore, actor: Actor, args: W
   return reject(404, "Unknown invoice operation")
 }
 
-async function listInvoices(store: WorkflowStore, args: WorkflowInput): Promise<Response> {
+async function listInvoices(store: WorkflowStore, actor: Actor, args: WorkflowInput): Promise<Response> {
+  const isAdmin = actor.user.role === "super_admin"
+  if (!isAdmin && staffCategoryOf(actor.user) === "operations") {
+    reject(403, "Financial invoices are restricted to Accounts and Administrators")
+  }
   const url = new URL(args.request.url), { page, limit } = paging(url)
   const predicates = ["json_extract(data, '$.archivedAt') IS NULL"], values: string[] = []
+  const selectedCustomerId = (url.searchParams.get("customerId") || "").trim()
   for (const [param, column] of [["customerId", "customerId"], ["requestId", "relatedRequestId"], ["currency", "currency"], ["documentType", "json_extract(data, '$.documentType')"]]) {
     const value = url.searchParams.get(param)
     if (value && value !== "all") { predicates.push(`${column} = ?`); values.push(value) }
@@ -261,33 +268,126 @@ async function listInvoices(store: WorkflowStore, args: WorkflowInput): Promise<
   const status = url.searchParams.get("status")
   if (status === "unpaid") predicates.push("status IN ('confirmed','sent','partially_paid','overdue')")
   else if (status && status !== "all") { predicates.push("status = ?"); values.push(status) }
+
+  const month = (url.searchParams.get("month") || "").trim()
+  if (month) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) reject(400, "Invalid month filter")
+    const [yearNum, monthNum] = month.split("-").map(Number)
+    const lastDay = new Date(Date.UTC(yearNum, monthNum, 0)).getUTCDate()
+    predicates.push("issueDate >= ? AND issueDate <= ?")
+    values.push(`${month}-01T00:00:00.000Z`, `${month}-${String(lastDay).padStart(2, "0")}T23:59:59.999Z`)
+  }
   const start = url.searchParams.get("startDate"), end = url.searchParams.get("endDate")
   if (start) { predicates.push("issueDate >= ?"); values.push(invoiceDate(start)) }
   if (end) { predicates.push("issueDate <= ?"); values.push(invoiceDate(/^\d{4}-\d{2}-\d{2}$/.test(end) ? `${end}T23:59:59.999Z` : end)) }
-  const search = url.searchParams.get("search")?.trim().toLowerCase()
+  const search = (url.searchParams.get("search") || "").trim()
   const rows = (await store.list("invoices", predicates.join(" AND "), values, "createdAt DESC, id DESC"))
-    .filter(row => !search || [row.data.invoiceNumber, row.data.referenceNumber, ...(row.data.previousReferenceNumbers || []), row.data.customerCode, row.data.customerSnapshot?.companyName, row.data.shipmentSnapshot?.trackingNumber].some(value => String(value || "").toLowerCase().includes(search)))
-  const byCurrency: Record<string, { totalInvoicedAmount: number | null; totalPaidAmount: number | null; totalRemainingAmount: number | null; reconciliationRequired?: boolean }> = Object.create(null)
-  for (const { data } of rows) if (data.status !== "cancelled") {
-    const currency = data.currency || "UNKNOWN"
-    const group = byCurrency[currency] ??= { totalInvoicedAmount: 0, totalPaidAmount: 0, totalRemainingAmount: 0 }
-    if (group.reconciliationRequired) continue
-    try {
-      group.totalInvoicedAmount! += minorUnits(data.totalAmount)
-      group.totalPaidAmount! += minorUnits(data.paidAmount)
-      group.totalRemainingAmount! += minorUnits(data.remainingAmount)
-      if (![group.totalInvoicedAmount, group.totalPaidAmount, group.totalRemainingAmount].every(Number.isSafeInteger)) reject(409, "Invoice summary exceeds supported precision")
-    } catch {
-      // Reading imported records must remain possible even when totals require review.
-      Object.assign(group, { totalInvoicedAmount: null, totalPaidAmount: null, totalRemainingAmount: null, reconciliationRequired: true })
+    .filter(row => !search || matchesSmartQuery([
+      row.data.invoiceNumber,
+      row.data.referenceNumber,
+      ...(row.data.previousReferenceNumbers || []),
+      row.data.customerCode,
+      row.data.customerSnapshot?.companyName,
+      row.data.shipmentSnapshot?.trackingNumber,
+    ], search))
+
+  // Compute per-company totals (available to Accounts + Super Admin)
+  const companyMap = new Map<string, {
+    customerId: string
+    companyName: string
+    currency: string
+    invoiceCount: number
+    draftCount: number
+    confirmedCount: number
+    totalInvoicedMinor: number
+    totalPaidMinor: number
+    totalRemainingMinor: number
+  }>()
+
+  for (const { data } of rows) {
+    const cid = String(data.customerId || `ext:${data.customerSnapshot?.companyName || "unknown"}`)
+    const cname = String(data.customerSnapshot?.companyName || "—")
+    const curr = String(data.currency || "EGP")
+    const key = `${cid}::${curr}`
+    let entry = companyMap.get(key)
+    if (!entry) {
+      entry = {
+        customerId: data.customerId || "",
+        companyName: cname,
+        currency: curr,
+        invoiceCount: 0,
+        draftCount: 0,
+        confirmedCount: 0,
+        totalInvoicedMinor: 0,
+        totalPaidMinor: 0,
+        totalRemainingMinor: 0,
+      }
+      companyMap.set(key, entry)
+    }
+    entry.invoiceCount += 1
+    if (data.status === "draft") entry.draftCount += 1
+    if (data.status === "confirmed") entry.confirmedCount += 1
+    if (data.status !== "cancelled") {
+      try {
+        entry.totalInvoicedMinor += minorUnits(data.totalAmount)
+        entry.totalPaidMinor += minorUnits(data.paidAmount)
+        entry.totalRemainingMinor += minorUnits(data.remainingAmount)
+      } catch { /* ignore malformed legacy amount */ }
     }
   }
-  for (const group of Object.values(byCurrency)) for (const key of ["totalInvoicedAmount", "totalPaidAmount", "totalRemainingAmount"] as const) if (group[key] !== null) group[key]! /= 100
-  const groups = Object.values(byCurrency)
-  const metrics = { totalDraftCount: rows.filter(row => row.data.status === "draft").length,
-    totalConfirmedCount: rows.filter(row => row.data.status === "confirmed").length,
-    ...(groups.length === 1 ? groups[0] : { totalInvoicedAmount: groups.length ? null : 0, totalPaidAmount: groups.length ? null : 0, totalRemainingAmount: groups.length ? null : 0 }),
-    byCurrency, currency: groups.length === 1 ? Object.keys(byCurrency)[0] : null }
+
+  const companyTotals = [...companyMap.values()]
+    .map(c => ({
+      customerId: c.customerId,
+      companyName: c.companyName,
+      currency: c.currency,
+      invoiceCount: c.invoiceCount,
+      draftCount: c.draftCount,
+      confirmedCount: c.confirmedCount,
+      totalInvoicedAmount: c.totalInvoicedMinor / 100,
+      totalPaidAmount: c.totalPaidMinor / 100,
+      totalRemainingAmount: c.totalRemainingMinor / 100,
+    }))
+    .sort((a, b) => b.totalInvoicedAmount - a.totalInvoicedAmount)
+
+  // Grand total metrics: strictly Super Admin ONLY when unfiltered; Accounts only sees metrics when filtered to a single company
+  const canExposeAggregateMetrics = isAdmin || Boolean(selectedCustomerId && selectedCustomerId !== "all")
+  let metrics: Record<string, unknown> | null = null
+
+  if (canExposeAggregateMetrics) {
+    const byCurrency: Record<string, { totalInvoicedAmount: number | null; totalPaidAmount: number | null; totalRemainingAmount: number | null; reconciliationRequired?: boolean }> = Object.create(null)
+    for (const { data } of rows) if (data.status !== "cancelled") {
+      const currency = data.currency || "UNKNOWN"
+      const group = byCurrency[currency] ??= { totalInvoicedAmount: 0, totalPaidAmount: 0, totalRemainingAmount: 0 }
+      if (group.reconciliationRequired) continue
+      try {
+        group.totalInvoicedAmount! += minorUnits(data.totalAmount)
+        group.totalPaidAmount! += minorUnits(data.paidAmount)
+        group.totalRemainingAmount! += minorUnits(data.remainingAmount)
+        if (![group.totalInvoicedAmount, group.totalPaidAmount, group.totalRemainingAmount].every(Number.isSafeInteger)) reject(409, "Invoice summary exceeds supported precision")
+      } catch {
+        Object.assign(group, { totalInvoicedAmount: null, totalPaidAmount: null, totalRemainingAmount: null, reconciliationRequired: true })
+      }
+    }
+    for (const group of Object.values(byCurrency)) for (const key of ["totalInvoicedAmount", "totalPaidAmount", "totalRemainingAmount"] as const) if (group[key] !== null) group[key]! /= 100
+    const groups = Object.values(byCurrency)
+    metrics = {
+      scope: selectedCustomerId && selectedCustomerId !== "all" ? "company" : "grand_total",
+      totalDraftCount: rows.filter(row => row.data.status === "draft").length,
+      totalConfirmedCount: rows.filter(row => row.data.status === "confirmed").length,
+      ...(groups.length === 1 ? groups[0] : { totalInvoicedAmount: groups.length ? null : 0, totalPaidAmount: groups.length ? null : 0, totalRemainingAmount: groups.length ? null : 0 }),
+      byCurrency,
+      currency: groups.length === 1 ? Object.keys(byCurrency)[0] : null,
+    }
+  }
+
   const invoices = await Promise.all(rows.slice((page - 1) * limit, page * limit).map(row => populated(store, row.data)))
-  return response({ success: true, invoices, pagination: { page, limit, total: rows.length, totalPages: Math.ceil(rows.length / limit) || 1 }, metrics })
+  return response({
+    success: true,
+    viewer: { isAdmin, grandTotalVisible: isAdmin },
+    invoices,
+    pagination: { page, limit, total: rows.length, totalPages: Math.ceil(rows.length / limit) || 1 },
+    metrics,
+    companyTotals,
+  })
 }

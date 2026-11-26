@@ -72,7 +72,15 @@ export function AdminSidebar({ role = "staff", permissions = {}, canManageBackup
       icon: LayoutDashboard,
     },
     ...(canViewShipmentData ? [{ href: "/admin/coming-soon/shipments", label: isAr ? "بيانات الشحنات" : "Shipment data", icon: Ship }] : []),
-    ...(canAccessAccounts ? [{ href: "/admin/shipment-invoices", label: isAr ? "الحسابات" : "Accounts", icon: Receipt }] : []),
+    ...((canAccessAccounts || canSeeCustomers) ? [{
+      href: canSeeCustomers ? "/admin/customers" : "/admin/shipment-invoices",
+      label: canAccessAccounts && canSeeCustomers
+        ? (isAr ? "الحسابات والشركات" : "Accounts & Companies")
+        : canAccessAccounts
+          ? (isAr ? "الحسابات" : "Accounts")
+          : (t("admin.sidebar.customers") || "Customer Accounts"),
+      icon: canAccessAccounts && !canSeeCustomers ? Receipt : Users,
+    }] : []),
     ...((canAccessAccounts || canMarkReadyForAccounts) ? [{ href: "/admin/accounts-ready", label: isAccountsOnly ? (isAr ? "طلبات التحويل" : "Transfer requests") : (isAr ? "طلبات الموظفين" : "Staff requests"), icon: FileCheck2 }] : []),
     ...(isAdmin || !isCategorized ? [{ href: "/admin/activity", label: isAr ? "سجل الحركات" : "Activity log", icon: History }] : []),
     { href: "/admin/chat", label: isAr ? "الشات" : "Chat", icon: MessageSquare },
@@ -80,11 +88,6 @@ export function AdminSidebar({ role = "staff", permissions = {}, canManageBackup
       href: "/admin/documents/review",
       label: t("admin.sidebar.reviewQueue") || "Document Review Queue",
       icon: FileCheck,
-    }] : []),
-    ...(canSeeCustomers ? [{
-      href: "/admin/customers",
-      label: t("admin.sidebar.customers") || "Customer Accounts",
-      icon: Users,
     }] : []),
     ...(canSeeRequests ? [{
       href: "/admin/requests",

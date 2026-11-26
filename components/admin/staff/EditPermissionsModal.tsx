@@ -4,7 +4,7 @@ import { canAccessShipmentData } from "@/lib/auth/shipment-access"
 import { canAccessAccounts as accountsAccess } from "@/lib/auth/accounts-access"
 import { normalizeStaffCategory, userCanMarkReadyForAccounts } from "@/lib/auth/staff-categories"
 import { useState } from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   X,
@@ -18,6 +18,9 @@ import {
   Receipt,
   FileSpreadsheet,
   Send,
+  Ship,
+  FileCheck2,
+  Wallet,
 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 
@@ -63,6 +66,7 @@ export function EditPermissionsModal({
   onSuccess,
 }: EditPermissionsModalProps) {
   const t = useTranslations()
+  const isAr = useLocale() === "ar"
   const staffCategory = normalizeStaffCategory(staff?.staffPermissions?.staffCategory)
   const isOperations = staff?.role === "staff" && staffCategory === "operations"
   const [canMarkReadyForAccounts, setCanMarkReadyForAccounts] = useState(() => staff ? userCanMarkReadyForAccounts(staff) : false)
@@ -86,7 +90,8 @@ export function EditPermissionsModal({
   const [issueTaxInvoice, setIssueTaxInvoice] = useState(
     staff?.staffPermissions?.issueTaxInvoice ?? false
   )
-  const [canUseTieredPricing,setCanUseTieredPricing]=useState(staff?.staffPermissions?.canUseTieredPricing ?? false)
+  // Preserved silently for backward compatibility with existing records; hidden from staff permissions UI.
+  const canUseTieredPricing = staff?.staffPermissions?.canUseTieredPricing ?? false
   const [createInvoice, setCreateInvoice] = useState(
     staff?.staffPermissions?.createInvoice ?? true
   )
@@ -101,6 +106,14 @@ export function EditPermissionsModal({
   const [error, setError] = useState<string | null>(null)
 
   if (!isOpen || !staff) return null
+
+  const categoryBadge = staff.role === "super_admin"
+    ? (isAr ? "مدير النظام" : "Super Admin")
+    : staffCategory === "operations"
+      ? (isAr ? "التشغيل" : "Operations")
+      : staffCategory === "accounts"
+        ? (isAr ? "الحسابات" : "Accounts")
+        : (isAr ? "موظف" : "Staff")
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -121,278 +134,335 @@ export function EditPermissionsModal({
             canSendAlerts,
             canReviewDocuments,
             canManageCustomers,
-            canUseTieredPricing,
-            issueTaxInvoice,
-            createInvoice,
-            editInvoice: createInvoice,
-            viewCustomerStatements,
-            exportCustomerStatements: viewCustomerStatements,
-            sendFinancialDocuments,
+            canUseTieredPricing: isOperations ? false : canUseTieredPricing,
+            issueTaxInvoice: isOperations ? false : issueTaxInvoice,
+            createInvoice: isOperations ? false : createInvoice,
+            editInvoice: isOperations ? false : createInvoice,
+            viewCustomerStatements: isOperations ? false : viewCustomerStatements,
+            exportCustomerStatements: isOperations ? false : viewCustomerStatements,
+            sendFinancialDocuments: isOperations ? false : sendFinancialDocuments,
           },
         }),
       })
 
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || "Failed to update staff permissions")
+        setError(data.error || (isAr ? "فشل تحديث صلاحيات الموظف" : "Failed to update staff permissions"))
         return
       }
 
       onSuccess()
       onClose()
     } catch {
-      setError("Network error while updating staff")
+      setError(isAr ? "خطأ في الاتصال أثناء تحديث الصلاحيات" : "Network error while updating staff")
     } finally {
       setLoading(false)
     }
   }
 
+  const operationalPermissions = [
+    {
+      id: "canSendAlerts",
+      checked: canSendAlerts,
+      onChange: setCanSendAlerts,
+      icon: Bell,
+      iconTone: "text-primary-500",
+      title: isAr ? "إرسال التنبيهات والإشعارات" : "Send Alerts & Broadcasts",
+      description: isAr
+        ? "إرسال إشعارات يدوية للعملاء وتنبيهات انتهاء المستندات"
+        : "Trigger manual client notifications and expiry warnings",
+    },
+    {
+      id: "canReviewDocuments",
+      checked: canReviewDocuments,
+      onChange: setCanReviewDocuments,
+      icon: FileCheck,
+      iconTone: "text-teal-500",
+      title: isAr ? "مراجعة واعتماد المستندات" : "Review & Verify Documents",
+      description: isAr
+        ? "فحص مستندات الامتثال وتحديد الصلاحية واعتماد أو رفض الملفات"
+        : "Verify compliance files, set validity dates, and approve or reject uploads",
+    },
+    {
+      id: "canManageCustomers",
+      checked: canManageCustomers,
+      onChange: setCanManageCustomers,
+      icon: Users,
+      iconTone: "text-indigo-500",
+      title: isAr ? "إدارة حسابات العملاء" : "Manage Customer Accounts",
+      description: isAr
+        ? "تغيير حالة حساب العميل (نشط، تحذير، مقيّد) ومتابعة بياناته"
+        : "Update customer account status (Active, Warning, Restricted)",
+    },
+    {
+      id: "canViewShipmentData",
+      checked: canViewShipmentData,
+      onChange: setCanViewShipmentData,
+      icon: Ship,
+      iconTone: "text-sky-500",
+      title: isAr ? "عرض وإدارة بيانات الشحنات" : "View & Manage Shipment Data",
+      description: isAr
+        ? "الوصول إلى قسم بيانات الشحنات وإضافة ومتابعة تفاصيل الشحنات"
+        : "Access shipment records and manage shipment details",
+    },
+    {
+      id: "canMarkReadyForAccounts",
+      checked: canMarkReadyForAccounts,
+      onChange: setCanMarkReadyForAccounts,
+      icon: FileCheck2,
+      iconTone: "text-amber-500",
+      title: isAr ? "تحويل الشحنة إلى «جاهزة للحسابات»" : "Mark Shipment Ready for Accounts",
+      description: isAr
+        ? "إشعار الإدارة بجاهزية الشحنة لتحويلها إلى فريق الحسابات"
+        : "Notify administrators that a shipment is ready for billing",
+    },
+  ]
+
+  const financialPermissions = [
+    {
+      id: "canAccessAccounts",
+      checked: canAccessAccounts,
+      onChange: setCanAccessAccounts,
+      disabled: staff.role === "super_admin",
+      icon: Wallet,
+      iconTone: "text-emerald-600",
+      title: isAr ? "الوصول إلى قسم الحسابات" : "Access Accounts Workspace",
+      description: isAr
+        ? "عرض كارت الحسابات والوصول إلى تكاليف الشحنات ومسودات الفواتير"
+        : "View the Accounts card and access shipment costs and invoice drafts",
+    },
+    {
+      id: "createInvoice",
+      checked: createInvoice,
+      onChange: setCreateInvoice,
+      icon: Receipt,
+      iconTone: "text-blue-500",
+      title: isAr ? "إنشاء وإدارة الفواتير" : "Create & Manage Invoices",
+      description: isAr
+        ? "إنشاء وتعديل مسودات الفواتير والمطالبات المالية"
+        : "Create and edit invoice drafts and billing requests",
+    },
+    {
+      id: "issueTaxInvoice",
+      checked: issueTaxInvoice,
+      onChange: setIssueTaxInvoice,
+      highlight: true,
+      icon: Shield,
+      iconTone: "text-emerald-600",
+      title: isAr ? "إصدار فواتير ضريبية" : "Issue Tax Invoices",
+      description: isAr
+        ? "صلاحية أمنية خاصة لإصدار وطباعة الفاتورة الضريبية الرسمية"
+        : "Restricted permission to issue and print official tax invoices",
+    },
+    {
+      id: "viewCustomerStatements",
+      checked: viewCustomerStatements,
+      onChange: setViewCustomerStatements,
+      icon: FileSpreadsheet,
+      iconTone: "text-purple-500",
+      title: isAr ? "كشوف حسابات العملاء" : "Customer Account Statements",
+      description: isAr
+        ? "استخراج ومراجعة كشوف الحسابات وحركات المدين والدائن"
+        : "View and export customer statements and ledger movements",
+    },
+    {
+      id: "sendFinancialDocuments",
+      checked: sendFinancialDocuments,
+      onChange: setSendFinancialDocuments,
+      icon: Send,
+      iconTone: "text-amber-500",
+      title: isAr ? "إرسال المستندات المالية بالبريد" : "Email Financial Documents",
+      description: isAr
+        ? "إرسال الفواتير وكشوف الحسابات إلى البريد الإلكتروني للعميل"
+        : "Send invoices and account statements to customer email addresses",
+    },
+  ]
+
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm sm:p-4"
+        dir={isAr ? "rtl" : "ltr"}
+      >
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          initial={{ opacity: 0, scale: 0.96, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative w-full max-w-md overflow-hidden rounded-2xl border border-secondary-200 bg-white p-6 shadow-2xl dark:border-secondary-800 dark:bg-secondary-900"
+          exit={{ opacity: 0, scale: 0.96, y: 12 }}
+          className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-secondary-200 bg-white shadow-2xl dark:border-secondary-800 dark:bg-secondary-900"
         >
-          <div className="flex items-center justify-between border-b border-secondary-100 pb-4 dark:border-secondary-800">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-950/60 dark:text-primary-400">
+          {/* Fixed Header */}
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-secondary-100 px-5 py-4 dark:border-secondary-800">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-950/60 dark:text-primary-400">
                 <Shield className="h-5 w-5" />
               </div>
-              <div>
-                <h3 className="text-base font-bold text-secondary-900 dark:text-white">
-                  {t("admin.staff.editTitle") || "Edit Permissions"}
-                </h3>
-                <p className="text-xs text-secondary-500">
-                  {staff.firstName} {staff.lastName} • {staff.email}
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-base font-bold text-secondary-900 dark:text-white">
+                    {isAr ? "تعديل صلاحيات الموظف" : (t("admin.staff.editTitle") || "Edit Staff Permissions")}
+                  </h3>
+                  <span className="rounded-full bg-secondary-100 px-2 py-0.5 text-[10px] font-bold text-secondary-700 dark:bg-secondary-800 dark:text-secondary-300">
+                    {categoryBadge}
+                  </span>
+                </div>
+                <p className="truncate text-xs text-secondary-500">
+                  {staff.firstName} {staff.lastName} • <bdi dir="ltr">{staff.email || staff.username}</bdi>
                 </p>
               </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="rounded-lg p-1.5 text-secondary-400 hover:bg-secondary-100 hover:text-secondary-700 dark:hover:bg-secondary-800"
+              aria-label={isAr ? "إغلاق" : "Close"}
+              className="shrink-0 rounded-lg p-1.5 text-secondary-400 transition-colors hover:bg-secondary-100 hover:text-secondary-700 dark:hover:bg-secondary-800"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          <form onSubmit={handleSave} className="mt-5 space-y-4">
-            {error && (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
-                {error}
-              </div>
-            )}
+          {/* Scrollable Body + Fixed Footer */}
+          <form onSubmit={handleSave} className="flex min-h-0 flex-1 flex-col">
+            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+              {error && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+                  {error}
+                </div>
+              )}
 
-            {!isOperations && <label className="flex items-center gap-2 rounded-lg border p-3 text-sm"><input type="checkbox" checked={canUseTieredPricing} onChange={event=>setCanUseTieredPricing(event.target.checked)} />التسعير المتدرج / Tiered pricing</label>}
-            {/* Account Status Toggle */}
-            <div>
-              <label className="text-xs font-bold text-secondary-700 dark:text-secondary-300">
-                {t("admin.staff.accountStatus") || "Employee Account Status"}
-              </label>
-              <div className="mt-1.5 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setStatus("active")}
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-bold transition-all ${
-                    status === "active"
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
-                      : "border-secondary-200 text-secondary-600 hover:bg-secondary-50 dark:border-secondary-700 dark:text-secondary-400"
-                  }`}
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span>{t("common.active") || "Active"}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatus("suspended")}
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-bold transition-all ${
-                    status === "suspended"
-                      ? "border-rose-500 bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
-                      : "border-secondary-200 text-secondary-600 hover:bg-secondary-50 dark:border-secondary-700 dark:text-secondary-400"
-                  }`}
-                >
-                  <Ban className="h-3.5 w-3.5" />
-                  <span>{t("common.suspended") || "Suspended"}</span>
-                </button>
+              {/* Account Status Toggle */}
+              <div>
+                <label className="text-xs font-bold text-secondary-700 dark:text-secondary-300">
+                  {isAr ? "حالة حساب الموظف" : "Employee Account Status"}
+                </label>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setStatus("active")}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-bold transition-all ${
+                      status === "active"
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
+                        : "border-secondary-200 text-secondary-600 hover:bg-secondary-50 dark:border-secondary-700 dark:text-secondary-400"
+                    }`}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span>{isAr ? "نشط" : "Active"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatus("suspended")}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-bold transition-all ${
+                      status === "suspended"
+                        ? "border-rose-500 bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
+                        : "border-secondary-200 text-secondary-600 hover:bg-secondary-50 dark:border-secondary-700 dark:text-secondary-400"
+                    }`}
+                  >
+                    <Ban className="h-3.5 w-3.5" />
+                    <span>{isAr ? "موقوف" : "Suspended"}</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Operational Permissions Group */}
+              <div className="space-y-1.5 rounded-xl border border-secondary-200/80 bg-secondary-50/70 p-3.5 dark:border-secondary-800 dark:bg-secondary-800/40">
+                <p className="mb-2 text-xs font-bold text-secondary-900 dark:text-white">
+                  {isAr ? "الصلاحيات التشغيلية" : "Operational Permissions"}
+                </p>
+                {operationalPermissions.map((perm) => {
+                  const Icon = perm.icon
+                  return (
+                    <label
+                      key={perm.id}
+                      className="flex cursor-pointer items-start gap-2.5 rounded-xl p-2.5 transition-colors hover:bg-white dark:hover:bg-secondary-800"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={perm.checked}
+                        onChange={(e) => perm.onChange(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0 rounded text-primary-600 focus:ring-primary-500"
+                      />
+                      <div className="min-w-0 text-xs">
+                        <div className="flex items-center gap-1.5 font-bold text-secondary-900 dark:text-white">
+                          <Icon className={`h-3.5 w-3.5 shrink-0 ${perm.iconTone}`} />
+                          <span>{perm.title}</span>
+                        </div>
+                        <p className="mt-0.5 text-[11px] leading-relaxed text-secondary-500 dark:text-secondary-400">
+                          {perm.description}
+                        </p>
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+
+              {/* Financial Permissions Group (Hidden for Operations) */}
+              {!isOperations && (
+                <div className="space-y-1.5 rounded-xl border border-secondary-200/80 bg-secondary-50/70 p-3.5 dark:border-secondary-800 dark:bg-secondary-800/40">
+                  <p className="mb-2 text-xs font-bold text-secondary-900 dark:text-white">
+                    {isAr ? "الصلاحيات المالية والحسابات" : "Financial & Accounts Permissions"}
+                  </p>
+                  {financialPermissions.map((perm) => {
+                    const Icon = perm.icon
+                    return (
+                      <label
+                        key={perm.id}
+                        className={`flex items-start gap-2.5 rounded-xl p-2.5 transition-colors ${
+                          perm.disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer hover:bg-white dark:hover:bg-secondary-800"
+                        } ${
+                          perm.highlight
+                            ? "border border-emerald-200/70 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-950/20"
+                            : ""
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={perm.checked}
+                          disabled={perm.disabled}
+                          onChange={(e) => perm.onChange(e.target.checked)}
+                          className={`mt-0.5 h-4 w-4 shrink-0 rounded ${
+                            perm.highlight ? "text-emerald-600 focus:ring-emerald-500" : "text-primary-600 focus:ring-primary-500"
+                          }`}
+                        />
+                        <div className="min-w-0 text-xs">
+                          <div
+                            className={`flex items-center gap-1.5 font-bold ${
+                              perm.highlight
+                                ? "text-emerald-800 dark:text-emerald-300"
+                                : "text-secondary-900 dark:text-white"
+                            }`}
+                          >
+                            <Icon className={`h-3.5 w-3.5 shrink-0 ${perm.iconTone}`} />
+                            <span>{perm.title}</span>
+                          </div>
+                          <p
+                            className={`mt-0.5 text-[11px] leading-relaxed ${
+                              perm.highlight
+                                ? "text-emerald-700/80 dark:text-emerald-400/80"
+                                : "text-secondary-500 dark:text-secondary-400"
+                            }`}
+                          >
+                            {perm.description}
+                          </p>
+                        </div>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* Permissions Box */}
-            <div className="space-y-2.5 rounded-xl border border-secondary-200/80 bg-secondary-50/70 p-3.5 dark:border-secondary-800 dark:bg-secondary-800/40">
-              <span className="text-xs font-bold text-secondary-900 dark:text-white">
-                {t("admin.staff.permissionsHeading") || "Assigned Permissions"}
-              </span>
-
-              {/* Send Alerts */}
-              <label className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 transition-colors hover:bg-white dark:hover:bg-secondary-800">
-                <input
-                  type="checkbox"
-                  checked={canSendAlerts}
-                  onChange={(e) => setCanSendAlerts(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded text-primary-600 focus:ring-primary-500"
-                />
-                <div className="text-xs">
-                  <div className="flex items-center gap-1.5 font-bold text-secondary-900 dark:text-white">
-                    <Bell className="h-3.5 w-3.5 text-primary-500" />
-                    <span>{t("admin.staff.permAlerts") || "Send Alerts & Broadcasts"}</span>
-                  </div>
-                  <p className="text-[11px] text-secondary-500">
-                    {t("admin.staff.permAlertsDesc") || "Can trigger manual client notifications and expiry warnings"}
-                  </p>
-                </div>
-              </label>
-
-              {/* Review Documents */}
-              <label className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 transition-colors hover:bg-white dark:hover:bg-secondary-800">
-                <input
-                  type="checkbox"
-                  checked={canReviewDocuments}
-                  onChange={(e) => setCanReviewDocuments(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded text-primary-600 focus:ring-primary-500"
-                />
-                <div className="text-xs">
-                  <div className="flex items-center gap-1.5 font-bold text-secondary-900 dark:text-white">
-                    <FileCheck className="h-3.5 w-3.5 text-teal-500" />
-                    <span>{t("admin.staff.permReview") || "Approve & Reject Documents"}</span>
-                  </div>
-                  <p className="text-[11px] text-secondary-500">
-                    {t("admin.staff.permReviewDesc") || "Can verify compliance files, set validity dates, and reject files"}
-                  </p>
-                </div>
-              </label>
-
-              {/* Manage Customers */}
-              <label className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 transition-colors hover:bg-white dark:hover:bg-secondary-800">
-                <input
-                  type="checkbox"
-                  checked={canManageCustomers}
-                  onChange={(e) => setCanManageCustomers(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded text-primary-600 focus:ring-primary-500"
-                />
-                <div className="text-xs">
-                  <div className="flex items-center gap-1.5 font-bold text-secondary-900 dark:text-white">
-                    <Users className="h-3.5 w-3.5 text-indigo-500" />
-                    <span>{t("admin.staff.permCustomers") || "Activate & Deactivate Customers"}</span>
-                  </div>
-                  <p className="text-[11px] text-secondary-500">
-                    {t("admin.staff.permCustomersDesc") || "Can change customer status (Active, Warning, Restricted)"}
-                  </p>
-                </div>
-              </label>
-
-              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg p-2 text-xs font-bold">
-                <input type="checkbox" checked={canViewShipmentData} onChange={(event) => setCanViewShipmentData(event.target.checked)} />
-                عرض بيانات الشحنات (View shipment data)
-              </label>
-
-              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg p-2 text-xs font-bold">
-                <input type="checkbox" checked={canMarkReadyForAccounts} onChange={(event) => setCanMarkReadyForAccounts(event.target.checked)} />
-                تحويل الشحنة إلى «جاهزة للحسابات» (Mark Ready for Accounts)
-              </label>
-
-              {!isOperations && <>
-              {/* Create & Manage Invoices */}
-              <label className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 transition-colors hover:bg-white dark:hover:bg-secondary-800">
-                <input
-                  type="checkbox"
-                  checked={createInvoice}
-                  onChange={(e) => setCreateInvoice(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded text-primary-600 focus:ring-primary-500"
-                />
-                <div className="text-xs">
-                  <div className="flex items-center gap-1.5 font-bold text-secondary-900 dark:text-white">
-                    <Receipt className="h-3.5 w-3.5 text-blue-500" />
-                    <span>إنشاء وإدارة الفواتير (Manage Invoices)</span>
-                  </div>
-                  <p className="text-[11px] text-secondary-500">
-                    صلاحية إنشاء وتعديل مسودات الفواتير والمطالبات
-                  </p>
-                </div>
-              </label>
-
-              {/* Issue Tax Invoice (Strict Permission) */}
-              <label className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 transition-colors hover:bg-white dark:hover:bg-secondary-800 border border-emerald-200/60 dark:border-emerald-900/40 bg-emerald-50/30 dark:bg-emerald-950/20">
-                <input
-                  type="checkbox"
-                  checked={issueTaxInvoice}
-                  onChange={(e) => setIssueTaxInvoice(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500"
-                />
-                <div className="text-xs">
-                  <div className="flex items-center gap-1.5 font-bold text-emerald-800 dark:text-emerald-300">
-                    <Shield className="h-3.5 w-3.5 text-emerald-600" />
-                    <span>إصدار فواتير ضريبية (Issue Tax Invoices)</span>
-                  </div>
-                  <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
-                    صلاحية أمنية خاصة لإصدار وطباعة الفاتورة الضريبية الرسمية
-                  </p>
-                </div>
-              </label>
-
-              {/* Customer Account Statements */}
-              <label className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 transition-colors hover:bg-white dark:hover:bg-secondary-800">
-                <input
-                  type="checkbox"
-                  checked={viewCustomerStatements}
-                  onChange={(e) => setViewCustomerStatements(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded text-primary-600 focus:ring-primary-500"
-                />
-                <div className="text-xs">
-                  <div className="flex items-center gap-1.5 font-bold text-secondary-900 dark:text-white">
-                    <FileSpreadsheet className="h-3.5 w-3.5 text-purple-500" />
-                    <span>كشوف حسابات العملاء (Customer Statements)</span>
-                  </div>
-                  <p className="text-[11px] text-secondary-500">
-                    استخراج ومراجعة كشوف الحسابات وحركات المدين والدائن
-                  </p>
-                </div>
-              </label>
-
-              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg p-2 text-xs font-bold">
-                <input type="checkbox" checked={canAccessAccounts} disabled={staff.role === "super_admin"} onChange={event => setCanAccessAccounts(event.target.checked)} />
-                عرض كارت الحسابات والوصول إليه (Accounts access)
-              </label>
-
-              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg p-2 text-xs font-bold">
-                <input type="checkbox" checked={canAccessAccounts} disabled={staff.role === "super_admin"} onChange={event => setCanAccessAccounts(event.target.checked)} />
-                عرض كارت الحسابات والوصول إليه (Accounts access)
-              </label>
-
-              {/* Send Financial Documents */}
-              <label className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 transition-colors hover:bg-white dark:hover:bg-secondary-800">
-                <input
-                  type="checkbox"
-                  checked={sendFinancialDocuments}
-                  onChange={(e) => setSendFinancialDocuments(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded text-primary-600 focus:ring-primary-500"
-                />
-                <div className="text-xs">
-                  <div className="flex items-center gap-1.5 font-bold text-secondary-900 dark:text-white">
-                    <Send className="h-3.5 w-3.5 text-amber-500" />
-                    <span>إرسال المستندات المالية (Email Financials)</span>
-                  </div>
-                  <p className="text-[11px] text-secondary-500">
-                    إرسال الفواتير وكشوف الحسابات إلى البريد الإلكتروني للعميل
-                  </p>
-                </div>
-              </label>
-              </>}
-            </div>
-
-            <div className="mt-5 flex items-center justify-end gap-2 border-t border-secondary-100 pt-4 dark:border-secondary-800">
+            {/* Fixed Footer */}
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-secondary-100 bg-white px-5 py-3.5 dark:border-secondary-800 dark:bg-secondary-900">
               <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-                {t("common.cancel") || "Cancel"}
+                {isAr ? "إلغاء" : "Cancel"}
               </Button>
               <Button type="submit" disabled={loading} className="bg-primary-600 font-bold text-white hover:bg-primary-700">
                 {loading ? (
                   <span className="flex items-center gap-1.5">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    <span>{t("common.saving") || "Saving..."}</span>
+                    <span>{isAr ? "جارٍ الحفظ..." : "Saving..."}</span>
                   </span>
                 ) : (
-                  <span>{t("common.saveChanges") || "Save Permissions"}</span>
+                  <span>{isAr ? "حفظ الصلاحيات" : "Save Permissions"}</span>
                 )}
               </Button>
             </div>

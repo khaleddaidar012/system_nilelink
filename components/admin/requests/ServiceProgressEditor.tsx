@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { useLocale } from "next-intl"
 import { canonicalServiceStatus, serviceLabels, serviceStatuses, serviceStatusLabels } from "@/lib/requests/progress"
+import { localizeTimelineTitle } from "@/lib/requests/timeline-i18n"
 type Service={_id:string;serviceKey:string;status:string;revision:number;timeline:{createdAt:string;title:string}[]}
 export function ServiceProgressEditor({requestId,updatedAt,onUpdated}:{requestId:string;updatedAt?:string;onUpdated:()=>void}) {
   const ar=useLocale()==="ar",lang=ar?0:1
@@ -23,7 +24,7 @@ export function ServiceProgressEditor({requestId,updatedAt,onUpdated}:{requestId
       {canManage&&<><label className="block text-xs">{ar?"الحالة":"Status"}<select className="mt-1 w-full rounded-lg border bg-white p-2 dark:bg-slate-900" value={edit.status} disabled={busy} onChange={event=>setEdits({...edits,[service._id]:{...edit,status:event.target.value}})}>{!serviceStatuses.includes(current as typeof serviceStatuses[number])&&<option value={current}>{service.status}</option>}{serviceStatuses.map(value=><option key={value} value={value}>{serviceStatusLabels[value][lang]}</option>)}</select></label>
       <label className="block text-xs">{ar?"ملاحظة تظهر للعميل (وسبب التصحيح عند إعادة الفتح)":"Customer-visible note (correction reason when reopening)"}<input maxLength={1000} className="mt-1 w-full rounded-lg border bg-white p-2 dark:bg-slate-900" value={edit.comment} disabled={busy} onChange={event=>setEdits({...edits,[service._id]:{...edit,comment:event.target.value}})}/></label>
       <button className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-40" disabled={busy||edit.status===current} onClick={()=>void save(service)}>{ar?"تحديث الخدمة":"Update service"}</button></>}
-      {service.timeline.at(-1)&&<p className="text-xs text-slate-500">{service.timeline.at(-1)?.title} · {new Date(service.timeline.at(-1)!.createdAt).toLocaleString(ar?"ar-EG":"en-GB",{timeZone:"Africa/Cairo",hour12:true})}</p>}
+      {service.timeline.at(-1)&&<p className="text-xs text-slate-500">{localizeTimelineTitle(service.timeline.at(-1)?.title, ar ? "ar" : "en")} · {new Date(service.timeline.at(-1)!.createdAt).toLocaleString(ar?"ar-EG":"en-GB",{timeZone:"Africa/Cairo",hour12:true})}</p>}
     </div>})}
   </section>
 }

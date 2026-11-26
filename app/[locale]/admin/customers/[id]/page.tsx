@@ -32,6 +32,7 @@ import { LiveDocumentViewerModal } from "@/components/shared/LiveDocumentViewerM
 import { DocumentReviewModal, ReviewDocumentItem } from "@/components/admin/review/DocumentReviewModal"
 import { CustomerInvoicesTab } from "@/components/admin/customers/CustomerInvoicesTab"
 import { CustomerStatementTab } from "@/components/admin/customers/CustomerStatementTab"
+import { CustomerDealingStatementModal } from "@/components/admin/customers/CustomerDealingStatementModal"
 
 export interface CustomerDetailData {
   customerCode?: string
@@ -100,6 +101,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ local
   const [statusReason, setStatusReason] = useState("")
   const [previewDoc, setPreviewDoc] = useState<CustomerDocumentItem | null>(null)
   const [reviewDocTarget, setReviewDocTarget] = useState<ReviewDocumentItem | null>(null)
+  const [dealingStatementOpen, setDealingStatementOpen] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   const fetchCustomerDetail = useCallback(async (id: string) => {
@@ -245,6 +247,16 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ local
             </h1>
           </div>
           <div className="flex-1" />
+          {data?.customer && (data?.currentUserRole === "super_admin" || data?.currentUserRole === "staff") && (
+            <button
+              type="button"
+              onClick={() => setDealingStatementOpen(true)}
+              className="flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary-700"
+            >
+              <FileCheck className="h-4 w-4" />
+              {isEn ? "Dealing Statement" : "بيان تعامل للعميل"}
+            </button>
+          )}
           {(data?.currentUserRole === "super_admin" || data?.currentUserRole === "staff") && (
             <button
               onClick={handleDeleteCustomer}
@@ -657,6 +669,16 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ local
           document={reviewDocTarget}
           onClose={() => setReviewDocTarget(null)}
           onSuccess={handleReviewSuccess}
+        />
+      )}
+
+      {data?.customer && (
+        <CustomerDealingStatementModal
+          isOpen={dealingStatementOpen}
+          onClose={() => setDealingStatementOpen(false)}
+          ar={!isEn}
+          customer={data.customer}
+          documents={data.documents || []}
         />
       )}
     </div>

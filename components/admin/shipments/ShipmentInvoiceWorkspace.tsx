@@ -1,11 +1,13 @@
 "use client"
 import {MoneyInput} from "./MoneyInput"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useLocale } from "next-intl"
+import { ChevronDown, ChevronUp } from "lucide-react"
 import { Link, useRouter } from "@/navigation"
 import { AdminHeader } from "@/components/admin/AdminHeader"
 import { AccountsHubTabs } from "@/components/admin/accounts/AccountsHubTabs"
+import { ProfessionalOnePageInvoice } from "@/components/shared/ProfessionalOnePageInvoice"
 import { stages, currencies, previewTotals, draftSchema, minor } from "@/lib/shipments/accounting"
 import type { AccountingDraft, CostInput, Publication } from "@/lib/shipments/accounting"
 import type { accountingStaffView } from "@/lib/shipments/invoice-privacy"
@@ -35,18 +37,36 @@ function useLabels() {
   return { ar, label: (arabic: string, english: string) => ar ? arabic : english }
 }
 export function CustomerInvoicePreview({ snapshot }: { snapshot: Publication }) {
-  const { ar, label } = useLabels()
-  return <section className={panelClass}>
-    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 pb-4 dark:border-slate-700">
-      <div><p className="font-black tracking-widest text-primary-700">NILELINK LOGISTICS</p><h3 className="mt-2 text-lg font-bold">{label("فاتورة خدمات", "Service invoice")}</h3><p>{snapshot.invoiceNumber} · v{snapshot.version}</p>{snapshot.referenceNumber && snapshot.referenceNumber !== snapshot.invoiceNumber && <p className="font-mono text-sm">{label("المرجع", "Reference")} · <bdi>{snapshot.referenceNumber}</bdi></p>}</div>
-      <div className="text-sm"><p>{snapshot.customerName}</p><p>{label("الشحنة", "Shipment")} · {snapshot.booking}</p></div>
-    </div>
-    {snapshot.groups?.length ? <div className="mt-4"><InvoiceBreakdown groups={snapshot.groups} currency={snapshot.currency} ar={ar} /></div> : <table className="mt-4 w-full text-start text-sm"><thead><tr><th className="p-2 text-start">{label("البند", "Item")}</th><th className="p-2 text-end">{label("المبلغ", "Amount")}</th></tr></thead><tbody>
-      {snapshot.items.map((item, index) => <tr key={index} className="border-t border-slate-100 dark:border-slate-800"><td className="p-2">{item.description}</td><td className="p-2 text-end"><bdi>{item.amount} {snapshot.currency}</bdi></td></tr>)}
-    </tbody></table>}
-    <p className="mt-5 text-end text-xl font-bold">{label("الإجمالي", "Total")} · <bdi>{snapshot.total} {snapshot.currency}</bdi></p>
-    {snapshot.notes && <p className="mt-4 whitespace-pre-wrap text-sm text-slate-500">{snapshot.notes}</p>}
-  </section>
+  const { ar } = useLabels()
+  const snap = snapshot as Publication & {
+    shipmentDate?: string
+    number46?: string
+    ucr?: string
+    containerCount?: number
+    containerSize?: string
+    shippingLine?: string
+  }
+  return (
+    <ProfessionalOnePageInvoice
+      ar={ar}
+      invoiceNumber={snapshot.referenceNumber || snapshot.invoiceNumber}
+      referenceNumber={snapshot.referenceNumber}
+      issueDate={snapshot.publishedAt}
+      currency={snapshot.currency}
+      customerName={snapshot.customerName}
+      bookingNumber={snapshot.booking}
+      containerCount={snap.containerCount}
+      containerSize={snap.containerSize}
+      certificateNumber={snap.ucr}
+      number46={snap.number46}
+      shipmentDate={snap.shipmentDate || snapshot.publishedAt}
+      shippingLine={snap.shippingLine}
+      items={snapshot.items.map(i => ({ description: i.description, amount: i.amount }))}
+      total={snapshot.total}
+      notes={snapshot.notes}
+      showPrintButton
+    />
+  )
 }
 
 export function ShipmentInvoiceList({
@@ -216,6 +236,19 @@ export function ShipmentInvoiceEditor({ id }: { id: string }) {
   const [preview, setPreview] = useState<{ snapshot: Publication; previewKey: string; revision: number } | null>(null)
   const [confirmed, setConfirmed] = useState(false)
   const [revisionReason, setRevisionReason] = useState("")
+  const [expandedCostId, setExpandedCostId] = useState<string | null>(null)
+  const costsContainerRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      if (!expandedCostId) return
+      const activeEl = costsContainerRef.current?.querySelector(`[data-cost-id="${expandedCostId}"]`)
+      if (activeEl && !activeEl.contains(event.target as Node)) {
+        setExpandedCostId(null)
+      }
+    }
+    document.addEventListener("mousedown", handleOutsideClick)
+    return () => document.removeEventListener("mousedown", handleOutsideClick)
+  }, [expandedCostId])
   function accept(data: { invoice: Invoice; permissions: Permissions; audit?: Audit[] }) {
     setInvoice(data.invoice); setDraft(editableDraft(data.invoice)); setPermissions(data.permissions); setDirty(false); setPreview(null)
     if (data.audit) setAudit(data.audit)
@@ -245,8 +278,10 @@ export function ShipmentInvoiceEditor({ id }: { id: string }) {
   function addCost() {
     if (!draft || !invoice || busy) return
     const next = structuredClone(draft)
-    next.stages[stage].costs.unshift({ id: crypto.randomUUID(), description: "", amount: "", saleEqualsCost: true, currency: invoice.currency, exchangeRate: "1", notes: "", createdAt: "", createdBy: "", updatedAt: "", updatedBy: "" })
+    const newId = crypto.randomUUID()
+    next.stages[stage].costs.unshift({ id: newId, description: "", amount: "", saleEqualsCost: true, currency: invoice.currency, exchangeRate: "1", notes: "", createdAt: "", createdBy: "", updatedAt: "", updatedBy: "" })
     change(next)
+    setExpandedCostId(newId)
   }
   async function operation(action: "save" | "preview" | "publish" | "revise" | "request-approval") {
     if (!invoice || !draft || busy) return
@@ -359,17 +394,49 @@ export function ShipmentInvoiceEditor({ id }: { id: string }) {
           <div role="tablist" aria-label={label("المراحل", "Stages")} className="mb-5 flex flex-wrap gap-3">{stages.map(key => <button role="tab" aria-selected={stage === key} key={key} className={stage === key ? primaryClass : buttonClass} onClick={() => setStage(key)}>{draft.stages[key].completed ? "✓ " : ""}{stageLabels[key]} · {label("تكلفة", "Cost")} <bdi>{displayTotals?.perStage[key]} {invoice.currency}</bdi>{(editing || invoice.draft.pricingMode === "per-item-v1") && <span> · {label("بيع", "Sale")} <bdi>{displayTotals?.perStageSales[key]} {invoice.currency}</bdi></span>}</button>)}</div>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><h2 className="font-bold">{stageLabels[stage]} · {label("بنود التكلفة والبيع", "Cost and selling items")}</h2>{editing && <div className="flex gap-2"><button className={primaryClass} disabled={busy || draft.stages[stage].costs.length >= 100} onClick={addCost}>＋ {label("إضافة بند", "Add item")}</button><button className={buttonClass} disabled={busy || (!dirty && !requiresPricingSave)} onClick={() => void operation("save")}>{label("حفظ التعديلات", "Save changes")}</button></div>}</div>
           <p className="mb-4 text-xs text-slate-500">{label("سعر التحويل هو عدد وحدات عملة الفاتورة لكل وحدة من عملة البند. يُسجّل يدويًا ويُحفظ مع البند.", "The exchange rate is invoice-currency units per entry-currency unit. It is manually recorded with each entry.")}</p>
-          <fieldset disabled={!editing || busy} className="space-y-4 disabled:opacity-70">
-            {draft.stages[stage].costs.map((cost, index) => <div key={cost.id} className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <label className="text-xs sm:col-span-2">{label("وصف البند", "Description")}<input maxLength={500} className={inputClass} value={cost.description} onChange={event => changeCost(index, { description: event.target.value })} /></label>
-              <label className="text-xs">{label("تكلفة البند · داخلية", "Item cost · internal")}<MoneyInput className={inputClass} value={cost.amount} onValueChange={value => changeCost(index, { amount: value })} /></label>
-              {editing || invoice.draft.pricingMode === "per-item-v1" ? <LineSalePrice cost={cost} ar={ar} disabled={!editing || busy} onChange={patch => changeCost(index, patch)} /> : <p className="text-xs text-slate-500 sm:col-span-2">{label("سعر البيع في النسخة القديمة مسجل كإجمالي، وليس موزعًا على البنود.", "The legacy selling price is recorded as a total, without individual line prices.")}</p>}
-              <TieredPricingEditor cost={cost} stage={stage} ar={ar} disabled={!editing||busy} allowed={permissions?.canUseTieredPricing===true} onChange={patch=>changeCost(index,patch)} />
-              <label className="text-xs">{label("العملة", "Currency")}<select className={inputClass} value={cost.currency} onChange={event => changeCost(index, { currency: event.target.value as CostInput["currency"], exchangeRate: event.target.value === invoice.currency ? "1" : "" })}>{currencies.map(currency => <option key={currency}>{currency}</option>)}</select></label>
-              <label className="text-xs">{label("سعر التحويل", "Exchange rate")}<MoneyInput disabled={cost.currency === invoice.currency} className={inputClass} value={cost.exchangeRate} onValueChange={value => changeCost(index, { exchangeRate: value })} /></label>
-              <label className="text-xs sm:col-span-2">{label("ملاحظات داخلية", "Internal notes")}<input maxLength={2000} className={inputClass} value={cost.notes} onChange={event => changeCost(index, { notes: event.target.value })} /></label>
-              <button className={buttonClass + " self-end text-rose-700"} onClick={() => { const next = structuredClone(draft); next.stages[stage].costs.splice(index, 1); change(next) }}>{label("حذف البند", "Remove item")}</button>
-            </div><p className="mt-3 text-xs text-slate-500">{label("أضيف بواسطة", "Added by")} <bdi>{cost.createdBy}</bdi> · {cost.createdAt ? new Date(cost.createdAt).toLocaleString(ar ? "ar-EG" : "en-GB", { hour12: true }) : label("لم يُحفظ بعد", "Not saved yet")}</p></div>)}
+          <fieldset disabled={!editing || busy} className="space-y-3 disabled:opacity-70">
+            <div ref={costsContainerRef} className="space-y-3">
+            {draft.stages[stage].costs.map((cost, index) => {
+              const isExpanded = expandedCostId === cost.id
+              const saleDisplay = cost.saleEqualsCost === false ? (cost.sellingPrice || "0.00") : (cost.amount || "0.00")
+              return (
+                <div key={cost.id} data-cost-id={cost.id} className="rounded-xl border border-slate-200 bg-white transition dark:border-slate-700 dark:bg-slate-900">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedCostId(isExpanded ? null : cost.id)}
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-start hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                  >
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      {isExpanded ? <ChevronUp className="h-4 w-4 shrink-0 text-primary-600" /> : <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />}
+                      <span className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                        {cost.description?.trim() || label(`بند #${index + 1} (اضغط للتعديل)`, `Item #${index + 1} (click to edit)`)}
+                      </span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3 text-xs font-bold tabular-nums">
+                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        {label("بيع", "Sale")}: <bdi dir="ltr">{saleDisplay} {cost.currency}</bdi>
+                      </span>
+                    </div>
+                  </button>
+                  {isExpanded && (
+                    <div className="border-t border-slate-100 p-4 dark:border-slate-800">
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <label className="text-xs sm:col-span-2">{label("وصف البند", "Description")}<input maxLength={500} className={inputClass} value={cost.description} onChange={event => changeCost(index, { description: event.target.value })} /></label>
+                        <label className="text-xs">{label("تكلفة البند · داخلية", "Item cost · internal")}<MoneyInput className={inputClass} value={cost.amount} onValueChange={value => changeCost(index, { amount: value })} /></label>
+                        {editing || invoice.draft.pricingMode === "per-item-v1" ? <LineSalePrice cost={cost} ar={ar} disabled={!editing || busy} onChange={patch => changeCost(index, patch)} /> : <p className="text-xs text-slate-500 sm:col-span-2">{label("سعر البيع في النسخة القديمة مسجل كإجمالي، وليس موزعًا على البنود.", "The legacy selling price is recorded as a total, without individual line prices.")}</p>}
+                        <TieredPricingEditor cost={cost} stage={stage} ar={ar} disabled={!editing||busy} allowed={permissions?.canUseTieredPricing===true} onChange={patch=>changeCost(index,patch)} />
+                        <label className="text-xs">{label("العملة", "Currency")}<select className={inputClass} value={cost.currency} onChange={event => changeCost(index, { currency: event.target.value as CostInput["currency"], exchangeRate: event.target.value === invoice.currency ? "1" : "" })}>{currencies.map(currency => <option key={currency}>{currency}</option>)}</select></label>
+                        <label className="text-xs">{label("سعر التحويل", "Exchange rate")}<MoneyInput disabled={cost.currency === invoice.currency} className={inputClass} value={cost.exchangeRate} onValueChange={value => changeCost(index, { exchangeRate: value })} /></label>
+                        <label className="text-xs sm:col-span-2">{label("ملاحظات داخلية", "Internal notes")}<input maxLength={2000} className={inputClass} value={cost.notes} onChange={event => changeCost(index, { notes: event.target.value })} /></label>
+                        <button type="button" className={buttonClass + " self-end text-rose-700"} onClick={() => { const next = structuredClone(draft); next.stages[stage].costs.splice(index, 1); change(next); setExpandedCostId(null) }}>{label("حذف البند", "Remove item")}</button>
+                      </div>
+                      <p className="mt-3 text-xs text-slate-500">{label("أضيف بواسطة", "Added by")} <bdi>{cost.createdBy}</bdi> · {cost.createdAt ? new Date(cost.createdAt).toLocaleString(ar ? "ar-EG" : "en-GB", { hour12: true }) : label("لم يُحفظ بعد", "Not saved yet")}</p>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            </div>
             {!draft.stages[stage].costs.length && <p className="text-sm text-slate-500">{label("لا توجد بنود في هذه المرحلة", "No costs in this stage")}</p>}
 
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.stages[stage].completed} onChange={event => { const next = structuredClone(draft); next.stages[stage].completed = event.target.checked; if (!event.target.checked) stages.slice(stages.indexOf(stage) + 1).forEach(key => { next.stages[key].completed = false }); change(next) }} />{label("اكتملت المرحلة · بدون تكاليف إضافية إذا كانت فارغة", "Stage complete · no further costs if empty")}</label>

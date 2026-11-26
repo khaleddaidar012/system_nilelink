@@ -4,6 +4,7 @@ import { AccountHealthAlertBanner } from "@/components/portal/AccountHealthAlert
 import { DashboardMetricsCards } from "@/components/portal/DashboardMetricsCards"
 import { QuickUploadWidget } from "@/components/portal/QuickUploadWidget"
 import { RecentActivityFeed } from "@/components/portal/RecentActivityFeed"
+import { MyShipmentsCard } from "@/components/portal/MyShipmentsCard"
 
 export default function PortalDashboardPage() {
   const t = useTranslations()
@@ -22,6 +23,9 @@ export default function PortalDashboardPage() {
 
         {/* 4 KPI Metrics Cards */}
         <DashboardMetricsCards />
+
+        {/* My Shipments Card (Customer-Scoped + Smart Search) */}
+        <MyShipmentsCard />
 
         {/* Main Grid: Quick Dropzone & Activity Timeline */}
         <div className="grid grid-cols-1 gap-4 sm:gap-6">

@@ -71,7 +71,7 @@ export default function AdminDashboardPage() {
 
     const actions: WorkspaceAction[] = [
       ...(canAccessAccounts ? [{ href: "/admin/shipment-invoices", title: isAr ? "الحسابات" : "Accounts", detail: isAr ? "تكاليف الشحنات ومسودات الفواتير" : "Shipment costs and invoice drafts", icon: Receipt, group: "daily" as const, tone: "emerald" as const }] : []),
-      ...((canAccessAccounts || canMarkReadyForAccounts) ? [{ href: "/admin/accounts-ready", title: isAr ? "جاهزة للحسابات" : "Ready for accounts", detail: isAr ? "اعتماد الشحنات الجاهزة وإحالتها للحسابات" : "Review and approve shipments ready for invoicing", icon: FileCheck2, group: "daily" as const, tone: "amber" as const }] : []),
+      ...((canAccessAccounts || canMarkReadyForAccounts) ? [{ href: "/admin/accounts-ready", title: isAccountsOnly ? (isAr ? "طلبات التحويل" : "Transfer requests") : (isAr ? "طلبات الموظفين" : "Staff requests"), detail: isAr ? "متابعة واعتماد طلبات التحويل والحذف بين الأقسام" : "Review and approve staff transfer & deletion requests", icon: FileCheck2, group: "daily" as const, tone: "amber" as const }] : []),
       ...(canViewShipmentData ? [{ href: shipmentHref, title: shipmentTitle, detail: isAr ? "إدارة ومتابعة بيانات الشحنات" : "Manage and track shipment records", icon: PackageSearch, group: "daily" as const, tone: "sky" as const }] : []),
       { href: "/admin/chat", title: isAr ? "الشات" : "Chat", detail: isAr ? "تابع رسائلك مع الفريق والعملاء" : "Catch up with staff and customer conversations", icon: MessageSquare, group: "daily", tone: "violet" },
       ...(canSeeRequests ? [{ href: "/admin/requests", title: isAr ? "الطلبات" : "Requests", detail: isAr ? "افتح طلبات الخدمة وتابع حالتها" : "Open service requests and follow their status", icon: PackageSearch, group: "daily" as const, tone: "sky" as const }] : []),
@@ -141,7 +141,7 @@ export default function AdminDashboardPage() {
           <Receipt className="h-5 w-5 text-emerald-600" />{isAr ? "الحسابات" : "Accounts"}<ArrowUpRight className="ms-auto h-4 w-4" />
         </Link>}
         {(canAccessAccounts || canMarkReadyForAccounts) && <Link href="/admin/accounts-ready" className="flex max-w-sm items-center gap-3 rounded-2xl border border-secondary-200 bg-white p-5 font-bold shadow-sm hover:border-primary-400 dark:border-slate-700 dark:bg-slate-900">
-          <FileCheck2 className="h-5 w-5 text-amber-600" />{isAr ? "جاهزة للحسابات" : "Ready for accounts"}<ArrowUpRight className="ms-auto h-4 w-4" />
+          <FileCheck2 className="h-5 w-5 text-amber-600" />{isAr ? "طلبات الموظفين" : "Staff requests"}<ArrowUpRight className="ms-auto h-4 w-4" />
         </Link>}
         {canViewShipmentData && (
           <Link href={shipmentHref} className="flex max-w-sm items-center gap-3 rounded-2xl border border-secondary-200 bg-white p-5 font-bold shadow-sm hover:border-primary-400 dark:border-slate-700 dark:bg-slate-900">

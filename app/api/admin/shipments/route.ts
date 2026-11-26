@@ -4,6 +4,8 @@ import { getSessionFromRequest } from "@/lib/auth/token-service"
 import { getAccountsAccess, getShipmentAccess } from "@/lib/auth/shipment-access-server"
 import { getD1, requireD1Success } from "@/lib/db/d1"
 import { shipmentFields, shipmentSuggestionFields, type ShipmentRecord } from "@/lib/shipments/fields"
+import { matchesSmartQuery } from "@/lib/shipments/smart-search"
+import { getShipmentStatusSummaryMap, insertNotificationRow } from "@/lib/workflows/staff-requests"
 
 const text = z.string().trim().max(200)
 const shipmentSchema = z.object({
@@ -43,6 +45,7 @@ const initialShippers = [
   "MAF GATEWAY", "AL TAHAN", "Nakhil El Ouadi", "EGYPTIAN TURKISH",
   "ORGANIC FOODS", "NILOS FRESH", "SALFO EGYPT",
 ]
+const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/
 
 export async function GET(request: NextRequest) {
   const session = await getSessionFromRequest(request)
@@ -91,11 +94,22 @@ export async function GET(request: NextRequest) {
     ]))
     return NextResponse.json({ options }, { headers: { "Cache-Control": "private, no-store" } })
   }
+
   const search = (query.get("q") ?? "").trim().slice(0, 200)
-  const month = query.get("month") ?? ""
+  const shipper = (query.get("shipper") ?? "").trim().slice(0, 200)
+  const month = (query.get("month") ?? "").trim()
+  const dateFrom = (query.get("dateFrom") ?? "").trim()
+  const dateTo = (query.get("dateTo") ?? "").trim()
   const page = Number(query.get("page") ?? 1)
-  if (!Number.isSafeInteger(page) || page < 1 || page > 100000 ||
-      (month && !/^\d{4}-(0[1-9]|1[0-2])$/.test(month))) {
+  if (
+    !Number.isSafeInteger(page) ||
+    page < 1 ||
+    page > 100000 ||
+    (month && !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) ||
+    (dateFrom && !isoDatePattern.test(dateFrom)) ||
+    (dateTo && !isoDatePattern.test(dateTo)) ||
+    (dateFrom && dateTo && dateFrom > dateTo)
+  ) {
     return NextResponse.json({ error: "Invalid filter" }, { status: 400 })
   }
 
@@ -107,30 +121,89 @@ export async function GET(request: NextRequest) {
     filters.push("id = ?")
     values.push(selectedId)
   }
+  if (shipper) {
+    filters.push("LOWER(TRIM(shipper)) = LOWER(TRIM(?))")
+    values.push(shipper)
+  }
   if (month) {
     filters.push("shipment_date >= ? AND shipment_date < ?")
     values.push(month + "-01", month + "-32")
   }
-  if (search) {
-    const searchable = columns.filter(column => column !== "container_count")
-    filters.push("(" + searchable.map(column => `instr(lower(${column}), lower(?)) > 0`).join(" OR ") +
-      " OR EXISTS (SELECT 1 FROM json_each(containers_json) WHERE instr(lower(value ->> '$.number'), lower(?)) > 0 OR instr(lower(value ->> '$.driver_number'), lower(?)) > 0 OR instr(lower(value ->> '$.truck_number'), lower(?)) > 0))")
-    values.push(...searchable.map(() => search), search, search, search)
+  if (dateFrom) {
+    filters.push("shipment_date >= ?")
+    values.push(dateFrom)
   }
-  const where = filters.length ? " WHERE " + filters.join(" AND ") : ""
-  const [pageResult, totalsResult] = await db.batch([
-    db.prepare(`SELECT ${selectedColumns} FROM shipment_records${where}
-      ORDER BY shipment_date DESC, id DESC LIMIT ? OFFSET ?`).bind(...values, pageSize, (page - 1) * pageSize),
-    db.prepare(`SELECT count(*) AS total, coalesce(sum(container_count), 0) AS containers
-      FROM shipment_records${where}`).bind(...values),
-  ])
+  if (dateTo) {
+    filters.push("shipment_date <= ?")
+    values.push(dateTo)
+  }
 
-  return NextResponse.json({
-    records: (requireD1Success(pageResult).results as unknown as ShipmentRow[]).map(({ containers_json, ...row }) => ({
+  const where = filters.length ? " WHERE " + filters.join(" AND ") : ""
+  let pageRecords: ShipmentRecord[] = []
+  let total = 0
+  let containers = 0
+
+  if (search) {
+    // Smart Arabic + English multi-token search across all shipment fields & containers
+    const allRows = requireD1Success(
+      await db
+        .prepare(`SELECT ${selectedColumns} FROM shipment_records${where} ORDER BY shipment_date DESC, id DESC LIMIT 2000`)
+        .bind(...values)
+        .all()
+    ).results as unknown as ShipmentRow[]
+
+    const matched = allRows
+      .map(({ containers_json, ...row }) => ({
+        ...row,
+        containers: JSON.parse(containers_json) as ShipmentRecord["containers"],
+      }))
+      .filter(record =>
+        matchesSmartQuery(
+          [
+            ...columns.map(col => record[col]),
+            ...record.containers.flatMap(c => [c.number, c.driver_number, c.truck_number]),
+          ],
+          search
+        )
+      )
+
+    total = matched.length
+    containers = matched.reduce((sum, row) => sum + (Number(row.container_count) || 0), 0)
+    pageRecords = matched.slice((page - 1) * pageSize, page * pageSize)
+  } else {
+    const [pageResult, totalsResult] = await db.batch([
+      db.prepare(`SELECT ${selectedColumns} FROM shipment_records${where}
+        ORDER BY shipment_date DESC, id DESC LIMIT ? OFFSET ?`).bind(...values, pageSize, (page - 1) * pageSize),
+      db.prepare(`SELECT count(*) AS total, coalesce(sum(container_count), 0) AS containers
+        FROM shipment_records${where}`).bind(...values),
+    ])
+    pageRecords = (requireD1Success(pageResult).results as unknown as ShipmentRow[]).map(({ containers_json, ...row }) => ({
       ...row,
       containers: JSON.parse(containers_json),
+    }))
+    const totalsRow = requireD1Success(totalsResult).results[0] as unknown as { total: number; containers: number }
+    total = Number(totalsRow?.total || 0)
+    containers = Number(totalsRow?.containers || 0)
+  }
+
+  const workflowMap = await getShipmentStatusSummaryMap(
+    db,
+    pageRecords.map(r => r.id)
+  )
+
+  return NextResponse.json({
+    records: pageRecords.map(record => ({
+      ...record,
+      workflow: workflowMap[record.id] || {
+        transferState: null,
+        deleteState: null,
+        invoiceId: null,
+        invoiceStatus: null,
+        invoiceApprovalPending: false,
+      },
     })),
-    ...requireD1Success(totalsResult).results[0],
+    total,
+    containers,
     pageSize,
   }, { headers: { "Cache-Control": "private, no-store" } })
 }
@@ -186,6 +259,56 @@ export async function POST(request: NextRequest) {
         previous.containers_json !== JSON.stringify(details ?? [])) {
       return NextResponse.json({ error: "Shipment has changed" }, { status: 409 })
     }
+  } else if (normalized.shipper) {
+    // Notify the matching customer immediately when a new shipment is registered for them
+    const customer = await db
+      .prepare(`SELECT id, companyName FROM customers WHERE LOWER(TRIM(companyName)) = LOWER(TRIM(?)) LIMIT 1`)
+      .bind(normalized.shipper)
+      .first<{ id: string; companyName: string }>()
+    if (customer) {
+      await insertNotificationRow(db, {
+        targetAudience: "customer",
+        recipientCustomerId: customer.id,
+        type: "shipment_added",
+        title: "تم إضافة شحنة جديدة لك / New shipment added",
+        message: `${normalized.booking}${normalized.shipping_line ? ` — ${normalized.shipping_line}` : ""}`,
+        actionUrl: "/portal#my-shipments",
+      })
+    }
   }
   return NextResponse.json({ id, revision: 1 }, { status: 201 })
+}
+
+export async function DELETE(request: NextRequest) {
+  if (request.headers.get("origin") !== request.nextUrl.origin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+  const session = await getSessionFromRequest(request)
+  if (!session || session.role !== "super_admin") {
+    return NextResponse.json(
+      { error: "Only an administrator can delete shipments directly. Submit a delete request instead." },
+      { status: 403 }
+    )
+  }
+  const id = request.nextUrl.searchParams.get("id") || ""
+  if (!z.uuid().safeParse(id).success) {
+    return NextResponse.json({ error: "Invalid shipment ID" }, { status: 400 })
+  }
+  const db = await getD1()
+  const publishedInv = await db
+    .prepare(
+      `SELECT id FROM invoices
+       WHERE json_extract(data, '$.shipmentRecordId') = ?
+         AND status NOT IN ('draft', 'cancelled')
+         AND json_extract(data, '$.archivedAt') IS NULL
+       LIMIT 1`
+    )
+    .bind(id)
+    .first<{ id: string }>()
+  if (publishedInv) {
+    return NextResponse.json({ error: "Cannot delete a shipment with a published invoice" }, { status: 409 })
+  }
+  const res = requireD1Success(await db.prepare(`DELETE FROM shipment_records WHERE id = ?`).bind(id).run())
+  if (!res.meta.changes) return NextResponse.json({ error: "Shipment not found" }, { status: 404 })
+  return NextResponse.json({ success: true })
 }

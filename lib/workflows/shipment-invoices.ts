@@ -14,6 +14,7 @@ import type { Actor, Data, Snapshot, WorkflowInput, WorkflowStore } from "./runt
 import {isAccountingInvoice} from "../shipments/invoice-kind"
 import {latestQuote,quoteItems,requestServices} from "./requests"
 import {serviceLabels} from "../requests/progress"
+import { hasApprovedTransferToAccounts } from "./staff-requests"
 
 export function accountingPermissions(actor: Actor) {
   requireStaff(actor.user)
@@ -123,13 +124,19 @@ export async function handleShipmentInvoices(store: WorkflowStore, actor: Actor,
     if (!permissions.canCreate) reject(403, "Invoice creation permission required")
     const input = z.object({ shipmentId: z.uuid(), customerId: z.string().regex(/^[a-f\d]{24}$/i), currency: z.enum(currencies), dueDate: z.string().trim().max(80).nullish(), requestId: z.string().regex(/^[a-f\d]{24}$/i).optional() }).strict().safeParse(await body(args))
     if (!input.success) reject(400, "Invalid shipment invoice input")
-    const shipment = await store.db.prepare("SELECT id,booking,revision,port_of_loading,port_of_discharge FROM shipment_records WHERE id=?").bind(input.data.shipmentId)
-      .first<{ id: string; booking: string; revision: number; port_of_loading: string; port_of_discharge: string }>()
+    const shipment = await store.db.prepare("SELECT id,booking,revision,shipment_date,number_46,ucr,shipping_line,container_count,container_size,port_of_loading,port_of_discharge FROM shipment_records WHERE id=?").bind(input.data.shipmentId)
+      .first<{ id: string; booking: string; revision: number; shipment_date: string; number_46: string; ucr: string; shipping_line: string; container_count: number; container_size: string; port_of_loading: string; port_of_discharge: string }>()
     const customer = await store.read("customers", input.data.customerId)
     if (!shipment || !customer) reject(404, "Shipment or registered customer not found")
     const parent = input.data.requestId ? await store.read("customer_requests", input.data.requestId) : null
     if (input.data.requestId && (!parent || parent.data.customerId !== customer.id)) reject(409, "Request and invoice must belong to the same customer")
-    if (parent && permissions.requiresApproval && parent.data.accountsReadiness?.state !== "approved") reject(403, "This shipment has not been approved for accounts by an administrator")
+    if (permissions.requiresApproval) {
+      const requestApproved = parent?.data.accountsReadiness?.state === "approved"
+      const shipmentApproved = await hasApprovedTransferToAccounts(store.db, shipment.id)
+      if (!requestApproved && !shipmentApproved) {
+        reject(403, "This shipment has not been approved for accounts by an administrator")
+      }
+    }
     const existing = (await store.list("invoices", "json_extract(data,'$.shipmentRecordId')=?", [shipment.id]))[0]
     if (existing) {
       if (existing.data.customerId !== customer.id || existing.data.currency !== input.data.currency) reject(409, "Shipment already has an invoice with a different customer or currency")
@@ -145,7 +152,18 @@ export async function handleShipmentInvoices(store: WorkflowStore, actor: Actor,
       issueDate, dueDate, items: [], subtotal: 0, taxRate: 0, tax: 0, discount: 0, additionalCharges: 0, totalAmount: 0, paidAmount: 0, remainingAmount: 0,
       notes: "", createdBy: actor.user._id, shipmentAccounting: emptyAccounting(),
       customerSnapshot: fields(customer.data, ["companyName", "commercialRegisterNumber", "taxCardNumber", "address", "city", "country", "contactPhone", "contactEmail"]),
-      shipmentSnapshot: { trackingNumber: shipment.booking, origin: shipment.port_of_loading, destination: shipment.port_of_discharge, serviceType: "Shipping / Transportation / Customs Clearance" },
+      shipmentSnapshot: {
+        trackingNumber: shipment.booking,
+        shipmentDate: shipment.shipment_date,
+        number46: shipment.number_46,
+        ucr: shipment.ucr,
+        shippingLine: shipment.shipping_line,
+        containerCount: shipment.container_count,
+        containerSize: shipment.container_size,
+        origin: shipment.port_of_loading,
+        destination: shipment.port_of_discharge,
+        serviceType: "Shipping / Transportation / Customs Clearance",
+      },
     })
     const guard = randomUUID()
     if (parent) invoiceRequestMatches({ table: "invoices", id: invoice._id, revision: 0, data: invoice }, parent)
@@ -254,6 +272,15 @@ export async function handleShipmentInvoices(store: WorkflowStore, actor: Actor,
     { table: "notifications", data: notification({ recipientCustomerId: customer.id, type: "invoice_confirmed", title: "Invoice published / تم نشر الفاتورة",
       message: `${source.data.invoiceNumber} · v${snapshot.version} — تم نشر الفاتورة ويمكن معاينتها / Your published invoice is ready to view.`, relatedInvoiceId: source.id,
       relatedRequestId:source.data.relatedRequestId??null,actionUrl:source.data.relatedRequestId?`/portal/requests/${source.data.relatedRequestId}`:"/portal/financials" }) },
+    ...(accounting.approvalRequest?.by ? [{ table: "notifications" as const, data: notification({
+      recipientUserId: accounting.approvalRequest.by,
+      targetAudience: "staff",
+      type: "invoice_approval_published",
+      title: "تم اعتماد ونشر الفاتورة للعميل / Invoice approved & published to customer",
+      message: `${source.data.invoiceNumber} · v${snapshot.version}`,
+      relatedInvoiceId: source.id,
+      actionUrl: `/admin/shipment-invoices/${source.id}`,
+    }) }] : []),
   ] })
   return response({ invoice: accountingStaffView({ ...source.data, ...patch }, source.revision + 1, true), permissions })
 }

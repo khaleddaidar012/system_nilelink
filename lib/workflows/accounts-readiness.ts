@@ -84,7 +84,7 @@ export async function handleAccountsReadiness(store: WorkflowStore, actor: Actor
 
   if (args.action === "accounts-readiness-mark") {
     if (!userCanMarkReadyForAccounts(actor.user)) reject(403, "Permission to mark shipments ready for accounts is required")
-    if (!["processing", "completed"].includes(parent.data.status)) reject(409, "Begin processing the request before marking it ready for accounts")
+    if (parent.data.status === "cancelled") reject(409, "Cancelled requests cannot be transferred to accounts")
     if (current && current.state !== "rejected") return response({ success: true, changed: false, readiness: current })
     const readiness: AccountsReadiness = { state: "pending_admin", source: "manual", markedAt: now(), markedBy: actor.user._id, markedByName: displayName(actor.user), ...(note ? { note } : {}) }
     await store.commit({ checks: [actor.snapshot], updates: [{ before: parent, patch: { accountsReadiness: readiness } }], inserts: [{ table: "notifications", data: readinessNotification(parent.data, readiness) }] })

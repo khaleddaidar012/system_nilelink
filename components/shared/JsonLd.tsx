@@ -24,7 +24,7 @@ const organizationSchema = {
   "@type": "Organization",
   name: "NileLink",
   url: "https://nilelink-eg.com",
-  logo: "https://nilelink-eg.com/images/logo.png",
+  logo: "https://nilelinklogistics.com/images/logo.png",
   description:
     "NileLink is a leading freight forwarding company in Egypt, offering sea freight, air freight, land freight, customs clearance, and warehousing services worldwide.",
   contactPoint: {

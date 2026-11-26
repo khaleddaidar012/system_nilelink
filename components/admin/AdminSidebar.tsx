@@ -73,7 +73,7 @@ export function AdminSidebar({ role = "staff", permissions = {}, canManageBackup
     },
     ...(canViewShipmentData ? [{ href: "/admin/coming-soon/shipments", label: isAr ? "بيانات الشحنات" : "Shipment data", icon: Ship }] : []),
     ...(canAccessAccounts ? [{ href: "/admin/shipment-invoices", label: isAr ? "الحسابات" : "Accounts", icon: Receipt }] : []),
-    ...((canAccessAccounts || canMarkReadyForAccounts) ? [{ href: "/admin/accounts-ready", label: isAr ? "جاهزة للحسابات" : "Ready for accounts", icon: FileCheck2 }] : []),
+    ...((canAccessAccounts || canMarkReadyForAccounts) ? [{ href: "/admin/accounts-ready", label: isAccountsOnly ? (isAr ? "طلبات التحويل" : "Transfer requests") : (isAr ? "طلبات الموظفين" : "Staff requests"), icon: FileCheck2 }] : []),
     ...(isAdmin || !isCategorized ? [{ href: "/admin/activity", label: isAr ? "سجل الحركات" : "Activity log", icon: History }] : []),
     { href: "/admin/chat", label: isAr ? "الشات" : "Chat", icon: MessageSquare },
     ...(canSeeDocs ? [{

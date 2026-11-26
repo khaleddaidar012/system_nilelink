@@ -199,8 +199,42 @@ export async function handleShipmentInvoices(store: WorkflowStore, actor: Actor,
   if (!source) reject(404, "Shipment invoice not found")
   const accounting = readAccounting(source.data)
   if (args.action === "shipment-invoice-detail") {
+    let shipmentRow: {
+      shipment_date?: string
+      booking?: string
+      number_46?: string
+      ucr?: string
+      shipping_line?: string
+      container_count?: number
+      container_size?: string
+    } | null = null
+    if (source.data.shipmentRecordId) {
+      shipmentRow = await store.db
+        .prepare("SELECT shipment_date, booking, number_46, ucr, shipping_line, container_count, container_size FROM shipment_records WHERE id = ? LIMIT 1")
+        .bind(source.data.shipmentRecordId)
+        .first()
+    }
+    if (!shipmentRow && source.data.shipmentSnapshot?.trackingNumber) {
+      shipmentRow = await store.db
+        .prepare("SELECT shipment_date, booking, number_46, ucr, shipping_line, container_count, container_size FROM shipment_records WHERE booking = ? LIMIT 1")
+        .bind(source.data.shipmentSnapshot.trackingNumber)
+        .first()
+    }
+    const reqRow = source.data.relatedRequestId ? await store.read("customer_requests", source.data.relatedRequestId) : null
+    const snap = source.data.shipmentSnapshot || {}
+    const shipmentMeta = {
+      booking: shipmentRow?.booking || snap.trackingNumber || "",
+      shipmentDate: shipmentRow?.shipment_date || snap.shipmentDate || String(source.data.issueDate || "").slice(0, 10),
+      number46: shipmentRow?.number_46 || snap.number46 || "",
+      ucr: shipmentRow?.ucr || snap.ucr || snap.complianceNumber || reqRow?.data?.ucrValue || reqRow?.data?.complianceNumber || "",
+      shippingLine: shipmentRow?.shipping_line || snap.shippingLine || "",
+      containerCount: shipmentRow?.container_count ?? snap.containerCount ?? reqRow?.data?.details?.containerCount ?? null,
+      containerSize: shipmentRow?.container_size || snap.containerSize || reqRow?.data?.details?.containerSize || "",
+    }
     return response({
-      invoice: accountingStaffView(source.data, source.revision, permissions.viewSensitive), permissions,
+      invoice: accountingStaffView(source.data, source.revision, permissions.viewSensitive),
+      shipmentMeta,
+      permissions,
       audit: await shipmentAudit(store, source.id)
     })
   }

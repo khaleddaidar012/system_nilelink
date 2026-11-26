@@ -4,7 +4,7 @@ import { useTranslations, useLocale } from "next-intl"
 import { InvoiceStatusBadge } from "./InvoiceStatusBadge"
 import { Link as LinkIcon, Download, Printer } from "lucide-react"
 import { toast } from "sonner"
-import { ProfessionalOnePageInvoice } from "@/components/shared/ProfessionalOnePageInvoice"
+import { ProfessionalOnePageInvoice, printOnePageInvoiceHtml, type OnePageInvoiceProps } from "@/components/shared/ProfessionalOnePageInvoice"
 
 interface InvoiceLivePreviewProps {
   invoice: any
@@ -34,17 +34,6 @@ export function InvoiceLivePreview({ invoice }: InvoiceLivePreviewProps) {
     }
   }
 
-  const handlePrint = () => {
-    if (typeof window !== "undefined") {
-      window.print()
-    }
-  }
-
-  const handleDownloadPdf = () => {
-    const downloadUrl = `/api/portal/invoices/${invoice._id}/pdf`
-    window.open(downloadUrl, "_blank")
-  }
-
   const items = Array.isArray(invoice.items)
     ? invoice.items.map((item: any) => ({
         description: item.description || "—",
@@ -53,6 +42,39 @@ export function InvoiceLivePreview({ invoice }: InvoiceLivePreviewProps) {
         unitPrice: item.unitPrice,
       }))
     : []
+
+  const onePageProps: OnePageInvoiceProps = {
+    ar: isAr,
+    invoiceNumber: invoice.referenceNumber || invoice.invoiceNumber || "—",
+    referenceNumber: invoice.referenceNumber,
+    issueDate: invoice.issueDate || invoice.createdAt,
+    status: invoice.status,
+    currency: invoice.currency || "EGP",
+    customerName: customer.companyName || "—",
+    bookingNumber: shipment.trackingNumber || shipment.booking,
+    containerCount: shipment.containerCount,
+    containerSize: shipment.containerSize,
+    certificateNumber: shipment.complianceNumber || shipment.ucr,
+    number46: shipment.number46,
+    shipmentDate: shipment.shipmentDate || invoice.issueDate,
+    shippingLine: shipment.shippingLine,
+    items,
+    groups: invoice.groups || invoice.publishedGroups || invoice.shipmentAccounting?.publications?.at(-1)?.groups,
+    total: invoice.totalAmount ?? 0,
+    paidAmount: invoice.paidAmount ?? 0,
+    remainingAmount: invoice.remainingAmount ?? 0,
+    notes: invoice.notes,
+    showPrintButton: false,
+  }
+
+  const handlePrint = () => {
+    printOnePageInvoiceHtml(onePageProps)
+  }
+
+  const handleDownloadPdf = () => {
+    const downloadUrl = `/api/portal/invoices/${invoice._id}/pdf`
+    window.open(downloadUrl, "_blank")
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
@@ -104,29 +126,7 @@ export function InvoiceLivePreview({ invoice }: InvoiceLivePreviewProps) {
       </div>
 
       {/* Professional One-Page A4 Invoice Template (Western English Digits + Official Logo + Auto Shipment Data) */}
-      <ProfessionalOnePageInvoice
-        ar={isAr}
-        invoiceNumber={invoice.referenceNumber || invoice.invoiceNumber || "—"}
-        referenceNumber={invoice.referenceNumber}
-        issueDate={invoice.issueDate || invoice.createdAt}
-        status={invoice.status}
-        currency={invoice.currency || "EGP"}
-        customerName={customer.companyName || "—"}
-        bookingNumber={shipment.trackingNumber || shipment.booking}
-        containerCount={shipment.containerCount}
-        containerSize={shipment.containerSize}
-        certificateNumber={shipment.complianceNumber || shipment.ucr}
-        number46={shipment.number46}
-        shipmentDate={shipment.shipmentDate || invoice.issueDate}
-        shippingLine={shipment.shippingLine}
-        items={items}
-        groups={invoice.groups || invoice.publishedGroups || invoice.shipmentAccounting?.publications?.at(-1)?.groups}
-        total={invoice.totalAmount ?? 0}
-        paidAmount={invoice.paidAmount ?? 0}
-        remainingAmount={invoice.remainingAmount ?? 0}
-        notes={invoice.notes}
-        showPrintButton={false}
-      />
+      <ProfessionalOnePageInvoice {...onePageProps} />
     </div>
   )
 }

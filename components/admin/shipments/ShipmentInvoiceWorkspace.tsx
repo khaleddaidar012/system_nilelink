@@ -36,7 +36,17 @@ function useLabels() {
   const ar = useLocale() === "ar"
   return { ar, label: (arabic: string, english: string) => ar ? arabic : english }
 }
-export function CustomerInvoicePreview({ snapshot }: { snapshot: Publication }) {
+export interface ShipmentMeta {
+  booking?: string
+  shipmentDate?: string
+  number46?: string
+  ucr?: string
+  shippingLine?: string
+  containerCount?: number | null
+  containerSize?: string
+}
+
+export function CustomerInvoicePreview({ snapshot, shipmentMeta }: { snapshot: Publication; shipmentMeta?: ShipmentMeta | null }) {
   const { ar } = useLabels()
   const snap = snapshot as Publication & {
     shipmentDate?: string
@@ -54,13 +64,13 @@ export function CustomerInvoicePreview({ snapshot }: { snapshot: Publication }) 
       issueDate={snapshot.publishedAt}
       currency={snapshot.currency}
       customerName={snapshot.customerName}
-      bookingNumber={snapshot.booking}
-      containerCount={snap.containerCount}
-      containerSize={snap.containerSize}
-      certificateNumber={snap.ucr}
-      number46={snap.number46}
-      shipmentDate={snap.shipmentDate || snapshot.publishedAt}
-      shippingLine={snap.shippingLine}
+      bookingNumber={shipmentMeta?.booking || snapshot.booking}
+      containerCount={shipmentMeta?.containerCount ?? snap.containerCount}
+      containerSize={shipmentMeta?.containerSize || snap.containerSize}
+      certificateNumber={shipmentMeta?.ucr || snap.ucr}
+      number46={shipmentMeta?.number46 || snap.number46}
+      shipmentDate={shipmentMeta?.shipmentDate || snap.shipmentDate || snapshot.publishedAt}
+      shippingLine={shipmentMeta?.shippingLine || snap.shippingLine}
       items={snapshot.items.map(i => ({ description: i.description, amount: i.amount }))}
       groups={snapshot.groups}
       total={snapshot.total}
@@ -226,6 +236,7 @@ function draftSaveInput(invoice: Invoice, draft: EditableDraft) {
 export function ShipmentInvoiceEditor({ id }: { id: string }) {
   const { ar, label } = useLabels()
   const [invoice, setInvoice] = useState<Invoice | null>(null)
+  const [shipmentMeta, setShipmentMeta] = useState<ShipmentMeta | null>(null)
   const [draft, setDraft] = useState<ReturnType<typeof editableDraft> | null>(null)
   const [permissions, setPermissions] = useState<Permissions | null>(null)
   const [audit, setAudit] = useState<Audit[]>([])
@@ -250,8 +261,9 @@ export function ShipmentInvoiceEditor({ id }: { id: string }) {
     document.addEventListener("mousedown", handleOutsideClick)
     return () => document.removeEventListener("mousedown", handleOutsideClick)
   }, [expandedCostId])
-  function accept(data: { invoice: Invoice; permissions: Permissions; audit?: Audit[] }) {
+  function accept(data: { invoice: Invoice; shipmentMeta?: ShipmentMeta | null; permissions: Permissions; audit?: Audit[] }) {
     setInvoice(data.invoice); setDraft(editableDraft(data.invoice)); setPermissions(data.permissions); setDirty(false); setPreview(null)
+    if (data.shipmentMeta !== undefined) setShipmentMeta(data.shipmentMeta)
     if (data.audit) setAudit(data.audit)
   }
   async function reload() {
@@ -450,12 +462,12 @@ export function ShipmentInvoiceEditor({ id }: { id: string }) {
           {editing && <button className={buttonClass} disabled={busy || dirty || !canPreview} onClick={() => void operation("preview")}>{label("معاينة نسخة العميل قبل النشر", "Preview customer invoice before publication")}</button>}
           {editing && !permissions?.canPublish && <button className={primaryClass} disabled={busy || dirty || !canPreview || Boolean(invoice.approvalRequest)} onClick={() => void operation("request-approval")}>{invoice.approvalRequest ? label("تم إرسال طلب الاعتماد", "Approval requested") : label("إرسال طلب اعتماد للأدمن", "Send for Admin Approval")}</button>}
         </div>
-        {preview && <section role="region" aria-label={label("مراجعة النشر", "Publication review")} className="space-y-4 rounded-2xl border-2 border-primary-300 p-5"><h2 className="font-bold">{label("مراجعة نسخة العميل", "Review customer invoice")}</h2><CustomerInvoicePreview snapshot={preview.snapshot} />
+        {preview && <section role="region" aria-label={label("مراجعة النشر", "Publication review")} className="space-y-4 rounded-2xl border-2 border-primary-300 p-5"><h2 className="font-bold">{label("مراجعة نسخة العميل", "Review customer invoice")}</h2><CustomerInvoicePreview snapshot={preview.snapshot} shipmentMeta={shipmentMeta} />
           {permissions?.canPublish && <><label className="flex gap-2 text-sm"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} />{label("راجعت هذه النسخة وأوافق على نشرها للعميل المرتبط بالشحنة", "I reviewed this version and approve publication to the linked customer")}</label>
           <button className={primaryClass} disabled={busy || dirty || !confirmed || !canPreview} onClick={() => void operation("publish")}>{label("نشر الفاتورة", "Publish invoice")}</button></>}<button className={buttonClass + " ms-3"} disabled={busy} onClick={() => setPreview(null)}>{label("إلغاء", "Cancel")}</button>
         </section>}
         {invoice.status === "published" && !invoice.pendingRevision && permissions?.canPublish && <section className={panelClass}><h2 className="font-bold">{label("إنشاء إصدار مراجعة", "Start a revision")}</h2><p className="mt-2 text-xs text-slate-500">{label("تبقى النسخة المنشورة كما هي حتى نشر المراجعة. الفواتير المسدد منها تتطلب تسوية مالية أولًا.", "The current publication remains visible until the revision is published. Invoices with payments require reconciliation first.")}</p><label className="mt-3 block text-sm">{label("سبب المراجعة", "Revision reason")}<input maxLength={1000} className={inputClass} value={revisionReason} onChange={event => setRevisionReason(event.target.value)} /></label><button className={buttonClass + " mt-3"} disabled={busy || !revisionReason.trim()} onClick={() => void operation("revise")}>{label("فتح مسودة مراجعة", "Open revision draft")}</button></section>}
-        {invoice.publications.length > 0 && <section className={panelClass}><h2 className="mb-4 font-bold">{label("النسخ المنشورة المحفوظة", "Saved publication snapshots")}</h2>{invoice.publications.map(snapshot => <details key={snapshot.version} className="mb-3"><summary className="cursor-pointer text-sm">v{snapshot.version} · {new Date(snapshot.publishedAt).toLocaleString(ar ? "ar-EG" : "en-GB", { hour12: true })} · {label("نشر بواسطة", "Published by")} <bdi>{snapshot.publishedBy}</bdi></summary><div className="mt-3"><CustomerInvoicePreview snapshot={snapshot} /></div></details>)}</section>}
+        {invoice.publications.length > 0 && <section className={panelClass}><h2 className="mb-4 font-bold">{label("النسخ المنشورة المحفوظة", "Saved publication snapshots")}</h2>{invoice.publications.map(snapshot => <details key={snapshot.version} className="mb-3"><summary className="cursor-pointer text-sm">v{snapshot.version} · {new Date(snapshot.publishedAt).toLocaleString(ar ? "ar-EG" : "en-GB", { hour12: true })} · {label("نشر بواسطة", "Published by")} <bdi>{snapshot.publishedBy}</bdi></summary><div className="mt-3"><CustomerInvoicePreview snapshot={snapshot} shipmentMeta={shipmentMeta} /></div></details>)}</section>}
         <section className={panelClass}><h2 className="mb-3 font-bold">{label("سجل التعديلات", "Audit log")}</h2>{audit.map(entry => <p key={entry._id} className="border-b border-slate-100 py-2 text-xs dark:border-slate-800">{auditLabels[entry.action] || entry.action} · {entry.actorName} · {new Date(entry.createdAt).toLocaleString(ar ? "ar-EG" : "en-GB", { hour12: true })}</p>)}</section>
       </>}
     </div>

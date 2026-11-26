@@ -120,6 +120,7 @@ export function InvoiceLivePreview({ invoice }: InvoiceLivePreviewProps) {
         shipmentDate={shipment.shipmentDate || invoice.issueDate}
         shippingLine={shipment.shippingLine}
         items={items}
+        groups={invoice.groups || invoice.publishedGroups || invoice.shipmentAccounting?.publications?.at(-1)?.groups}
         total={invoice.totalAmount ?? 0}
         paidAmount={invoice.paidAmount ?? 0}
         remainingAmount={invoice.remainingAmount ?? 0}

@@ -62,6 +62,7 @@ export function CustomerInvoicePreview({ snapshot }: { snapshot: Publication }) 
       shipmentDate={snap.shipmentDate || snapshot.publishedAt}
       shippingLine={snap.shippingLine}
       items={snapshot.items.map(i => ({ description: i.description, amount: i.amount }))}
+      groups={snapshot.groups}
       total={snapshot.total}
       notes={snapshot.notes}
       showPrintButton

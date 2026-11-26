@@ -1,14 +1,25 @@
 "use client"
 
+import { Fragment } from "react"
 import Image from "next/image"
 import logoImg from "@/public/images/logo.png"
 import { Printer } from "lucide-react"
+import type { InvoiceGroup } from "@/lib/shipments/accounting"
+
+export interface OnePageInvoiceTier {
+  label: string
+  quantity: string | number
+  unitPrice: string | number
+  subtotal: string | number
+  currency?: string
+}
 
 export interface OnePageInvoiceItem {
   description: string
   amount: string | number
   quantity?: number
   unitPrice?: number
+  tiers?: OnePageInvoiceTier[]
 }
 
 export interface OnePageInvoiceProps {
@@ -27,6 +38,7 @@ export interface OnePageInvoiceProps {
   shipmentDate?: string
   shippingLine?: string
   items: OnePageInvoiceItem[]
+  groups?: InvoiceGroup[]
   total: string | number
   paidAmount?: number
   remainingAmount?: number
@@ -166,35 +178,115 @@ export function ProfessionalOnePageInvoice(props: OnePageInvoiceProps) {
           </div>
         </section>
 
-        {/* Financial Line Items Table */}
+        {/* Financial Line Items Table (with Tiered Pricing Sub-items) */}
         <section className="mt-4">
           <h3 className="mb-2 text-xs font-extrabold tracking-wide text-slate-700 uppercase">
             {label("الحسابات المالية والبنود", "Financial Breakdown")}
           </h3>
-          <table className="w-full border-collapse text-start text-xs">
-            <thead>
-              <tr className="border-y border-slate-300 bg-slate-100 text-slate-700">
-                <th className="w-10 px-2.5 py-2 text-start font-bold">#</th>
-                <th className="px-2.5 py-2 text-start font-bold">{label("البيان / البند", "Description")}</th>
-                <th className="w-36 px-2.5 py-2 text-end font-bold">{label("المبلغ", "Amount")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {props.items.map((item, idx) => (
-                <tr key={idx} className="border-b border-slate-200/80">
-                  <td className="px-2.5 py-2 font-semibold text-slate-500 tabular-nums">
-                    <bdi dir="ltr">{idx + 1}</bdi>
-                  </td>
-                  <td className="px-2.5 py-2 font-medium text-slate-900">{item.description}</td>
-                  <td className="px-2.5 py-2 text-end font-bold text-slate-900 tabular-nums">
-                    <bdi dir="ltr">
-                      {formatEnglishMoney(item.amount)} {props.currency}
-                    </bdi>
-                  </td>
+          {props.groups && props.groups.length > 0 ? (
+            <table className="w-full border-collapse text-start text-xs">
+              <thead>
+                <tr className="border-y border-slate-300 bg-slate-100 text-slate-700">
+                  <th className="px-2.5 py-2 text-start font-bold">{label("البيان والبنود الفرعية", "Description & Sub-items")}</th>
+                  <th className="w-40 px-2.5 py-2 text-end font-bold">{label("المبلغ", "Amount")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {props.groups.map(group => {
+                  const stageName = ar
+                    ? { shipping: "الشحن", transportation: "النقل", customs: "التخليص الجمركي" }[group.stage]
+                    : { shipping: "Shipping", transportation: "Transportation", customs: "Customs Clearance" }[group.stage]
+                  return (
+                    <Fragment key={group.stage}>
+                      <tr className="bg-slate-100/80 font-extrabold text-slate-800">
+                        <td className="px-2.5 py-1.5" colSpan={2}>{stageName}</td>
+                      </tr>
+                      {group.items.map((item, idx) => (
+                        <Fragment key={idx}>
+                          <tr className="border-b border-slate-200/80">
+                            <td className="py-2 pe-2.5 ps-4 font-bold text-slate-900">{item.description}</td>
+                            <td className="px-2.5 py-2 text-end font-bold text-slate-900 tabular-nums">
+                              <bdi dir="ltr">
+                                {formatEnglishMoney(item.amount)} {props.currency}
+                              </bdi>
+                            </td>
+                          </tr>
+                          {item.tiers && item.tiers.length > 0 && item.tiers.map((tier, tIdx) => (
+                            <tr key={tIdx} className="border-b border-slate-100 bg-slate-50/50 text-[11px] text-slate-600">
+                              <td className="py-1.5 pe-2.5 ps-8">
+                                <span className="font-semibold text-slate-700">↳ {tier.label}</span>
+                                <span className="mx-1.5 text-slate-400">·</span>
+                                <bdi dir="ltr" className="tabular-nums text-slate-500">
+                                  {toEnglishDigits(tier.quantity)} × {formatEnglishMoney(tier.unitPrice)} {tier.currency || props.currency}
+                                </bdi>
+                              </td>
+                              <td className="px-2.5 py-1.5 text-end font-semibold text-slate-700 tabular-nums">
+                                <bdi dir="ltr">
+                                  {formatEnglishMoney(tier.subtotal)} {props.currency}
+                                </bdi>
+                              </td>
+                            </tr>
+                          ))}
+                        </Fragment>
+                      ))}
+                      <tr className="border-b border-slate-300 bg-slate-50/70 font-bold text-slate-800">
+                        <td className="px-2.5 py-1.5">{label(`إجمالي ${stageName}`, `${stageName} Subtotal`)}</td>
+                        <td className="px-2.5 py-1.5 text-end tabular-nums">
+                          <bdi dir="ltr">
+                            {formatEnglishMoney(group.total)} {props.currency}
+                          </bdi>
+                        </td>
+                      </tr>
+                    </Fragment>
+                  )
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <table className="w-full border-collapse text-start text-xs">
+              <thead>
+                <tr className="border-y border-slate-300 bg-slate-100 text-slate-700">
+                  <th className="w-10 px-2.5 py-2 text-start font-bold">#</th>
+                  <th className="px-2.5 py-2 text-start font-bold">{label("البيان / البند", "Description")}</th>
+                  <th className="w-36 px-2.5 py-2 text-end font-bold">{label("المبلغ", "Amount")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {props.items.map((item, idx) => (
+                  <Fragment key={idx}>
+                    <tr className="border-b border-slate-200/80">
+                      <td className="px-2.5 py-2 font-semibold text-slate-500 tabular-nums">
+                        <bdi dir="ltr">{idx + 1}</bdi>
+                      </td>
+                      <td className="px-2.5 py-2 font-bold text-slate-900">{item.description}</td>
+                      <td className="px-2.5 py-2 text-end font-bold text-slate-900 tabular-nums">
+                        <bdi dir="ltr">
+                          {formatEnglishMoney(item.amount)} {props.currency}
+                        </bdi>
+                      </td>
+                    </tr>
+                    {item.tiers && item.tiers.length > 0 && item.tiers.map((tier, tIdx) => (
+                      <tr key={tIdx} className="border-b border-slate-100 bg-slate-50/50 text-[11px] text-slate-600">
+                        <td className="px-2.5 py-1.5" />
+                        <td className="py-1.5 pe-2.5 ps-6">
+                          <span className="font-semibold text-slate-700">↳ {tier.label}</span>
+                          <span className="mx-1.5 text-slate-400">·</span>
+                          <bdi dir="ltr" className="tabular-nums text-slate-500">
+                            {toEnglishDigits(tier.quantity)} × {formatEnglishMoney(tier.unitPrice)} {tier.currency || props.currency}
+                          </bdi>
+                        </td>
+                        <td className="px-2.5 py-1.5 text-end font-semibold text-slate-700 tabular-nums">
+                          <bdi dir="ltr">
+                            {formatEnglishMoney(tier.subtotal)} {props.currency}
+                          </bdi>
+                        </td>
+                      </tr>
+                    ))}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
 
         {/* Totals Summary */}

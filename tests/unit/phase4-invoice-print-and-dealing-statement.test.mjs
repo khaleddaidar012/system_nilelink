@@ -17,6 +17,7 @@ test("Task 40: Collapsible invoice items, optional tiered quantity, and 1-page A
   assert.ok(onePage.includes("toEnglishDigits"), "Invoice template must force English digits")
   assert.ok(onePage.includes("رقم 46"), "Invoice template must show Form 46 field")
   assert.ok(onePage.includes("عدد الحاويات × الحجم"), "Invoice template must show container count x size")
+  assert.ok(onePage.includes("item.tiers"), "Invoice template must render tiered pricing sub-items")
 
   const customerPreview = readFileSync(resolve(process.cwd(), "components/portal/financials/InvoiceLivePreview.tsx"), "utf8")
   assert.ok(customerPreview.includes("ProfessionalOnePageInvoice"), "Customer InvoiceLivePreview must use ProfessionalOnePageInvoice")
